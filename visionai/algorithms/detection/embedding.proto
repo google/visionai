@@ -1,0 +1,88 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto2";
+
+package visionai.algorithms;
+
+import "visionai/algorithms/detection/entity.proto";
+
+// Meta information of the embeddings.
+message EmbeddingMeta {
+  // Entity info of this EmbeddingMeta.
+  optional Entity entity = 1;
+
+  enum Network {
+    UNSPECIFIED = 0;
+
+    // TODO(yuti): Pick one SOTA embedding model for Person Re-ID use-case.
+    // We could also adopt the open source version of FaceNet model, such as
+    // https://github.com/davidsandberg/facenet.
+  }
+
+  // Network used to generate the embedding.
+  optional Network network = 2;
+
+  // Image-related fields.
+  message ImageParams {
+    optional int32 image_height = 1;
+    optional int32 image_width = 2;
+
+    // image_source_id is used for tracing back where this embedding comes from.
+    // If this embedding comes from image, then it could be image path. If the
+    // embedding comes from video frame, it could be video name plus timestamp.
+    optional string image_source_id = 3;
+  }
+
+  optional ImageParams image_params = 3;
+
+  // The bounding box are in normalized coordinates. If you want to get the
+  // original coordinates, please scale it with image_height and image_width.
+  message BoundingBox {
+    optional float x_min = 1;
+    optional float y_min = 2;
+    optional float x_max = 3;
+    optional float y_max = 4;
+  }
+
+  optional BoundingBox bounding_box = 4;
+}
+
+// Signature of the embeddings. It contains the content of the embedding.
+// Currently we are expecting bytes or float type of signature. It can be
+// extended further.
+message EmbeddingSignature {
+  // The data type used to represent the embedding signature.
+  enum EmbeddingFormat {
+    EMBEDDING_FORMAT_UNSPECIFIED = 0;
+    FLOATS = 1;
+    BYTES = 2;
+  }
+
+  // If left unset or if set to EMBEDDING_FORMAT_UNSPECIFIED, it is assumed no
+  // embedding signature is available.
+  optional EmbeddingFormat embedding_format = 1;
+
+  // The embedding signature (in bytes).
+  optional bytes embedding_signature_bytes = 2;
+
+  // The embedding signature (in floats).
+  repeated float embedding_signature_floats = 3 [packed = true];
+
+  // The token-based representation of the embedding. This is useful for
+  // supporting the efficient retrieval of embeddings in any metadata DB
+  // empowered search system. This field is not an alternative representation
+  // of the embedding but will (optionally) co-exist with the main embedding
+  // representation either as bytes or floats.
+  repeated string embedding_tokens = 4;
+}
+
+// EmbeddingWithMeta combines the embedding signature and its meta
+// information.
+message EmbeddingWithMeta {
+  optional EmbeddingSignature embedding_signature = 1;
+  optional EmbeddingMeta embedding_meta = 2;
+}

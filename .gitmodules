@@ -1,0 +1,15 @@
+[submodule "third_party/gstreamer"]
+	path = third_party/gstreamer
+	url = sso://visionai/gstreamer
+[submodule "third_party/ffmpeg"]
+	path = third_party/ffmpeg
+	url = sso://visionai/ffmpeg
+[submodule "third_party/glib"]
+	path = third_party/glib
+	url = sso://visionai/glib
+[submodule "third_party/libffi"]
+	path = third_party/libffi
+	url = sso://visionai/libffi
+[submodule "third_party/pcre"]
+	path = third_party/pcre
+	url = sso://visionai/pcre

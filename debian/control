@@ -1,0 +1,17 @@
+Source: visionai
+Section: misc
+Priority: optional
+Maintainer: Vision AI Developers <anaheim-eng@google.com>
+Build-Depends:
+  debhelper (>=9),
+Standards-Version: 3.9.8
+Homepage: http://github.com/google/visionai
+
+Package: visionai
+Architecture: any
+Multi-Arch: foreign
+Depends:
+  libc6,
+  libgcc1,
+  libstdc++6
+Description: This is the Vision AI SDK

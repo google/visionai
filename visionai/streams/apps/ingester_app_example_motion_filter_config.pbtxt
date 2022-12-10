@@ -1,0 +1,42 @@
+capture_config {
+  name: "FileSourceImageCapture"
+  source_urls: "third_party/visionai/testing/testdata/media/page-brin-4-frames.mp4"
+}
+filter_config {
+  name: "MotionFilter"
+  attr {
+    key: "min_event_length_in_seconds"
+    value: "1"
+  }
+  attr {
+    key: "lookback_window_in_seconds"
+    value: "0"
+  }
+  attr {
+    key: "time_out_in_ms"
+    value: "10000"
+  }
+  attr {
+    key: "scale"
+    value: "0.1"
+  }
+  attr {
+    key: "background_history_frame_length"
+    value: "5"
+  }
+  attr {
+    key: "variance_threshold_num_pix"
+    value: "16"
+  }
+  attr {
+    key: "motion_foreground_pixel_threshold"
+    value: "120"
+  }
+  attr {
+    key: "motion_area_threshold"
+    value: "0"
+  }
+}
+event_writer_config {
+  name: "LogEventWriter"
+}

@@ -1,0 +1,31 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package visionai;
+
+import "visionai/streams/framework/attr_def.proto";
+
+option java_multiple_files = true;
+
+
+// CaptureDef defines the interface of a specific source capture.
+message CaptureDef {
+  // The name of the source capture.
+  string name = 1;
+
+  // The stringified presentation of the specific output packet type that the
+  // source capture produces.
+  string output_packet_type = 2;
+
+  // The list of attributes available on this source capture.
+  repeated AttrDef attr = 3;
+
+  // The documentation string to describe what this source capture does and its
+  // attribute meanings.
+  string doc = 4;
+}

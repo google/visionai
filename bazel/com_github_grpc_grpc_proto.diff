@@ -1,0 +1,34 @@
+diff -Naur a/BUILD.bazel b/BUILD.bazel 
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -13,9 +13,10 @@
+ # limitations under the License.
+ 
+ load("@rules_proto//proto:defs.bzl", "proto_library")
++load("@com_github_grpc_grpc//bazel:cc_grpc_library.bzl", "cc_grpc_library")
+ 
+ package(default_visibility = [
+-    "//visibility:private",
++    "//visibility:public",
+ ])
+ 
+ proto_library(
+@@ -117,6 +118,18 @@
+     visibility = ["//visibility:public"],
+ )
+ 
++cc_proto_library(
++  name = "health_cc_proto",
++  deps = [":health_proto"],
++)
++
++cc_grpc_library(
++  name = "health_cc_grpc_proto",
++  srcs = [":health_proto"],
++  grpc_only = True,
++  deps = [":health_cc_proto"],
++)
++
+ java_proto_library(
+     name = "health_java_proto",
+     visibility = ["//visibility:public"],

@@ -1,0 +1,34 @@
+capture_config {
+  name: "RTSPCapture"
+  source_urls: "rtsp://localhost:8554/exercise-video-stream"
+}
+filter_config {
+  name: "NoopFilter"
+}
+event_writer_config {
+  name: "WarehouseEventWriter"
+  attr {
+    key: "warehouse_server_address"
+    value: "staging-warehouse-visionai.sandbox.googleapis.com"
+  }
+  attr {
+    key: "asset_name"
+    value: "projects/389013567096/locations/us-central1/corpora/1311042704227258806/assets/1806028794548228199"
+  }
+  attr {
+    key: "stream_id"
+    value: "test-stream"
+  }
+  attr {
+    key: "temp_video_dir"
+    value: "/tmp/storage"
+  }
+  attr {
+    key: "h264_only"
+    value: "true"
+  }
+  attr {
+    key: "h264_mux_only"
+    value: "true"
+  }
+}

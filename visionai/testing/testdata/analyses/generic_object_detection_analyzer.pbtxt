@@ -1,0 +1,18 @@
+analyzers: {
+  analyzer: "input_0"
+  operator: "StreamSource"
+}
+analyzers: {
+  analyzer: "god_0"
+  operator: "GenericObjectDetection"
+  inputs: {
+    input: "input_0:output"
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "StreamSink"
+  inputs: {
+    input: "god_0:output_stream"
+  }
+}

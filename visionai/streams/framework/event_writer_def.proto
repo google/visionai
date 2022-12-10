@@ -1,0 +1,31 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package visionai;
+
+import "visionai/streams/framework/attr_def.proto";
+
+option java_multiple_files = true;
+
+
+// EventWriterDef defines the interface of a specific event writer.
+message EventWriterDef {
+  // The name of the event writer.
+  string name = 1;
+
+  // The stringified presentation of the specific input packet type that the
+  // event writer consumes.
+  string input_packet_type = 2;
+
+  // The list of attributes available on this event writer.
+  repeated AttrDef attr = 3;
+
+  // The documentation string to describe what this event writer does and its
+  // attribute meanings.
+  string doc = 4;
+}

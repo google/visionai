@@ -1,0 +1,82 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package visionai;
+
+import "google/protobuf/duration.proto";
+
+option java_multiple_files = true;
+
+
+// Message holding grpc connection options.
+message ConnectionOptions {
+  // Message for holding TLS/SSL options.
+  message SslOptions {
+    // Use an insecure channel to connect to the server.
+    //
+    // If false, then TLS/SSL will be used.
+    bool use_insecure_channel = 1;
+  }
+
+  // Specific settings for TLS/SSL options.
+  SslOptions ssl_options = 1;
+
+  // Message for holding gRPC channel options.
+  message ChannelOptions {
+    // The maximum allowable size of inbound messages.
+    int32 max_receive_message_size = 1;
+
+    // The maximum allowable size of outbound messages.
+    int32 max_send_message_size = 2;
+
+    // The period after which a keepalive ping is sent on the transport.
+    google.protobuf.Duration keepalive_time = 3;
+
+    // The amount of time the sender of the keepalive ping waits for an
+    // acknowledgement. If it does not receive an acknowledgment within this
+    // time, it will close the connection.
+    google.protobuf.Duration keepalive_timeout = 4;
+
+    // If set to 1 (0 : false; 1 : true), allows keepalive pings to be sent even
+    // if there are no calls in flight.
+    int32 keepalive_permit_without_calls = 5;
+
+    // The maximum number of pings that can be sent when there is no data/header
+    // frame to be sent. GRPC Core will not continue sending pings if we run
+    // over the limit. Setting it to 0 allows sending pings without such a
+    // restriction.
+    int32 http2_max_pings_without_data = 6;
+
+    // The fixed reconnect backoff in milliseconds. Otherwise, gRPC will choose
+    // a backoff time for client.
+    int32 fixed_reconnect_backoff_ms = 7;
+  }
+
+  // Specific settings for gRPC channel options.
+  ChannelOptions channel_options = 2;
+
+  // Message for holding client context options.
+  message ClientContextOptions {
+    // The timeout for a call. Set a positive value to timeout. By default its
+    // value is infinite, and won't be used for RPC calls.
+    google.protobuf.Duration timeout = 1;
+
+    // If true, then block until the underlying communication channel
+    // becomes ready instead of failing fast.
+    bool wait_for_ready = 2;
+
+    // The client side metadata key-value pairs.
+    map<string, string> metadata = 3;
+
+    // If true, then do not return lame channel when the credential is invalid.
+    bool no_lame_channel = 4;
+  }
+
+  // Specific settings for client context options.
+  ClientContextOptions client_context_options = 3;
+}

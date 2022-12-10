@@ -1,0 +1,34 @@
+item {
+  # name: "/m/01bl7v"
+  name: "/m/01g317"
+  id: 51
+  # display_name: "Boy"
+  display_name: "Person"
+}
+
+item {
+  name: "/m/01g317"
+  id: 69
+  display_name: "Person"
+}
+item {
+  # name: "/m/03bt1vf"
+  name: "/m/01g317"
+  id: 228
+  # display_name: "Woman"
+  display_name: "Person"
+}
+item {
+  # name: "/m/04yx4"
+  name: "/m/01g317"
+  id: 308
+  # display_name: "Man"
+  display_name: "Person"
+}
+item {
+  # name: "/m/05r655"
+  name: "/m/01g317"
+  id: 333
+  # display_name: "Girl"
+  display_name: "Person"
+}

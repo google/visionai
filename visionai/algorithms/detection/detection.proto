@@ -1,0 +1,73 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto2";
+
+package visionai.algorithms;
+
+import "visionai/algorithms/detection/embedding.proto";
+import "visionai/algorithms/detection/entity.proto";
+import "visionai/algorithms/detection/location_data.proto";
+
+// An Attribute describes a certain property annotated or inferred from a
+// detected object. FREE_FORM (string, value) pair is used so that this
+// property does not bound to a particular attribute list, hence could be
+// used to decorate various object types, such as Person, Face and other
+// Object Types.
+message Attribute {
+  // The name of the attribute.
+  optional string name = 1;
+
+  // The value of the attribute.
+  optional float value = 2;
+
+  // The confidence score of this attribute.
+  optional float confidence = 3;
+}
+
+// A Detection describes a detected object instance in the image space, where
+// the Detection could be generated from a dedicated object detection model, or
+// it could be hypothesized from a visual tracker.
+//
+// The next tag number is 10.
+message Detection {
+  // The timestamp in microseconds when the object gets detected.
+  optional int64 timestamp_us = 1;
+
+  // The normalized bounding box location of this detected object in the image.
+  optional LocationData location_data = 2;
+
+  // The confidence score of the detection.
+  optional float confidence = 3;
+
+  // The Entity information for the detected object.
+  optional Entity entity = 4;
+
+  // The fine-grained Entity information for the detected object.
+  // The difference between above entity and this fine_grained_entity is that
+  // the entity may describe the detected object as "Animal", yet the
+  // fine_grained_entity could describe it as the "Cat".
+  optional Entity fine_grained_entity = 8;
+
+  // The embedding signature associated with this detection.
+  optional EmbeddingSignature embedding_signature = 5;
+
+  // The source type of the detection that indicates which algorithm source
+  // actually generates this detection.
+  enum SourceType {
+    SOURCE_UNKNOWN = 0;
+    DETECTOR = 1;
+    VISUAL_TRACKER = 2;
+  }
+  optional SourceType source_type = 6;
+
+  // The track ID of the Visual Tracker from which the Detection is generated
+  // if the source_type == VISUAL_TRACKER.
+  optional uint64 associated_track_id = 7;
+
+  // The attributes associated with this detection.
+  repeated Attribute attributes = 9;
+}

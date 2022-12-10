@@ -1,0 +1,29 @@
+load("@rules_foreign_cc//tools/build_defs:cmake.bzl", "cmake_external")
+
+filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+
+cmake_external(
+    name = "opencv",
+    cmake_options = [
+        "-DWITH_QT=ON",
+        "-DBUILD_LIST=core,highgui,imgcodecs,imgproc,videoio",
+    ],
+    lib_source = "@opencv4//:all_srcs",
+    make_commands = [
+        "make -j7",
+        "make install",
+    ],
+    out_include_dir = "include/opencv4",
+    shared_libraries = [
+        "libopencv_core.so.406",
+        "libopencv_highgui.so.406",
+        "libopencv_imgcodecs.so.406",
+        "libopencv_imgproc.so.406",
+        "libopencv_videoio.so.406",
+    ],
+    visibility = ["//visibility:public"],
+)

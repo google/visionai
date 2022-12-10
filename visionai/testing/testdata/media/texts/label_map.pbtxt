@@ -1,0 +1,11 @@
+item {
+  name: "Cat"
+  id: 1
+  display_name: "Cat"
+}
+
+item {
+  name: "Dog"
+  id: 2
+  display_name: "Dog"
+}

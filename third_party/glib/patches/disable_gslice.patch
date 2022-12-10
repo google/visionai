@@ -1,0 +1,21 @@
+--- a/glib/gslice.c	2021-05-17 11:41:04.000000000 +0000
++++ b/glib/gslice.c	2021-05-17 11:40:56.000000000 +0000
+@@ -423,16 +423,8 @@
+     }
+   else
+     {
+-      /* G_SLICE was not specified, so check if valgrind is running and
+-       * disable ourselves if it is.
+-       *
+-       * This way it's possible to force gslice to be enabled under
+-       * valgrind just by setting G_SLICE to the empty string.
+-       */
+-#ifdef ENABLE_VALGRIND
+-      if (RUNNING_ON_VALGRIND)
+-        config->always_malloc = TRUE;
+-#endif
++      /* G_SLICE was not specified, disable ourselves.  */
++      config->always_malloc = TRUE;
+     }
+
+   g_free (val_allocated);

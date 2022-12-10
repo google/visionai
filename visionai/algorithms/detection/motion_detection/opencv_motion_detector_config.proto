@@ -1,0 +1,40 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+// File ported from
+// google3/research/soapbox/image_process/opencv_motion_detector_config.proto
+
+syntax = "proto2";
+
+package visionai.motion_detection;
+
+message OpenCVMotionDetectorConfig {
+  // The variance_threshold_num_pix parameter defines the minimum
+  // squared Mahalanobis distance between a pixel and the
+  // Gaussian Mixture Model (GMM) required to label the pixel as foreground.
+  optional float variance_threshold_num_pix = 1 [default = 16];
+
+  // The background_history_frame_length parameter defines the number of frames
+  // used to calculate the background GMM model.
+  optional float background_history_frame_length = 2 [default = 600];
+
+  // Detect and remove shadows from the foreground mask.
+  optional bool shadow_detection = 3 [default = false];
+
+  // A scale factor to reduce the image by.
+  optional double scale = 4 [default = 0.01];
+
+  // OpenCVMotionDetectorCalculator has option to detect the shadows and the
+  // resulting motion foreground with shadow detection has continuous pixel
+  // values. This threshold is the minimum pixel value for a pixel to be
+  // considered as containing motion. The default value 128 is set to exclude
+  // shadows.
+  optional uint32 motion_foreground_pixel_threshold = 5 [default = 128];
+
+  // Minimum ratio of motion area for a frame to be considered as containing
+  // motion.
+  optional float motion_area_threshold = 6 [default = 0.001];
+}

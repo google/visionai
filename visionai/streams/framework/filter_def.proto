@@ -1,0 +1,35 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package visionai;
+
+import "visionai/streams/framework/attr_def.proto";
+
+option java_multiple_files = true;
+
+
+// FilterDef defines the interface of a specific source filters.
+message FilterDef {
+  // The name of the source filter.
+  string name = 1;
+
+  // The stringified presentation of the specific input packet type that the
+  // source filter consumes.
+  string input_packet_type = 2;
+
+  // The stringified presentation of the specific output packet type that the
+  // source filter produces.
+  string output_packet_type = 3;
+
+  // The list of attributes available on this source filter.
+  repeated AttrDef attr = 4;
+
+  // The documentation string to describe what this source filter does and its
+  // attribute meanings.
+  string doc = 5;
+}

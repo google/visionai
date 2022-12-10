@@ -1,0 +1,18 @@
+analyzers: {
+  analyzer: "input_0"
+  operator: "StreamSource"
+}
+analyzers: {
+  analyzer: "de_id_0"
+  operator: "DeID"
+  inputs: {
+    input: "input_0:output"
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "StreamSink"
+  inputs: {
+    input: "de_id_0:output_stream"
+  }
+}

@@ -1,0 +1,40 @@
+analyzers: {
+  analyzer: "input_0"
+  operator: "StreamSource"
+}
+analyzers: {
+  analyzer: "split_0"
+  operator: "StringSplit"
+  inputs: {
+    input: "input_0:output"
+  }
+  attrs: {
+    key: "delimiter"
+    value: {
+      s: "!"
+    }
+  }
+}
+analyzers: {
+  analyzer: "concat_0"
+  operator: "Concat"
+  inputs: {
+    input: "split_0:string_0"
+  }
+  inputs: {
+    input: "split_0:string_1"
+  }
+  attrs: {
+    key: "lowercase"
+    value: {
+      b: true
+    }
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "StreamSink"
+  inputs: {
+    input: "concat_0:concat_string"
+  }
+}

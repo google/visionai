@@ -1,0 +1,25 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto2";
+
+package visionai.algorithms;
+
+// An Entity instance refers to a concept the MID from the knowledge graph,
+// and the human readable description string.
+message Entity {
+  // The entity's MID from the Knowledge Graph.
+  // https://developers.google.com/knowledge-graph
+  optional string entity_mid = 1;
+
+  // The label map ID of this Entity. In many cases, the Entity also refers
+  // to a machine learning trained object, where usually there is a unique
+  // label map ID assigned to it.
+  optional int64 label_map_id = 2;
+
+  // Textual description, e.g. `vehicle`.
+  optional string description = 3;
+}

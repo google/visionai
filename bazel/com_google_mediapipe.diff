@@ -1,0 +1,28 @@
+diff -Naur mediapipe-ar/mediapipe-0.8.11/mediapipe/calculators/tensorflow/BUILD mediapipe/mediapipe/calculators/tensorflow/BUILD
+--- a/mediapipe/calculators/tensorflow/BUILD
++++ b/mediapipe/calculators/tensorflow/BUILD
+@@ -453,7 +453,6 @@
+     deps = [
+         ":tensorflow_session",
+         ":tensorflow_inference_calculator_cc_proto",
+-        "@com_google_absl//absl/log:check",
+         "//mediapipe/framework:timestamp",
+         "@com_google_absl//absl/base:core_headers",
+         "@com_google_absl//absl/memory",
+diff -Naur mediapipe-ar/mediapipe-0.8.11/mediapipe/framework/tool/mediapipe_graph.bzl  mediapipe/mediapipe
+/framework/tool/mediapipe_graph.bzl
+--- a/mediapipe/framework/tool/mediapipe_graph.bzl
++++ b/mediapipe/framework/tool/mediapipe_graph.bzl
+@@ -239,10 +239,10 @@
+         name = name + "_type_name",
+         srcs = [proto_lib + "_direct-direct-descriptor-set.proto.bin"],
+         outs = [name + "_type_name.h"],
+-        cmd = ("$(location " + "//mediapipe/framework/tool:message_type_util" + ") " +
++        cmd = ("$(location " + clean_dep("//mediapipe/framework/tool:message_type_util") + ") " +
+                ("--input_path=$(location %s) " % (proto_lib + "_direct-direct-descriptor-set.proto.bin")) +
+                ("--root_type_macro_output_path=$(location %s) " % (name + "_type_name.h"))),
+-        tools = ["//mediapipe/framework/tool:message_type_util"],
++        tools = [clean_dep("//mediapipe/framework/tool:message_type_util")],
+         visibility = visibility,
+         testonly = testonly,
+     )

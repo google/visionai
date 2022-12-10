@@ -1,0 +1,13 @@
+diff --git a/google/src/files/206900402/depot/google3/third_party/libffi/darwin_common/src/closures.c b/google/src/cloud/eugenebut/test_sign_comparisson_warning_without_feed_and_firebase/google3/third_party/libffi/darwin_common/src/closures.c
+index 15e6e0f..3ba7e03 100644
+--- a/google/src/files/206900402/depot/google3/third_party/libffi/darwin_common/src/closures.c
++++ b/google/src/cloud/eugenebut/test_sign_comparisson_warning_without_feed_and_firebase/google3/third_party/libffi/darwin_common/src/closures.c
+@@ -744,7 +744,7 @@ allocate_space (int fd, off_t offset, off_t len)
+ 
+   while (len > 0)
+     {
+-      off_t to_write = (len < page_size) ? len : page_size;
++      off_t to_write = (len < (off_t)page_size) ? len : page_size;
+       if (write (fd, buf, to_write) < to_write)
+         return -1;
+       len -= to_write;

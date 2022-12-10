@@ -1,0 +1,26 @@
+capture_config {
+  name: "FileSourceCapture"
+  source_urls: "third_party/visionai/testing/testdata/media/page-brin-4-frames.mp4"
+}
+filter_config {
+  name: "EncodedMotionFilter"
+  attr {
+    key: "cool_down_period_in_seconds"
+    value: "10"
+  }
+  attr {
+    key: "min_event_length_in_seconds"
+    value: "3"
+  }
+  attr {
+    key: "motion_detection_sensitivity"
+    value: "low"
+  }
+  attr {
+    key: "lookback_window_in_seconds"
+    value: "10"
+  }
+}
+event_writer_config {
+  name: "LocalVideoEventWriter"
+}

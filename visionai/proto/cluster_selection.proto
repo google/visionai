@@ -1,0 +1,39 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package visionai;
+
+option java_multiple_files = true;
+
+
+// Message holding options to select a cluster.
+message ClusterSelection {
+  // The endpoint to the service.
+  //
+  // e.g. visionai.googleapis.com, or a direct ingress endpoint.
+  string service_endpoint = 1;
+
+  // The GCP project id.
+  string project_id = 2;
+
+  // The GCP location id.
+  string location_id = 3;
+
+  // The resource id of a specific cluster.
+  //
+  // This field is not required by all operations.
+  string cluster_id = 4;
+
+  // This is the kubernetes cluster endpoint. Either service_endpoint,
+  // project_id, location_id, cluster_id are set or cluster_endpoint is set. If
+  // both are set, cluster_endpoint is used.
+  string cluster_endpoint = 6;
+
+  // For unit tests only: use an insecure channel for access.
+  bool use_insecure_channel = 5;
+}

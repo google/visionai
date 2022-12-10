@@ -1,0 +1,21 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package cloud.ai.visionai.streams.lva.proto;
+
+import "google/cloud/visionai/v1alpha1/lva.proto";
+
+option java_multiple_files = true;
+
+
+// The list of all operators.
+//
+// Used to tell which operators are supported.
+message OperatorList {
+  repeated google.cloud.visionai.v1alpha1.OperatorDefinition operators = 1;
+}

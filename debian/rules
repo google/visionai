@@ -1,0 +1,33 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+GOB_VAICTL_RUNFILES_PATH := ${PWD}/bazel-bin/visionai/tools/vaictl/cmd/vaictl_/vaictl.runfiles
+
+STREAM_APPS_DEST_RELPATH := visionai/visionai/streams/apps
+GOB_STREAM_APPS_OUTDIR = $(GOB_VAICTL_RUNFILES_PATH)/$(STREAM_APPS_DEST_RELPATH)
+STREAM_APPS := ingester_app receive_cat_app resource_manager_app
+GOB_STREAM_APPS_PATHS = $(foreach app, $(STREAM_APPS), $(GOB_STREAM_APPS_OUTDIR)/$(app))
+
+GOB_FFMPEG_OUTDIR = ${PWD}/bazel-bin/third_party/ffmpeg
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	/usr/local/bin/bazel build -c opt //visionai/tools/vaictl/cmd:vaictl
+
+override_dh_auto_install:
+	mkdir -p $(PWD)/debian/visionai/usr/bin
+	install ${PWD}/bazel-bin/visionai/tools/vaictl/cmd/vaictl_/vaictl $(PWD)/debian/visionai/usr/bin
+	mkdir -p $(PWD)/debian/visionai/usr/bin/vaictl.runfiles/$(STREAM_APPS_DEST_RELPATH)
+	install ${GOB_STREAM_APPS_PATHS} $(PWD)/debian/visionai/usr/bin/vaictl.runfiles/$(STREAM_APPS_DEST_RELPATH)
+	mkdir -p $(PWD)/debian/visionai/usr/bin/vaictl.runfiles/ffmpeg
+	cp $(GOB_FFMPEG_OUTDIR)/*.so* $(PWD)/debian/visionai/usr/bin/vaictl.runfiles/ffmpeg
+	patchelf --remove-rpath $(PWD)/debian/visionai/usr/bin/vaictl.runfiles/$(STREAM_APPS_DEST_RELPATH)/ingester_app
+	patchelf --set-rpath /usr/bin/vaictl.runfiles/ffmpeg $(PWD)/debian/visionai/usr/bin/vaictl.runfiles/$(STREAM_APPS_DEST_RELPATH)/ingester_app
+
+override_dh_shlibdeps:
+	true
+
+override_dh_strip:
+	true

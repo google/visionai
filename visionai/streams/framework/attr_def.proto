@@ -1,0 +1,23 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package visionai;
+
+option java_multiple_files = true;
+
+
+// AttrDef defines the name and type of an attribute that may be used to
+// configure the behavior of a streams plugin.
+message AttrDef {
+  // The name of the attribute.
+  string name = 1;
+
+  // The type of the attribute values. These may be:
+  // "string", "int", "bool", or "float".
+  string type = 2;
+}

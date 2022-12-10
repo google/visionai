@@ -1,0 +1,219 @@
+# Operators in the test operator registry.
+# proto-file: google3/cloud/ai/visionai/streams/lva/proto/operator_list.proto
+# proto-message: OperatorList
+
+operators: {
+  operator: "Placeholder"
+  output_args: {
+    argument: "output"
+    type: "special/any"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "VideoSource"
+  output_args: {
+    argument: "output"
+    type: "ais.video"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "AudioSource"
+  output_args: {
+    argument: "output"
+    type: "ais.audio"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "FakeDetector"
+  input_args: {
+    argument: "video"
+    type: "ais.video"
+  }
+  output_args: {
+    argument: "rgb"
+    type: "ais.raw_image"
+  }
+  output_args: {
+    argument: "bbox"
+    type: "ais.protobuf/DetectionList"
+  }
+  output_args: {
+    argument: "bbox_string"
+    type: "ais.protobuf/string"
+  }
+  resources: {
+    cpu: "200m"
+    gpus: 1
+    memory: "300Mi"
+    latency_budget_ms: 1000
+  }
+}
+operators: {
+  operator: "BboxCounter"
+  input_args: {
+    argument: "bbox"
+    type: "ais.protobuf/DetectionList"
+  }
+  output_args: {
+    argument: "count"
+    type: "ais.string"
+  }
+  attributes: {
+    attribute: "threshold"
+    type: "float"
+    default_value: {
+      f: 0.5
+    }
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "StdoutSink"
+  input_args: {
+    argument: "bbox_string"
+    type: "ais.string"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "AttributesOnly"
+  attributes: {
+    attribute: "not_required"
+    type: "string"
+    default_value: {
+      s: "hello!"
+    }
+  }
+  attributes: {
+    attribute: "required"
+    type: "string"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "Fake"
+  input_args: {
+    argument: "video"
+    type: "ais.video"
+  }
+  input_args: {
+    argument: "audio"
+    type: "ais.audio"
+  }
+  output_args: {
+    argument: "action"
+    type: "ais.protobuf/Action"
+  }
+  output_args: {
+    argument: "identity"
+    type: "ais.protobuf/Identity"
+  }
+  attributes: {
+    attribute: "action_threshold"
+    type: "float"
+    default_value: {
+      f: 0.5
+    }
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "NoInNoOut"
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+    latency_budget_ms: 1000
+  }
+}
+operators: {
+  operator: "NoInNoOut1"
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+    gpus: 1
+  }
+}
+operators: {
+  operator: "NoInOneOut"
+  output_args: {
+    argument: "output_0"
+    type: "sometype"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "OneInTwoOut"
+  input_args: {
+    argument: "input_0"
+    type: "sometype"
+  }
+  output_args: {
+    argument: "output_0"
+    type: "sometype"
+  }
+  output_args: {
+    argument: "output_1"
+    type: "sometype"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "TwoInOneOut"
+  input_args: {
+    argument: "input_0"
+    type: "sometype"
+  }
+  input_args: {
+    argument: "input_1"
+    type: "sometype"
+  }
+  output_args: {
+    argument: "output_0"
+    type: "sometype"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}
+operators: {
+  operator: "OneInNoOut"
+  input_args: {
+    argument: "input_0"
+    type: "sometype"
+  }
+  resources: {
+    cpu: "100m"
+    memory: "100Mi"
+  }
+}

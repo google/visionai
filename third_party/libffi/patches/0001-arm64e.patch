@@ -1,0 +1,61 @@
+diff --git a/google3/third_party/libffi/darwin_ios/src/aarch64/sysv_arm64.S b/google3/third_party/libffi/darwin_ios/src/aarch64/sysv_arm64.S
+--- a/google3/third_party/libffi/darwin_ios/src/aarch64/sysv_arm64.S
++++ b/google3/third_party/libffi/darwin_ios/src/aarch64/sysv_arm64.S
+@@ -112,7 +112,11 @@ 1:
+ 	/* Deallocate the context, leaving the stacked arguments.  */
+ 	add	sp, sp, #CALL_CONTEXT_SIZE
+ 
++#if __has_feature(ptrauth_calls)
++        blraaz   x9
++#else  /* __has_feature(ptrauth_calls) */
+ 	blr     x9			/* call fn */
++#endif  /* __has_feature(ptrauth_calls) */
+ 
+ 	ldp	x3, x4, [x29, #16]	/* reload rvalue and flags */
+ 
+@@ -366,7 +370,11 @@ CNAME(ffi_closure_trampoline_table_page)
+     .rept PAGE_MAX_SIZE / FFI_TRAMPOLINE_SIZE
+     adr x16, -PAGE_MAX_SIZE
+     ldp x17, x16, [x16]
++#if __has_feature(ptrauth_calls)
++    braaz x16
++#else  /* __has_feature(ptrauth_calls) */
+     br x16
++#endif  /* __has_feature(ptrauth_calls) */
+ 	nop		/* each entry in the trampoline config page is 2*sizeof(void*) so the trampoline itself cannot be smaller that 16 bytes */
+     .endr
+ 
+@@ -440,4 +448,4 @@ 0:
+ 
+ 
+ 
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/google3/third_party/libffi/src/aarch64/sysv.S b/google3/third_party/libffi/src/aarch64/sysv.S
+--- a/google3/third_party/libffi/src/aarch64/sysv.S
++++ b/google3/third_party/libffi/src/aarch64/sysv.S
+@@ -110,7 +110,11 @@ 1:
+ 	/* Deallocate the context, leaving the stacked arguments.  */
+ 	add	sp, sp, #CALL_CONTEXT_SIZE
+ 
++#if __has_feature(ptrauth_calls)
++        blraaz   x9
++#else  /* __has_feature(ptrauth_calls) */
+ 	blr     x9			/* call fn */
++#endif  /* __has_feature(ptrauth_calls) */
+ 
+ 	ldp	x3, x4, [x29, #16]	/* reload rvalue and flags */
+ 
+@@ -364,7 +368,11 @@ CNAME(ffi_closure_trampoline_table_page)
+     .rept PAGE_MAX_SIZE / FFI_TRAMPOLINE_SIZE
+     adr x16, -PAGE_MAX_SIZE
+     ldp x17, x16, [x16]
++#if __has_feature(ptrauth_calls)
++    braaz x16
++#else  /* __has_feature(ptrauth_calls) */
+     br x16
++#endif  /* __has_feature(ptrauth_calls) */
+ 	nop		/* each entry in the trampoline config page is 2*sizeof(void*) so the trampoline itself cannot be smaller that 16 bytes */
+     .endr
+ 

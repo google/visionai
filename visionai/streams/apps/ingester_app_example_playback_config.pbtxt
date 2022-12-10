@@ -1,0 +1,46 @@
+# example command
+# blaze build third_party/visionai/streams/apps:ingester_app
+# blaze-bin/third_party/visionai/streams/apps/ingester_app third_party/visionai/streams/apps/ingester_app_example_playback_config.pbtxt
+#
+# Receives packets from a stream and creates segmented video files in output dir.
+capture_config {
+  name: "StreamingServiceCapture"
+  attr {
+    key: "cluster_id"
+    value: "application-cluster-0"
+  }
+  attr {
+    key: "location_id"
+    value: "us-central1"
+  }
+  attr {
+    key: "project_id"
+    value: "visionai-testing"
+  }
+  attr {
+    key: "service_endpoint"
+    value: "autopush-visionai.sandbox.googleapis.com"
+  }
+  attr {
+    key: "stream_id"
+    value: "annikaz-h264"
+  }
+}
+filter_config {
+  name: "SimpleSegmentFilter"
+  attr {
+    key: "messages_per_segment"
+    value: "200"
+  }
+}
+event_writer_config {
+  name: "LocalVideoEventWriter"
+  attr {
+    key: "output_dir"
+    value: "third_party/visionai/testing/testdata/tmp/"
+  }
+  attr {
+    key: "skip_until_first_key_frame"
+    value: "true"
+  }
+}

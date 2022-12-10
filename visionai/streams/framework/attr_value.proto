@@ -1,0 +1,27 @@
+// Copyright 2022 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+syntax = "proto3";
+
+package visionai;
+
+option java_multiple_files = true;
+
+
+// AttrValue represents the value of an attribute that a user plugin may have.
+// Only the oneof field matching the attribute's type maybe filled.
+//
+// TODO: Consider the viability of google.protobuf.Value. Currently we do it
+// this way to give more flexibility of the possible attribute types, especially
+// with respect to distinguishing specific integer and floating point types.
+message AttrValue {
+  oneof value {
+    string s = 1;
+    int64 i = 2;
+    float f = 3;
+    bool b = 4;
+  }
+}

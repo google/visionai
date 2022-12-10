@@ -1,0 +1,13 @@
+capture_config {
+  name: "IntSequenceCapture"
+  attr {
+    key: "publish_period_ms"
+    value: "100"
+  }
+}
+filter_config {
+  name: "NoopFilter"
+}
+event_writer_config {
+  name: "LogEventWriter"
+}

@@ -1,0 +1,32 @@
+--- google3/third_party/libffi/src/x86/ffi64.c	2018-08-01 02:25:06.000000000 -0700
++++ google3/third_party/libffi/src/x86/ffi64.c	2020-12-09 11:33:24.000000000 -0800
+@@ -52,6 +52,13 @@
+ #endif
+ #endif
+ 
++#ifdef ADDRESS_SANITIZER
++#include <sanitizer/asan_interface.h>
++#endif
++#ifdef MEMORY_SANITIZER
++#include <sanitizer/msan_interface.h>
++#endif
++
+ union big_int_union
+ {
+   UINT32 i32;
+@@ -772,6 +779,15 @@
+   avalue = alloca(avn * sizeof(void *));
+   gprcount = ssecount = 0;
+ 
++  // The structure is on the stack of the caller implemented in ASM so
++  // sanitizers can't unpoison it.
++#ifdef ADDRESS_SANITIZER
++  __asan_unpoison_memory_region(reg_args, sizeof(*reg_args));
++#endif
++#ifdef MEMORY_SANITIZER
++  __msan_unpoison(reg_args, sizeof(*reg_args));
++#endif
++
+   if (flags & UNIX64_FLAG_RET_IN_MEM)
+     {
+       /* On return, %rax will contain the address that was passed
