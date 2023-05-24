@@ -5,38 +5,25 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 #include "visionai/streams/plugins/captures/file_source_capture.h"
+
 #include <limits>
 
 #include "google/protobuf/struct.pb.h"
 #include "absl/status/status.h"
 #include "absl/strings/match.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "visionai/algorithms/media/util/codec_validator.h"
 #include "visionai/algorithms/media/util/gstreamer_runner.h"
+#include "visionai/streams/constants.h"
 #include "visionai/util/file_helpers.h"
+#include "visionai/util/gstreamer/pipeline_string.h"
 
 namespace visionai {
-
-namespace {
-std::string DecideVideoParseGstPipeline(absl::string_view source_uri) {
-  if (absl::EndsWith(source_uri, ".mp4")) {
-    return "qtdemux ! h264parse";
-  } else {
-    return "parsebin";
-  }
-}
-}  // namespace
-
-std::string FileSourceCapture::GstPipelineStr() {
-  // The GStreamer pipeline receives media data from a local file and pushes the
-  // encoded video packets to downstream.
-  std::vector<std::string> gst_pipeline;
-  gst_pipeline.push_back(absl::StrFormat("filesrc location=%s", source_uri_));
-  gst_pipeline.push_back(DecideVideoParseGstPipeline(source_uri_));
-  return absl::StrJoin(gst_pipeline, " ! ");
-}
 
 absl::Status FileSourceCapture::Init(CaptureInitContext* ctx) {
   VAI_RETURN_IF_ERROR(ctx->GetInputUrl(&source_uri_));
@@ -61,41 +48,26 @@ absl::Status FileSourceCapture::Init(CaptureInitContext* ctx) {
   } else {
     loop_count_ = 1;
   }
-  return absl::OkStatus();
-}
 
-// TODO(chenyangwei): Migrate the H264 gstreamer validator to the util.
-absl::Status FileSourceCapture::IsH264Input() {
-  GstreamerRunner::Options pipeline_opts;
-  std::string media_type;
-  pipeline_opts.processing_pipeline_string =
-      absl::StrFormat("filesrc location=%s ! parsebin", source_uri_);
-  pipeline_opts.receiver_callback =
-        [&](GstreamerBuffer buffer) -> absl::Status {
-      media_type = buffer.media_type();
-      // Once the pipeline received the first packet, pause/halt the pipeline.
-      return absl::CancelledError();
-    };
+  VAI_RETURN_IF_ERROR(ctx->GetAttr<int>("timeout_sec", &timeout_sec_))
+      << "while getting the \"timeout_sec\" attribute";
+  if (timeout_sec_ < 0) {
+    return absl::InvalidArgumentError(
+        "Please specify a non-negative timeout value.");
+  }
 
-  VAI_ASSIGN_OR_RETURN(auto pipeline, GstreamerRunner::Create(pipeline_opts));
-  while (!is_cancelled_.HasBeenNotified() && !pipeline->IsCompleted()) {
-  }
-  if (media_type != "video/x-h264") {
-    return absl::FailedPreconditionError(
-      absl::StrFormat("The input media type - \"%s\" is not supported. "
-        "Currently the only supported media type is \"video/x-h264\"",
-        media_type));
-  }
   return absl::OkStatus();
 }
 
 absl::Status FileSourceCapture::Run(CaptureRunContext* ctx) {
   absl::Duration total_duration_before_this_iteration;
-  VAI_RETURN_IF_ERROR(IsH264Input());
-  while (loop_count_-- > 0) {
+  absl::Time last_updated_time = absl::Now();
+  VAI_RETURN_IF_ERROR(IsVideoH264Input(source_uri_));
+  while (loop_count_-- > 0 && !is_cancelled_.HasBeenNotified()) {
     absl::Duration this_duration;
     GstreamerRunner::Options pipeline_opts;
-    pipeline_opts.processing_pipeline_string = GstPipelineStr();
+    pipeline_opts.processing_pipeline_string =
+        FileSrcGstPipelineStr(source_uri_);
     pipeline_opts.receiver_callback =
         [&](GstreamerBuffer buffer) -> absl::Status {
       // Accumulate the duration of the loop so the subsequent loops' timestmap
@@ -112,6 +84,7 @@ absl::Status FileSourceCapture::Run(CaptureRunContext* ctx) {
 
       VAI_ASSIGN_OR_RETURN(auto p, MakePacket(std::move(buffer)));
       VAI_RETURN_IF_ERROR(ctx->Push(std::move(p)));
+      last_updated_time = absl::Now();
       return absl::OkStatus();
     };
 
@@ -124,7 +97,14 @@ absl::Status FileSourceCapture::Run(CaptureRunContext* ctx) {
     // Once created, the GStreamer pipeline will run continuously in the
     // background.
     VAI_ASSIGN_OR_RETURN(auto pipeline, GstreamerRunner::Create(pipeline_opts));
-    while (!is_cancelled_.HasBeenNotified() && !pipeline->IsCompleted()) {
+    while (!is_cancelled_.HasBeenNotified() &&
+           !pipeline->WaitUntilCompleted(
+               absl::Milliseconds(kDefaultCapturePollCompletionIntervalMs))) {
+      if (absl::Now() - last_updated_time > absl::Seconds(timeout_sec_)) {
+        pipeline->SignalEOS();
+        return absl::DeadlineExceededError(absl::StrFormat(
+            "Could not receive data for %ds; terminating.", timeout_sec_));
+      }
     }
     pipeline->SignalEOS();
     total_duration_before_this_iteration += this_duration;
@@ -142,6 +122,7 @@ REGISTER_CAPTURE_INTERFACE("FileSourceCapture")
     .OutputPacketType("GstreamerBuffer")
     .Attr("loop", "bool")
     .Attr("loop_count", "int")
+    .Attr("timeout_sec", "int")
     .Doc(R"doc(
 FileSourceCapture reads from local video files and outputs encoded frames.
 

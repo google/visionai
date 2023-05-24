@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "glog/logging.h"
-#include "opencv2/core/core.hpp"
+#include "opencv4/opencv2/core.hpp"
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
@@ -142,7 +142,7 @@ absl::Status NegativePersonFilter::Init(FilterInitContext* ctx) {
   // Generate random input image to warm up the detector.
   const int kImageWidth = 64;
   const int kImageHeight = 64;
-  cv::Mat warm_up_input(kImageWidth, kImageHeight, CVX_8UC3);
+  cv::Mat warm_up_input(kImageWidth, kImageHeight, CV_8UC3);
   cv::randu(warm_up_input, cv::Scalar::all(0), cv::Scalar::all(255));
   std::vector<Detection> detections;
   VAI_RETURN_IF_ERROR(person_detector_->DetectObjects(warm_up_input, &detections));

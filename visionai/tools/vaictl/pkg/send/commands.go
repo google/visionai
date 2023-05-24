@@ -302,6 +302,8 @@ func newMotionFilterCmd() *cobra.Command {
 	lookbackDurationKey := common.UniquifyViperKey("encodedMotionFilter", "lookbackDuration")
 	cooldownDurationKey := common.UniquifyViperKey("encodedMotionFilter", "cooldownDuration")
 	motionSensitivityKey := common.UniquifyViperKey("encodedMotionFilter", "motionSensitivity")
+	zoneAnnotationKey := common.UniquifyViperKey("encodedMotionFilter", "zoneAnnotation")
+	excludeAnnotatedZoneKey := common.UniquifyViperKey("encodedMotionFilter", "excludeAnnotatedZone")
 	command := &cobra.Command{
 		Use:           "motion-filter",
 		Short:         "Perform motion filtering on the encoded input frames.",
@@ -321,9 +323,14 @@ func newMotionFilterCmd() *cobra.Command {
 					"lookback_window_in_seconds":   strconv.Itoa(viper.GetInt(lookbackDurationKey)),
 					"cool_down_period_in_seconds":  strconv.Itoa(viper.GetInt(cooldownDurationKey)),
 					"motion_detection_sensitivity": viper.GetString(motionSensitivityKey),
+					"zone_annotation":              viper.GetString(zoneAnnotationKey),
+					"exclude_annotated_zone":       strconv.FormatBool(viper.GetBool(excludeAnnotatedZoneKey)),
 				},
 			}
 			ingesterConfig.FilterConfig = filterConfig
+			ingesterConfig.IngestPolicy = &icpb.IngesterConfig_IngestPolicy{
+				ContinuousMode: false,
+			}
 			return nil
 		},
 	}
@@ -359,6 +366,24 @@ func newMotionFilterCmd() *cobra.Command {
 	viper.BindPFlag(motionSensitivityKey,
 		command.PersistentFlags().Lookup("motion-sensitivity"))
 	viper.SetDefault(motionSensitivityKey, "medium")
+
+	command.PersistentFlags().StringP(
+		"zone-annotation", "", "",
+		"Zones to be include or exclude from motion detection. A point is an image coordinates. A zone must have three or more points. "+
+			"Use : to connect x and y coordinates for each point. Use ; to connect point within same zone. Use - to connect multiple zones. "+
+			"For example, input of 1:1;1:2;1:3-2:1;2:2;2:3;2:4 contains two zones. One with (1,1), (1,2), (1,3), and one with (2,1), (2,2), (2,3), (2,4).",
+	)
+	viper.BindPFlag(zoneAnnotationKey,
+		command.PersistentFlags().Lookup("zone-annotation"))
+	viper.SetDefault(zoneAnnotationKey, "")
+
+	command.PersistentFlags().BoolP(
+		"exclude_annotated_zone", "", false,
+		"Set to true to detect motion outside of the annotated zone. Set to false to detect motion inside of the annotated zone. The default is false.",
+	)
+	viper.BindPFlag(excludeAnnotatedZoneKey,
+		command.PersistentFlags().Lookup("exclude_annotated_zone"))
+	viper.SetDefault(excludeAnnotatedZoneKey, false)
 
 	return command
 }
@@ -540,6 +565,8 @@ func newWarehouseDestCmd() *cobra.Command {
 					"warehouse_server_address": viper.GetString(warehouseServerAddress),
 					"asset_name":               viper.GetString(assetName),
 					"temp_video_dir":           viper.GetString(tempVideoDir),
+					"h264_mux_only":            "True",
+					"h264_only":                "True",
 				},
 			}
 			ingesterConfig.EventWriterConfig = eventWriterConfig

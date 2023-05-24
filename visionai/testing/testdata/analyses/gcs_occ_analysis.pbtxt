@@ -1,0 +1,30 @@
+analyzers: {
+  analyzer: "input_0"
+  operator: "GcsVideoSource"
+  attrs: {
+    key: "input_video_gcs_path"
+    value: {
+      s: "gs://lva-batch-testing/test-parking.mp4",
+    }
+  }
+}
+analyzers: {
+  analyzer: "oc_0"
+  operator: "OccupancyCounting"
+  inputs: {
+    input: "input_0:output_stream"
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "GcsProtoSink"
+  attrs: {
+    key: "output_file_gcs_path"
+    value: {
+      s: "gs://lva-batch-testing/test-occ-parking.json"
+    }
+  }
+  inputs: {
+    input: "oc_0:output_stream"
+  }
+}

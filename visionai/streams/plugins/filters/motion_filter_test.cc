@@ -8,9 +8,9 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/core/mat.hpp"
-#include "opencv2/imgcodecs/imgcodecs.hpp"
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgcodecs.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
 #include "absl/strings/string_view.h"
 #include "visionai/streams/filtered_element.h"
 #include "visionai/streams/framework/attr_value_util.h"

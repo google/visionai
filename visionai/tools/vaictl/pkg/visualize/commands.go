@@ -21,6 +21,7 @@ func newVisualizeCmd() *cobra.Command {
 	tryDecodeProtobufKey := common.UniquifyViperKey("streamsVisualize", "tryDecodeProtobuf")
 	sameFpsKey := common.UniquifyViperKey("streamsVisualize", "sameFps")
 	outputVideoFilePathKey := common.UniquifyViperKey("streamsVisualize", "outputVideoFilePath")
+	noDisplayKey := common.UniquifyViperKey("streamsVisualize", "noDisplay")
 
 	command := &cobra.Command{
 		Use:           "visualize",
@@ -41,6 +42,7 @@ func newVisualizeCmd() *cobra.Command {
 				SummaryOnly:         viper.GetBool(summaryOnlyKey),
 				TryDecodeProtobuf:   viper.GetBool(tryDecodeProtobufKey),
 				SameFps:             viper.GetBool(sameFpsKey),
+				NoDisplay:           viper.GetBool(noDisplayKey),
 				OutputVideoFilePath: viper.GetString(outputVideoFilePathKey),
 
 				ReceiveOptions: &exec.ReceiveOptions{
@@ -108,6 +110,12 @@ func newVisualizeCmd() *cobra.Command {
 	)
 	viper.BindPFlag(outputVideoFilePathKey, command.PersistentFlags().Lookup("output_video_filepath"))
 	viper.SetDefault(outputVideoFilePathKey, "")
+
+	command.PersistentFlags().BoolP(
+		"no_display", "", false, "Disable rendering result to display, must set a valid output_video_filepath.",
+	)
+	viper.BindPFlag(noDisplayKey, command.PersistentFlags().Lookup("no_display"))
+	viper.SetDefault(noDisplayKey, false)
 
 	return command
 }

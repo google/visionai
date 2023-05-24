@@ -192,7 +192,8 @@ TEST_F(StreamsJPEGEventWriterTest, EmptySenderName) {
 }
 
 TEST_F(StreamsJPEGEventWriterTest, LocalDirNotExists) {
-  std::string local_dir = file::JoinPath(::testing::TempDir(), "test_jpeg_dir");
+  std::string local_dir = file::JoinPath(::testing::TempDir(),
+      "test_not_exists_jpeg_dir");
   std::shared_ptr<StreamsJPEGEventWriter> writer =
       std::make_shared<StreamsJPEGEventWriter>();
   EventWriterConfig config;

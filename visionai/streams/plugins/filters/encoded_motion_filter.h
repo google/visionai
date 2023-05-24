@@ -17,6 +17,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "visionai/algorithms/detection/motion_detection/motion_vector_based_motion_detector.h"
+#include "visionai/algorithms/detection/motion_detection/motion_vector_based_motion_detector_config.pb.h"
 #include "visionai/algorithms/media/gstreamer_async_motion_decoder.h"
 #include "visionai/streams/framework/filter.h"
 #include "visionai/streams/framework/filter_def_registry.h"
@@ -63,6 +64,8 @@ class EncodedMotionFilter : public Filter {
   // Motion detector and the configs.
   motion_detection::MotionVectorBasedMotionDetectorConfig
       mv_motion_detector_config_;
+  motion_detection::MotionVectorBasedMotionDetectorZoneConfig
+      mv_motion_detector_zone_config_;
   std::unique_ptr<visionai::motion_detection::MotionVectorBasedMotionDetector>
       mv_motion_detector_;
 

@@ -21,7 +21,7 @@ func buildAsg(ctx *Context) error {
 		return err
 	}
 
-	aGraph, err := buildAsgFrom(ctx.OperatorRegistry, analysisDef)
+	aGraph, err := buildAsgFrom(ctx.OperatorRegistry, analysisDef, ctx.OperatorsInfo)
 	if err != nil {
 		return fmt.Errorf("failed to build the ASG the given AnalysisDefinition: %v", err)
 	}
@@ -86,7 +86,7 @@ func fillSentinelInfo(sentinelNode *asg.Node) error {
 	return nil
 }
 
-func buildAsgFrom(opRegistry *operators.OperatorRegistry, analysisDef *lvapb.AnalysisDefinition) (*asg.Graph, error) {
+func buildAsgFrom(opRegistry *operators.OperatorRegistry, analysisDef *lvapb.AnalysisDefinition, opInfo map[string]*operators.OperatorInfo) (*asg.Graph, error) {
 	aGraph, err := asg.NewGraph()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create an empty graph: %v", err)
@@ -109,9 +109,20 @@ func buildAsgFrom(opRegistry *operators.OperatorRegistry, analysisDef *lvapb.Ana
 			return nil, fmt.Errorf("analyzer names must be unique: %q is used multiple times", analyzerName)
 		}
 
-		analyzerOpInfo, err := opRegistry.Lookup(analyzerDef.GetOperator())
-		if err != nil {
-			return nil, fmt.Errorf("analyzer %q requested to run an unknown operator %q", analyzerName, analyzerDef.GetOperator())
+		var analyzerOpInfo *operators.OperatorInfo
+		if opInfo == nil || len(opInfo) == 0 {
+			// TODO(b/283698767): Remove this branch after migration to new operator registry is done.
+			info, err := opRegistry.Lookup(analyzerDef.GetOperator())
+			if err != nil {
+				return nil, fmt.Errorf("analyzer %q requested to run an unknown operator %q", analyzerName, analyzerDef.GetOperator())
+			}
+			analyzerOpInfo = info
+		} else {
+			info, ok := opInfo[analyzerDef.GetAnalyzer()]
+			if !ok {
+				return nil, fmt.Errorf("analyzer %q requested to run an unknown operator %q", analyzerName, analyzerDef.GetOperator())
+			}
+			analyzerOpInfo = info
 		}
 
 		analyzerAttributes := make(map[string]*asg.AttributeValueInfo)

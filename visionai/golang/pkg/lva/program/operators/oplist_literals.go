@@ -341,6 +341,60 @@ operators: <
   >
 >
 operators: <
+  operator: "GcsVideoSource"
+  output_args: <
+    argument: "output_stream"
+    type: "gst/video"
+  >
+  attributes: <
+    attribute: "input_video_gcs_path"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  resources: <
+    cpu: "3"
+    memory: "1Gi"
+  >
+>
+operators: <
+  operator: "GcsVideoSink"
+  input_args: <
+    argument: "input_stream"
+    type: "gst/video"
+  >
+  attributes: <
+    attribute: "output_video_gcs_path"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  resources: <
+    cpu: "3"
+    memory: "1Gi"
+  >
+>
+operators: <
+  operator: "GcsProtoSink"
+  input_args: <
+    argument: "annotation"
+    type: "protobuf"
+  >
+  attributes: <
+    attribute: "output_file_gcs_path"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  resources: <
+    cpu: "3"
+    memory: "1Gi"
+  >
+>
+operators: <
   operator: "DeID"
   input_args: <
     argument: "input_stream"
@@ -362,6 +416,13 @@ operators: <
     type: "string"
     default_value: <
       s: "BLURRING"
+    >
+  >
+  attributes: <
+    attribute: "frame_rate"
+    type: "int"
+    default_value: <
+      i: 6
     >
   >
   resources: <
@@ -468,6 +529,8 @@ operators: <
     cpu: "100m"
     memory: "100Mi"
   >
+  short_description: "Operator for splitting the string."
+  description: "The operator takes an input string and splits the input string into two with specified delimiter (default: \"/\")."
 >
 operators: <
   operator: "ClipClassification"
@@ -1548,6 +1611,45 @@ operators: <
     argument: "processed_annotation"
     type: "protobuf/google.cloud.aiplatform.v1.PredictResponse"
   >
+  output_args: <
+    argument: "custom_event"
+    type: "protobuf/google.cloud.visionai.v1.AppPlatformCloudFunctionResponse"
+  >
+  attributes <
+    attribute: "cloud_function_http_trigger"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  attributes <
+    attribute: "app_platform_metadata"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  resources <
+    cpu: "2"
+    gpus: 0
+    memory: "2Gi"
+    latency_budget_ms: 60000
+  >
+>
+operators: <
+  operator: "CloudFunctionGod"
+  input_args: <
+    argument: "annotation"
+    type: "protobuf/google.cloud.visionai.v1.ObjectDetectionPredictionResult"
+  >
+  output_args: <
+    argument: "processed_annotation"
+    type: "protobuf/google.cloud.visionai.v1.ObjectDetectionPredictionResult"
+  >
+  output_args: <
+    argument: "custom_event"
+    type: "protobuf/google.cloud.visionai.v1.AppPlatformCloudFunctionResponse"
+  >
   attributes <
     attribute: "cloud_function_http_trigger"
     type: "string"
@@ -1688,6 +1790,42 @@ operators: <
     gpus: 0
     memory: "1Gi"
     latency_budget_ms: 3000
+  >
+>
+operators: <
+  operator: "TextDetection"
+  input_args: <
+    argument: "input_stream"
+    type: "gst/video"
+  >
+  output_args: <
+    argument: "output_stream"
+    type: "protobuf/visionai.TextAnnotations"
+  >
+  attributes: <
+    attribute: "is_live_video"
+    type: "bool"
+    default_value: <
+    b: false
+    >
+  >
+  attributes: <
+    attribute: "ocr_service_address"
+    type: "string"
+    default_value: <
+      s: ""
+      >
+  >
+  attributes: <
+    attribute: "language_hints"
+    type: "string"
+    default_value: <
+      s: ""
+      >
+  >
+  resources: <
+    cpu: "12"
+    memory: "20Gi"
   >
 >
 operators <
@@ -1870,6 +2008,80 @@ operator: "PubSubEvent"
     memory: "200Mi"
   >
 >
-
+operators: <
+  operator: "WarehouseVideoSource"
+  output_args: <
+    argument: "output_video_stream"
+    type: "gst/video"
+  >
+  output_args: <
+    argument: "output_audio_stream"
+    type: "gst/audio"
+  >
+  attributes: <
+    attribute: "warehouse_endpoint"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  attributes: <
+    attribute: "asset_name"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  resources: <
+    cpu: "3"
+    memory: "1Gi"
+  >
+>
+operators: <
+  operator: "TextDetectionWarehouseSink"
+  input_args: <
+    argument: "annotation"
+    type: "protobuf/visionai.TextAnnotations"
+  >
+  attributes: <
+    attribute: "use_insecure_channel"
+    type: "bool"
+    default_value: <
+      b: false
+    >
+  >
+  attributes: <
+    attribute: "warehouse_endpoint"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  attributes: <
+    attribute: "asset_name"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  attributes: <
+    attribute: "text_detection_data_schema_id"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  attributes: <
+    attribute: "is_live_video"
+    type: "bool"
+    default_value: <
+    b: false
+    >
+  >
+  resources: <
+    cpu: "1"
+    memory: "200Mi"
+  >
+>
 `
 )

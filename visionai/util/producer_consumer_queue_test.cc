@@ -149,6 +149,7 @@ TEST(ProducerConsumerQueue, TestAsyncProducerBlockingConsumer) {
   int total_consumed = std::accumulate(n_consumed.begin(), n_consumed.end(), 0);
   EXPECT_EQ(total_consumed, kProducerWorkload);
   EXPECT_EQ(pcqueue.count(), 0);
+  EXPECT_TRUE(pcqueue.empty());
 }
 
 TEST(ProducerConsumerQueue, TestBlockingProducerAsyncConsumer) {
@@ -216,6 +217,7 @@ TEST(ProducerConsumerQueue, TestBlockingProducerAsyncConsumer) {
   int total_consumed = std::accumulate(n_consumed.begin(), n_consumed.end(), 0);
   EXPECT_EQ(total_consumed, kProducerWorkload);
   EXPECT_EQ(pcqueue.count(), 0);
+  EXPECT_TRUE(pcqueue.empty());
 }
 
 }  // namespace visionai

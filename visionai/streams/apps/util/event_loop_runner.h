@@ -12,7 +12,7 @@
 #include <thread>
 #include <vector>
 
-#include "absl/log/log.h"
+#include "glog/logging.h"
 #include "absl/status/status.h"
 #include "absl/synchronization/notification.h"
 #include "visionai/streams/apps/util/packet_loop_runner.h"

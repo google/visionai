@@ -191,6 +191,10 @@ absl::Status GstreamerAsyncDecoder<Args...>::Initialize(
   gstreamer_runner_options.appsrc_caps_string = gstreamer_buffer.caps_string();
   gstreamer_runner_options.processing_pipeline_string = GenericDecodeString();
 
+  // Note: the decoder accepts the input of encoded frames with pts/dts, so
+  // appsrc shouldn't assign new timestamps to input frames.
+  gstreamer_runner_options.appsrc_do_timestamps = false;
+
   if (output_period_nanos_ < 0) {
     return absl::InvalidArgumentError(absl::StrCat(
         "The output period in nanoseconds must have non-negative values. Got ",

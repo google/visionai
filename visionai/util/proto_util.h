@@ -50,6 +50,10 @@ absl::StatusOr<std::string> BuildSerializedStreamAnnotations(
     std::string polylines_string, StreamAnnotationType annotation_type,
     bool use_web_base64_string = true);
 
+// This function is here to force reference the annotation protos, so that they
+// are linked in the binary for google::protobuf::Any to parse.
+void ForceLinkAnnotationProtos();
+
 }  // namespace visionai
 
 #endif  //  THIRD_PARTY_VISIONAI_UTIL_PROTO_UTIL_H_

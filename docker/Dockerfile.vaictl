@@ -1,0 +1,16 @@
+# Dockerfile for vaictl.
+#
+# Before building this image, you must build the visionai debian.
+# After you've done that, copy the .deb into artifacts/.
+#
+# To build:
+# docker build -f Dockerfile.vaictl . -t vaictl
+
+FROM ubuntu:18.04
+
+COPY install/*.sh /install/
+COPY artifacts /artifacts
+
+RUN /install/install_basic_tools.sh
+RUN /install/install_gcloud_kubectl.sh
+RUN apt-get update && apt install -y ./artifacts/visionai_0.0-4_amd64.deb

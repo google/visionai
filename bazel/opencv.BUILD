@@ -7,15 +7,17 @@
 # Follow the instructions to install opencv there (pick ubuntu:focal for opencv 3.4).
 cc_library(
   name = "opencv",
-  linkopts = [
-    "-l:libopencv_core.so",
-    "-l:libopencv_calib3d.so",
-    "-l:libopencv_features2d.so",
-    "-l:libopencv_highgui.so",
-    "-l:libopencv_imgcodecs.so",
-    "-l:libopencv_imgproc.so",
-    "-l:libopencv_video.so",
-    "-l:libopencv_videoio.so",
-  ],
+  srcs = glob(
+    [
+        "lib/libopencv_core.so",
+        "lib/libopencv_highgui.so",
+        "lib/libopencv_imgcodecs.so",
+        "lib/libopencv_imgproc.so",
+        "lib/libopencv_video.so",
+        "lib/libopencv_videoio.so",
+    ],
+  ),
+  hdrs = glob(["include/opencv4/opencv2/**/*.h*"]),
+  includes = ["include"],
   visibility = ["//visibility:public"],
 )

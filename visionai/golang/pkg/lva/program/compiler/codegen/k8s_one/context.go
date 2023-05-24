@@ -12,19 +12,33 @@ import (
 	"google3/third_party/visionai/golang/pkg/lva/program/compiler/asg/asg"
 )
 
+// FeatureOptions contain user requested features that
+// will influence the generated code.
+type FeatureOptions struct {
+	// The mode in which to run the analysis.
+	RunMode string
+
+	// Add debug capability to the generated code.
+	EnableDebug bool
+
+	// Runtime information.
+	//
+	// TODO(b/271031113) This is actually a monitoring specific
+	// option. Probably best to call this something else, rather
+	// than having it appear like an IR concept (`asg`).
+	RuntimeInfo *asg.RuntimeInfo
+}
+
 // Context contains data relevant to a single Graphviz codegen invocation.
 type Context struct {
 	// Verbose output.
 	Verbose bool
 
-	// Add debug capability to the generated code.
-	EnableDebug bool
+	// User configured features.
+	FeatureOptions FeatureOptions
 
 	// The ASG instance from which to codegen.
 	Asg *asg.Graph
-
-	// Associated runtime information
-	RuntimeInfo *asg.RuntimeInfo
 
 	// The serialized K8sOne protobuf.
 	OutputString string
@@ -39,7 +53,7 @@ func (c *Context) verifyInitialization() error {
 	if c.Asg == nil {
 		return fmt.Errorf("no ASG given")
 	}
-	if c.RuntimeInfo == nil {
+	if c.FeatureOptions.RuntimeInfo == nil {
 		return fmt.Errorf("no RuntimeInfo given")
 	}
 	return nil

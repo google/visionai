@@ -18,6 +18,7 @@ func doParse(dctx *Context) error {
 	pctx := &parse.Context{}
 	pctx.InputProgramText = dctx.InputProgramText
 	pctx.OperatorRegistry = dctx.operatorRegistry
+	pctx.OperatorsInfo = dctx.OperatorsInfo
 	asg, err := parse.Parse(pctx)
 	if err != nil {
 		return err
@@ -29,6 +30,7 @@ func doParse(dctx *Context) error {
 func doSema(dctx *Context) error {
 	sctx := &sema.Context{}
 	sctx.Asg = dctx.asg
+	sctx.AttributeOverrides = dctx.AttributeOverrides
 	err := sema.Sema(sctx)
 	if err != nil {
 		return err
@@ -40,10 +42,8 @@ func doSema(dctx *Context) error {
 func doCodegen(dctx *Context) error {
 	cctx := &codegen.Context{}
 	cctx.Verbose = dctx.Verbose
-	cctx.EnableDebug = dctx.EnableDebug
+	cctx.Options = dctx.CodegenOptions
 	cctx.Asg = dctx.asg
-	cctx.BackendName = dctx.BackendName
-	cctx.RuntimeInfo = dctx.RuntimeInfo
 	err := codegen.Codegen(cctx)
 	if err != nil {
 		return err

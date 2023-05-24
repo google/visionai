@@ -228,25 +228,29 @@ TEST_F(GstreamerAsyncDecoderTest, LimitFrameRateTest) {
   // Feed encoded frame 1.
   {
     GstreamerBuffer gstreamer_buffer =
-        GstreamerBufferFromFile(kEncodedFrame1Path, kH264CapsString).value();
+        GstreamerBufferFromFile(kEncodedFrame1Path, kH264CapsString, 0, 0, 0)
+            .value();
     ASSERT_TRUE(decoder.Feed(gstreamer_buffer, 0).ok());
   }
   // Feed encoded frame 2.
   {
     GstreamerBuffer gstreamer_buffer =
-        GstreamerBufferFromFile(kEncodedFrame2Path, kH264CapsString).value();
+        GstreamerBufferFromFile(kEncodedFrame2Path, kH264CapsString, 1, 1, 0)
+            .value();
     ASSERT_TRUE(decoder.Feed(gstreamer_buffer, 1).ok());
   }
   // Feed encoded frame 3.
   {
     GstreamerBuffer gstreamer_buffer =
-        GstreamerBufferFromFile(kEncodedFrame3Path, kH264CapsString).value();
+        GstreamerBufferFromFile(kEncodedFrame3Path, kH264CapsString, 2, 2, 0)
+            .value();
     ASSERT_TRUE(decoder.Feed(gstreamer_buffer, 2).ok());
   }
   // Feed encoded frame 4.
   {
     GstreamerBuffer gstreamer_buffer =
-        GstreamerBufferFromFile(kEncodedFrame4Path, kH264CapsString).value();
+        GstreamerBufferFromFile(kEncodedFrame4Path, kH264CapsString, 3, 3, 0)
+            .value();
     ASSERT_TRUE(decoder.Feed(gstreamer_buffer, 3).ok());
   }
 

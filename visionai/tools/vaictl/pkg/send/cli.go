@@ -96,13 +96,11 @@ func newEncodedVideoToCmd() *cobra.Command {
 	stdoutCmd := newStdoutCmd()
 	streamsDestCmd := newStreamsDestCmd()
 	localFileCmd := newLocalFileCmd()
+	warehouseDestCmd := newWarehouseDestCmd()
 	toCmd.AddCommand(stdoutCmd)
 	toCmd.AddCommand(streamsDestCmd)
 	toCmd.AddCommand(localFileCmd)
-
-	// TODO(b/237348441): Restore this after a distributable ffmpeg is built.
-	// warehouseDestCmd := newWarehouseDestCmd()
-	// toCmd.AddCommand(warehouseDestCmd)
+	toCmd.AddCommand(warehouseDestCmd)
 
 	return toCmd
 }

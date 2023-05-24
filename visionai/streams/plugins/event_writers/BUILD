@@ -104,6 +104,7 @@ cc_library(
 cc_library(
     name = "encoded_stream_log_event_writer",
     srcs = ["encoded_stream_log_event_writer.cc"],
+    hdrs = ["encoded_stream_log_event_writer.h"],
     deps = [
         "//visionai/algorithms/media/util:gstreamer_runner",
         "//visionai/algorithms/media/util:type_util",

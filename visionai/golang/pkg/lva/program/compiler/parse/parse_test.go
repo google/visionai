@@ -54,7 +54,7 @@ func TestBuildAsgFromDipoleDef(t *testing.T) {
 			}.Build(),
 		},
 	}.Build()
-	aGraph, err := buildAsgFrom(registry, analysisDef)
+	aGraph, err := buildAsgFrom(registry, analysisDef, nil)
 	checkNil(t, err)
 	checkNotNil(t, aGraph)
 	checkNodesAndEdges(t, aGraph, 5, 4)
@@ -109,7 +109,7 @@ func TestBuildAsgFromTwolegTadpoleDef(t *testing.T) {
 			}.Build(),
 		},
 	}.Build()
-	aGraph, err := buildAsgFrom(registry, analysisDef)
+	aGraph, err := buildAsgFrom(registry, analysisDef, nil)
 	checkNil(t, err)
 	checkNotNil(t, aGraph)
 	checkNodesAndEdges(t, aGraph, 10, 10)
@@ -159,7 +159,7 @@ func TestBuildAsgFromBadNames(t *testing.T) {
 			}.Build(),
 		},
 	}.Build()
-	aGraph, err := buildAsgFrom(registry, badAnalyzerNameDef)
+	aGraph, err := buildAsgFrom(registry, badAnalyzerNameDef, nil)
 	checkNotNil(t, err)
 	checkNil(t, aGraph)
 
@@ -180,7 +180,7 @@ func TestBuildAsgFromBadNames(t *testing.T) {
 			}.Build(),
 		},
 	}.Build()
-	aGraph, err = buildAsgFrom(registry, badStreamRefDef)
+	aGraph, err = buildAsgFrom(registry, badStreamRefDef, nil)
 	checkNotNil(t, err)
 	checkNil(t, aGraph)
 }
@@ -197,7 +197,7 @@ func TestBuildAsgResources(t *testing.T) {
 				}.Build(),
 			},
 		}.Build()
-		aGraph, err := buildAsgFrom(registry, analysisDef)
+		aGraph, err := buildAsgFrom(registry, analysisDef, nil)
 		checkNil(t, err)
 		checkNotNil(t, aGraph)
 		nodes := aGraph.Nodes()
@@ -222,7 +222,7 @@ func TestBuildAsgResources(t *testing.T) {
 				}.Build(),
 			},
 		}.Build()
-		aGraph, err := buildAsgFrom(registry, analysisDef)
+		aGraph, err := buildAsgFrom(registry, analysisDef, nil)
 		checkNil(t, err)
 		checkNotNil(t, aGraph)
 		nodes := aGraph.Nodes()
@@ -255,7 +255,7 @@ func TestBuildAsgEnvvars(t *testing.T) {
 			}.Build(),
 		},
 	}.Build()
-	aGraph, err := buildAsgFrom(registry, analysisDef)
+	aGraph, err := buildAsgFrom(registry, analysisDef, nil)
 	checkNil(t, err)
 	checkNotNil(t, aGraph)
 	nodes := aGraph.Nodes()

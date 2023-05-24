@@ -225,6 +225,12 @@ class PacketAs {
 // the packet.
 std::string GetTypeClass(const Packet& p);
 
+// Get the type value of the packet.
+//
+// This is the type value of the packet. Use `GetTypeName` for the full type of
+// the packet.
+std::string GetType(const Packet& p);
+
 // Get the type name of the packet.
 //
 // This is the fully qualified name, prefixed by the type class.
@@ -265,6 +271,9 @@ absl::Status RemoveMetadataField(const std::string&, Packet*);
 absl::StatusOr<google::protobuf::Value> GetMetadataField(const std::string&,
                                                          const Packet&);
 
+// Decide whether the given packet is a Protobuf packet.
+bool IsProtobufPacket(const Packet& p);
+
 // ----------------------------------------------------------------------------
 // Methods for working with signal Packets
 // ----------------------------------------------------------------------------
@@ -285,8 +294,14 @@ bool IsSignalPacket(const Packet&);
 // Decide whether the given packet is a phantom packet.
 bool IsPhantomPacket(const Packet&);
 
+// Decide whether the given packet is an eos packet.
+bool IsEOSPacket(const Packet&);
+
 // Create a phantom packet.
 absl::StatusOr<Packet> MakePhantomPacket();
+
+// Create an eos packet.
+absl::StatusOr<Packet> MakeEOSPacket();
 
 // ----------------------------------------------------------------------------
 // Implementation

@@ -17,6 +17,8 @@ import (
 type StreamInfo struct {
 	Name string
 	Type string
+	// The number of downstream analyzers. The upstream analyzer is always 1.
+	DownstreamAnalyzers int
 }
 
 // --------------------------------------------------------------
@@ -24,12 +26,15 @@ type StreamInfo struct {
 
 // AnalyzerInfo contains all information regarding an AnalyzerElement.
 type AnalyzerInfo struct {
-	Name           string
-	Operator       *operators.OperatorInfo
-	InputStreams   []*InputStreamInfo
-	OutputStreams  []*OutputStreamInfo
-	Attributes     map[string]*AttributeValueInfo
-	Resources      *ResourceInfo
+	Name          string
+	Operator      *operators.OperatorInfo
+	InputStreams  []*InputStreamInfo
+	OutputStreams []*OutputStreamInfo
+	Attributes    map[string]*AttributeValueInfo
+	Resources     *ResourceInfo
+
+	// TODO(b/271186106): These are really code generator options and
+	// not IR level constructs. Probably best to refactor this.
 	MonitoringInfo *MonitoringInfo
 	RuntimeInfo    *RuntimeInfo
 }

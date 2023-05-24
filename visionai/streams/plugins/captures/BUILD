@@ -52,6 +52,7 @@ cc_library(
 cc_library(
     name = "bytes_sender_capture",
     srcs = ["bytes_sender_capture.cc"],
+    hdrs = ["bytes_sender_capture.h"],
     deps = [
         "//visionai/streams/framework:capture",
         "//visionai/streams/framework:capture_def_registry",
@@ -62,6 +63,23 @@ cc_library(
         "@com_google_absl//absl/time",
     ],
     alwayslink = 1,
+)
+
+cc_test(
+    name = "bytes_sender_capture_test",
+    srcs = ["bytes_sender_capture_test.cc"],
+    deps = [
+        ":bytes_sender_capture",
+        "//visionai/algorithms/media/util:gstreamer_registry",
+        "//visionai/proto:ingester_config_cc_proto",
+        "//visionai/streams:capture_module",
+        "//visionai/streams/packet",
+        "//visionai/streams/util:worker",
+        "//visionai/util:ring_buffer",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_library(
@@ -154,14 +172,16 @@ cc_library(
         "file_source_capture.h",
     ],
     deps = [
+        "//visionai/algorithms/media/util:codec_validator",
         "//visionai/algorithms/media/util:gstreamer_runner",
-        "//visionai/algorithms/media/util:type_util",
+        "//visionai/streams:constants",
         "//visionai/streams/framework:capture",
         "//visionai/streams/framework:capture_def_registry",
         "//visionai/util:file_helpers",
-        "//visionai/util:producer_consumer_queue",
+        "//visionai/util/gstreamer:pipeline_string",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf",
@@ -194,8 +214,10 @@ cc_library(
     srcs = ["file_source_image_capture.cc"],
     hdrs = ["file_source_image_capture.h"],
     deps = [
+        "//visionai/algorithms/media/util:codec_validator",
         "//visionai/algorithms/media/util:gstreamer_runner",
         "//visionai/algorithms/media/util:type_util",
+        "//visionai/streams:constants",
         "//visionai/streams/framework:capture",
         "//visionai/streams/framework:capture_def_registry",
         "//visionai/util:file_helpers",

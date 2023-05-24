@@ -15,6 +15,7 @@
 #include "absl/flags/usage.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
@@ -25,6 +26,7 @@
 #include "visionai/streams/client/event_update_receiver.h"
 #include "visionai/streams/client/packet_receiver.h"
 #include "visionai/streams/client/resource_util.h"
+#include "visionai/util/file_helpers.h"
 #include "visionai/util/random_string.h"
 #include "visionai/util/status/status_macros.h"
 
@@ -35,6 +37,15 @@ ABSL_FLAG(bool, summary_only, false,
 ABSL_FLAG(bool, try_decode_protobuf, true,
           "If the package is a protobuf, try decode it against known types and "
           "print.");
+ABSL_FLAG(std::string, cluster_endpoint, "",
+          "Use the cluster endpoint when running locally");
+ABSL_FLAG(bool, use_insecure_channel, false,
+          "Use an insecure channel when running locally");
+ABSL_FLAG(
+    std::string, file_output, "",
+    "if it's populated, received packets will be written to a file at the "
+    "specified path plus a timestamp, otherwise they will be logged to "
+    "INFO log");
 
 namespace visionai {
 
@@ -71,11 +82,18 @@ absl::StatusOr<ClusterSelection> ClusterSelectionFromCommandLine() {
                    _ << "while getting the location id");
   VAI_ASSIGN_OR_RETURN(auto cluster_id, GetClusterId(),
                    _ << "while getting the location id");
+  auto cluster_endpoint = absl::GetFlag(FLAGS_cluster_endpoint);
+  bool use_insecure_channel = absl::GetFlag(FLAGS_use_insecure_channel);
   ClusterSelection cluster_selection;
-  cluster_selection.set_service_endpoint(service_endpoint);
   cluster_selection.set_project_id(project_id);
   cluster_selection.set_location_id(location_id);
   cluster_selection.set_cluster_id(cluster_id);
+  if (cluster_endpoint.empty()) {
+    cluster_selection.set_service_endpoint(service_endpoint);
+  } else {
+    cluster_selection.set_cluster_endpoint(cluster_endpoint);
+    cluster_selection.set_use_insecure_channel(use_insecure_channel);
+  }
   return cluster_selection;
 }
 
@@ -98,7 +116,6 @@ void ForceLinkAnnotationProtos() {
       occupancy_count_instance;
 }
 }  // namespace
-
 
 absl::Status DEPRECATED_Run();
 
@@ -131,6 +148,22 @@ class ReceiveCat {
     return absl::OkStatus();
   }
 
+  void LogOrWrite(absl::string_view str, absl::string_view now) {
+    static std::string file_output = absl::GetFlag(FLAGS_file_output);
+    if (file_output.empty()) {
+      LOG(INFO) << str;
+      return;
+    }
+    absl::Status status =
+        SetFileContents(absl::StrCat(file_output, ".", now), str,
+                        /*should_append*/ true);
+    if (!status.ok()) {
+      static int error_counter = 5;  // count errors of all ReceiveCat objects
+      LOG(ERROR) << status;
+      CHECK(--error_counter > 0) << "too many file write error";
+    }
+  }
+
   void Run() {
     Packet p;
     while (!is_cancelled_.HasBeenNotified()) {
@@ -160,7 +193,9 @@ class ReceiveCat {
         LOG(INFO) << p.header().DebugString()
                   << "payload size: " << p.payload().size() << " bytes.";
       } else {
-        LOG(INFO) << p.DebugString();
+        std::string now =
+            absl::FormatTime("%Y%m%d%H%M", absl::Now(), absl::LocalTimeZone());
+        LogOrWrite(p.DebugString(), now);
         if (options_.try_decode_protobuf &&
             p.header().type().type_class() == "protobuf") {
           google::protobuf::Any any;
@@ -168,7 +203,7 @@ class ReceiveCat {
               absl::StrFormat("type.googleapis.com/%s",
                               p.header().type().type_descriptor().type()));
           any.set_value(p.payload());
-          LOG(INFO) << any.DebugString();
+          LogOrWrite(any.DebugString(), now);
         }
       }
     }

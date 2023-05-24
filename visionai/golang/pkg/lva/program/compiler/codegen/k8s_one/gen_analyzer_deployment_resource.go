@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"google3/third_party/golang/kubeapi/core/v1/v1"
-	"google3/third_party/golang/kubeapimachinery/pkg/api/resource/resource"
+	"google3/third_party/golang/k8s_io/api/v/v0_23/core/v1/v1"
+	"google3/third_party/golang/k8s_io/apimachinery/v/v0_23/pkg/api/resource/resource"
 
 	"google3/third_party/visionai/golang/pkg/lva/program/compiler/asg/asg"
 	"google3/third_party/visionai/golang/pkg/lva/program/util/util"

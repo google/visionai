@@ -4,6 +4,8 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
+#include "visionai/streams/plugins/captures/bytes_sender_capture.h"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,55 +21,41 @@
 
 namespace visionai {
 
-// BytesSenderCapture sends bytes at regular intervals.
-class BytesSenderCapture : public Capture {
- public:
-  BytesSenderCapture() {}
-
-  ~BytesSenderCapture() override {}
-
-  absl::Status Init(CaptureInitContext* ctx) override {
-    VAI_RETURN_IF_ERROR(ctx->GetAttr<int>("bytes_per_message", &bytes_per_message_))
-        << "while getting bytes_per_message";
-    if (bytes_per_message_ <= 0) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("The bytes per message must be positive. Got %d.",
-                          bytes_per_message_));
-    }
-    VAI_RETURN_IF_ERROR(ctx->GetAttr<int>("send_period_ms", &send_period_ms_))
-        << "while getting send_period_ms";
-    if (send_period_ms_ <= 0) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "The send period must be positive. Got %d.", send_period_ms_));
-    }
-    return absl::OkStatus();
+absl::Status BytesSenderCapture::Init(CaptureInitContext* ctx) {
+  VAI_RETURN_IF_ERROR(ctx->GetAttr<int>("bytes_per_message", &bytes_per_message_))
+      << "while getting bytes_per_message";
+  if (bytes_per_message_ <= 0) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("The bytes per message must be positive. Got %d.",
+                        bytes_per_message_));
   }
-
-  absl::Status Run(CaptureRunContext* ctx) override {
-    double mbps = bytes_per_message_ * 8.0 / send_period_ms_ / 1000.0;
-    for (size_t i = 0; !is_cancelled_.WaitForNotificationWithTimeout(
-             absl::Milliseconds(send_period_ms_));
-         ++i) {
-      std::string msg(bytes_per_message_, '.');
-      VAI_ASSIGN_OR_RETURN(auto p, MakePacket(std::move(msg)));
-      VAI_RETURN_IF_ERROR(ctx->Push(std::move(p)));
-      LOG_EVERY_N(INFO, 100) << absl::StrFormat(
-          "Captured %d byte packets (at ~%.2f Mbps).", i, mbps);
-    }
-    return absl::OkStatus();
+  VAI_RETURN_IF_ERROR(ctx->GetAttr<int>("send_period_ms", &send_period_ms_))
+      << "while getting send_period_ms";
+  if (send_period_ms_ <= 0) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "The send period must be positive. Got %d.", send_period_ms_));
   }
+  return absl::OkStatus();
+}
 
-  absl::Status Cancel() override {
-    is_cancelled_.Notify();
-    return absl::OkStatus();
+absl::Status BytesSenderCapture::Run(CaptureRunContext* ctx) {
+  double mbps = bytes_per_message_ * 8.0 / send_period_ms_ / 1000.0;
+  for (size_t i = 0; !is_cancelled_.WaitForNotificationWithTimeout(
+            absl::Milliseconds(send_period_ms_));
+        ++i) {
+    std::string msg(bytes_per_message_, '.');
+    VAI_ASSIGN_OR_RETURN(auto p, MakePacket(std::move(msg)));
+    VAI_RETURN_IF_ERROR(ctx->Push(std::move(p)));
+    LOG_EVERY_N(INFO, 100) << absl::StrFormat(
+        "Captured %d byte packets (at ~%.2f Mbps).", i, mbps);
   }
+  return absl::OkStatus();
+}
 
- private:
-  absl::Notification is_cancelled_;
-
-  int bytes_per_message_ = -1;
-  int send_period_ms_ = -1;
-};
+absl::Status BytesSenderCapture::Cancel() {
+  is_cancelled_.Notify();
+  return absl::OkStatus();
+}
 
 REGISTER_CAPTURE_INTERFACE("BytesSenderCapture")
     .Attr("bytes_per_message", "int")

@@ -21,6 +21,12 @@ func Codegen(ctx *Context) error {
 		return err
 	}
 
+	// Generate non element specific code.
+	if err := genProcessManager(ctx); err != nil {
+		return err
+	}
+
+	// Generate code for each element.
 	leave := func(n *asg.Node) error {
 		element := n.Element()
 		switch element := element.(type) {

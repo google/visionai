@@ -1,0 +1,38 @@
+# Dockerfile for development image.
+#
+# To build:
+#
+# docker build -f Dockerfile.devnosdk . -t visionai-dev-nosdk
+
+FROM ubuntu:20.04
+
+COPY install/*.sh /install/
+
+# Install the binary build dependencies of the SDK.
+RUN /install/install_build_deps.sh
+
+# Install tools useful during development.
+RUN /install/install_devtools.sh
+
+# Install bazel.
+RUN /install/install_bazel.sh
+ENV PATH /usr/local/bazelisk/bin:$PATH
+
+# Install Go.
+RUN /install/install_go.sh
+ENV PATH /usr/local/go/bin:$PATH
+ENV GOROOT /usr/local/go
+
+# Install python and pip packages.
+RUN /install/install_python.sh
+ENV LC_ALL C.UTF-8
+ENV LANG C.UTF-8
+
+# Install packages for gcloud and kubernetes tools.
+RUN /install/install_gcloud_kubectl.sh
+RUN /install/install_helm.sh
+
+# Install opencv 4 from source.
+RUN /install/install_opencv_from_source.sh
+ENV LD_LIBRARY_PATH /usr/local/opencv/lib:$LD_LIBRARY_PATH
+RUN ldconfig

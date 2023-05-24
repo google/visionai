@@ -60,26 +60,12 @@ def visionai_deps(is_gob_source_only = False):
         sha256 = "b4870bf121ff7795ba20d20bcdd8627b8e088f2d1dab299a031c1034eddc93d5",
     )
 
-    protobuf_version = "3.20.3"
-    protobuf_sha256 = "acb71ce46502683c31d4f15bafb611b9e7b858b6024804d6fb84b85750884208"
-    protobuf_urls = [
-        "https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protobuf-all-3.20.3.tar.gz",
-    ]
-
-    # NOTE: The OSS version works okay for this one as well.
-    if is_gob_source_only:
-        protobuf_version = "3.19.1"
-        protobuf_sha256 = "87407cd28e7a9c95d9f61a098a53cf031109d451a7763e7dd1253abf8b4df422"
-        protobuf_urls = [
-            "https://github.com/protocolbuffers/protobuf/archive/v{}.tar.gz".format(protobuf_version),
-        ]
-
     maybe(
         http_archive,
         name = "com_google_protobuf",
-        sha256 = protobuf_sha256,
-        strip_prefix = "protobuf-{}".format(protobuf_version),
-        urls = protobuf_urls,
+        sha256 = "acb71ce46502683c31d4f15bafb611b9e7b858b6024804d6fb84b85750884208",
+        strip_prefix = "protobuf-{}".format("3.20.3"),
+        urls = ["https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protobuf-all-3.20.3.tar.gz"],
     )
 
     maybe(
@@ -88,6 +74,16 @@ def visionai_deps(is_gob_source_only = False):
         strip_prefix = "abseil-cpp-20211102.0",
         url = "https://github.com/abseil/abseil-cpp/archive/20211102.0.tar.gz",
         sha256 = "dcf71b9cba8dc0ca9940c4b316a0c796be8fab42b070bb6b7cab62b48f0e66c4",
+    )
+
+    maybe(
+        http_archive,
+        name = "absl_py",
+        sha256 = "0fb3a4916a157eb48124ef309231cecdfdd96ff54adf1660b39c0d4a9790a2c0",
+        strip_prefix = "abseil-py-1.4.0",
+        urls = [
+            "https://github.com/abseil/abseil-py/archive/refs/tags/v1.4.0.tar.gz",
+        ],
     )
 
     maybe(
@@ -229,7 +225,7 @@ def visionai_deps(is_gob_source_only = False):
 
     maybe(
         http_archive,
-        name = "com_github_google_re2",
+        name = "com_googlesource_code_re2",
         sha256 = "9f3b65f2e0c78253fcfdfce1754172b0f97ffdb643ee5fd67f0185acf91a3f28",
         strip_prefix = "re2-2022-06-01",
         url = "https://github.com/google/re2/archive/refs/tags/2022-06-01.zip",
@@ -240,7 +236,7 @@ def visionai_deps(is_gob_source_only = False):
         native.new_local_repository,
         name = "linux_opencv",
         build_file = "//bazel:opencv.BUILD",
-        path = "/usr",
+        path = "/usr/local/opencv",
     )
 
     maybe(

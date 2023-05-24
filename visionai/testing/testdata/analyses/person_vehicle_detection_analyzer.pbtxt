@@ -9,10 +9,3 @@ analyzers: {
     input: "input_0:output"
   }
 }
-analyzers: {
-  analyzer: "output_0"
-  operator: "StreamSink"
-  inputs: {
-    input: "pvd_0:output_stream"
-  }
-}

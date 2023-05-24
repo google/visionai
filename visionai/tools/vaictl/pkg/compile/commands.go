@@ -35,12 +35,14 @@ func newCompilerCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			dctx.BackendName = viper.GetString("compile.march")
 			dctx.Verbose = common.Verbose
+			dctx.CodegenOptions.BackendName = viper.GetString("compile.march")
+			dctx.CodegenOptions.RunMode = viper.GetString("compile.runMode")
 			content, err := ioutil.ReadFile(args[0])
 			if err != nil {
 				return fmt.Errorf("failed to read the file %q: %v", args[0], err)
 			}
+			dctx.AttributeOverrides = viper.GetStringSlice("compile.attr")
 			dctx.InputProgramText = string(content)
 
 			// Run the compiler.
@@ -76,6 +78,20 @@ func newCompilerCmd() *cobra.Command {
 	)
 	viper.BindPFlag("compile.march", command.Flags().Lookup("march"))
 	viper.SetDefault("compile.march", "k8s_one")
+
+	command.Flags().StringP(
+		"run-mode", "", "live",
+		"The mode under which to run the analysis.",
+	)
+	viper.BindPFlag("compile.runMode", command.Flags().Lookup("run-mode"))
+	viper.SetDefault("compile.runMode", "live")
+
+	command.Flags().StringSliceP(
+		"attr", "", []string{},
+		"A list of attributes and their values used for overriding. The format is \"<analyzer_name>:<attribute_name>=<override_value>\"",
+	)
+	viper.BindPFlag("compile.attr", command.Flags().Lookup("attr"))
+	viper.SetDefault("compile.attr", []string{})
 
 	return command
 }

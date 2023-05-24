@@ -205,6 +205,33 @@ COUNTER(lva_grpc_output_bytes_total,
         "Total number of bytes successfully sent by lva grpc channel.",
         *GlobalRegistry());
 
+COUNTER(lva_gcs_input_packsts_total,
+        "Total number of the packets successfully received by lva gcs channel.",
+        *GlobalRegistry());
+COUNTER(lva_gcs_input_bytes_total,
+        "Total number of bytes successfully received by lva gcs channel.",
+        *GlobalRegistry());
+
+COUNTER(lva_warehouse_video_input_video_packsts_total,
+        "Total number of the video packets successfully received by "
+        "lva warehouse vidoe channel.",
+        *GlobalRegistry());
+COUNTER(lva_warehouse_video_input_audio_packsts_total,
+        "Total number of the audio packets successfully received by "
+        "lva warehouse vidoe channel.",
+        *GlobalRegistry());
+COUNTER(lva_warehouse_video_input_video_bytes_total,
+        "Total number of the video bytes successfully received by "
+        "lva warehouse vidoe channel.",
+        *GlobalRegistry());
+COUNTER(lva_warehouse_video_input_audio_bytes_total,
+        "Total number of the audio bytes successfully received by "
+        "lva warehouse vidoe channel.",
+        *GlobalRegistry());
+
+COUNTER(lva_runtime_packets_drop_total,
+        "Total number of packets dropped by lva runtime", *GlobalRegistry());
+
 HISTOGRAM(lva_runtime_latency,
         "Packets processing latency of lva operator.",
         *GlobalRegistry());
@@ -261,6 +288,42 @@ COUNTER(lva_oc_output_packets_total,
         *GlobalRegistry());
 COUNTER(lva_oc_output_bytes_total,
         "Total number of bytes successfully sent by lva occupancy counting "
+        "operator.",
+        *GlobalRegistry());
+
+// Metrics for motion detector.
+COUNTER(lva_md_input_packets_total,
+        "Total number of the packets successfully received by motion "
+        "detection operator.",
+        *GlobalRegistry());
+COUNTER(lva_md_input_bytes_total,
+        "Total number of bytes successfully received by motion detection "
+        "operator.",
+        *GlobalRegistry());
+COUNTER(lva_md_output_packets_total,
+        "Total number of the packets successfully sent by motion detection "
+        "operator.",
+        *GlobalRegistry());
+COUNTER(lva_md_output_bytes_total,
+        "Total number of bytes successfully sent by lva motion detection "
+        "operator.",
+        *GlobalRegistry());
+
+// Metrics for text detection.
+COUNTER(lva_text_input_packets_total,
+        "Total number of the packets successfully received by text detection "
+        "operator.",
+        *GlobalRegistry());
+COUNTER(lva_text_input_bytes_total,
+        "Total number of bytes successfully received by text detection "
+        "operator.",
+        *GlobalRegistry());
+COUNTER(lva_text_output_packets_total,
+        "Total number of the packets successfully sent by text detection "
+        "operator.",
+        *GlobalRegistry());
+COUNTER(lva_text_output_bytes_total,
+        "Total number of bytes successfully sent by lva text detection "
         "operator.",
         *GlobalRegistry());
 

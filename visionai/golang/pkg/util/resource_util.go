@@ -9,6 +9,7 @@ package util
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -22,6 +23,12 @@ func IsValidResourceID(resourceID string) error {
 		return fmt.Errorf("given a resource id (%q) in the wrong format; it must match %q", resourceID, resourceIDRegex)
 	}
 	return nil
+}
+
+// ResourceNameToID converts the resource name to the id.
+func ResourceNameToID(resourceName string) string {
+	lastIndex := strings.LastIndex(resourceName, "/")
+	return resourceName[lastIndex+1:]
 }
 
 // MakeProjectName assembles the resource name from the given project-id.
@@ -54,4 +61,16 @@ func MakeClusterName(projectID, locationID, clusterID string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%v/clusters/%v", projectLocationName, clusterID), nil
+}
+
+// MakeApplicationName assembles the resource name from the given project-id, location-id, and application-id.
+func MakeApplicationName(projectID, locationID, applicationID string) (string, error) {
+	if err := IsValidResourceID(applicationID); err != nil {
+		return "", fmt.Errorf("the given application-id had errors: %v", err)
+	}
+	projectLocationName, err := MakeProjectLocationName(projectID, locationID)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%v/applications/%v", projectLocationName, applicationID), nil
 }

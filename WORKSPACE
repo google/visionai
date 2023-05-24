@@ -47,6 +47,7 @@ switched_rules_by_language(
     cc = True,
     go = True,
     grpc = True,
+    python = True,
 )
 
 # Requirements for @com_github_grpc_grpc.
@@ -72,4 +73,4 @@ rules_proto_dependencies()
 
 rules_proto_toolchains()
 
-# comment
+# comments

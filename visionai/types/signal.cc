@@ -19,6 +19,8 @@ absl::StatusOr<std::string> ToString(Signal::SignalCode code) {
       return "unknown";
     case Signal::SignalCode::kPhantom:
       return "phantom";
+    case Signal::SignalCode::kEOS:
+      return "eos";
     default:
       return absl::UnimplementedError(absl::StrFormat(
           "Signal code %d does not have a string representation.", code));
@@ -28,6 +30,8 @@ absl::StatusOr<std::string> ToString(Signal::SignalCode code) {
 absl::StatusOr<Signal::SignalCode> ToSignalCode(const std::string &s) {
   if (s == "phantom") {
     return Signal::SignalCode::kPhantom;
+  } else if (s == "eos") {
+    return Signal::SignalCode::kEOS;
   } else if (s == "unknown") {
     return Signal::SignalCode::kUnknown;
   } else {

@@ -6,6 +6,8 @@
 
 #include "visionai/streams/plugins/captures/file_source_capture.h"
 
+#include <thread>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
@@ -13,8 +15,8 @@
 #include "absl/time/time.h"
 #include "visionai/algorithms/media/util/gstreamer_registry.h"
 #include "visionai/algorithms/media/util/gstreamer_runner.h"
-#include "visionai/streams/capture_module.h"
 #include "visionai/proto/ingester_config.pb.h"
+#include "visionai/streams/capture_module.h"
 #include "visionai/streams/packet/packet.h"
 #include "visionai/types/gstreamer_buffer.h"
 #include "visionai/util/file_path.h"
@@ -224,12 +226,66 @@ TEST_F(FileSourceCaptureTest, RunTestNegativeLoopCount) {
   ASSERT_TRUE(capture.Prepare().ok());
   ASSERT_TRUE(capture.Init().ok());
   ASSERT_TRUE(capture.Run().ok());
+  ASSERT_TRUE(capture.Cancel().ok());
 
   // There are four frames in the test video.
   const int expected_frames = 0;
   ASSERT_EQ(output->count(), expected_frames);
   Packet packet;
   ASSERT_FALSE(output->TryPopBack(packet));
+}
+
+TEST_F(FileSourceCaptureTest, NegativeTimeoutValue) {
+  CaptureConfig config;
+  config.mutable_name()->assign("FileSourceCapture");
+  config.mutable_source_urls()->Add(
+      file::JoinPath(kTestFolder, "page-brin-4-frames.mp4"));
+  (*config.mutable_attr())["timeout_sec"] = "-5";
+
+  CaptureModule capture(config);
+  auto output = std::make_shared<RingBuffer<Packet>>(100);
+  capture.AttachOutput(output);
+  ASSERT_TRUE(capture.Prepare().ok());
+  ASSERT_TRUE(absl::IsInvalidArgument(capture.Init()));
+}
+
+TEST_F(FileSourceCaptureTest, TerminatedByTimeout) {
+  CaptureConfig config;
+  config.mutable_name()->assign("FileSourceCapture");
+  config.mutable_source_urls()->Add(
+      file::JoinPath(kTestFolder, "page-brin-4-frames.mp4"));
+  (*config.mutable_attr())["loop"] = "true";
+  (*config.mutable_attr())["loop_count"] = "5";
+  (*config.mutable_attr())["timeout_sec"] = "0";
+
+  CaptureModule capture(config);
+  auto output = std::make_shared<RingBuffer<Packet>>(100);
+  capture.AttachOutput(output);
+  ASSERT_TRUE(capture.Prepare().ok());
+  ASSERT_TRUE(capture.Init().ok());
+  ASSERT_TRUE(absl::IsDeadlineExceeded(capture.Run()));
+}
+
+TEST_F(FileSourceCaptureTest, RunLoopCancelled) {
+  CaptureConfig config;
+  config.mutable_name()->assign("FileSourceCapture");
+  config.mutable_source_urls()->Add(
+      file::JoinPath(kTestFolder, "page-brin-4-frames.mp4"));
+  (*config.mutable_attr())["loop"] = "true";
+
+  CaptureModule capture(config);
+  auto output = std::make_shared<RingBuffer<Packet>>(100);
+  capture.AttachOutput(output);
+
+  ASSERT_TRUE(capture.Prepare().ok());
+  ASSERT_TRUE(capture.Init().ok());
+  std::thread t([&capture]() -> void {
+    absl::SleepFor(absl::Seconds(1));
+    ASSERT_TRUE(capture.Cancel().ok());
+    return;
+  });
+  EXPECT_EQ(capture.Run(), absl::OkStatus());
+  t.join();
 }
 
 TEST_F(FileSourceCaptureTest, RunH265Input) {

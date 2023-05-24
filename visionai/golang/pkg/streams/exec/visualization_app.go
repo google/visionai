@@ -36,6 +36,7 @@ func VisualizationApp(options *VisualizationAppOptions) error {
 	args = append(args, "--summary_only="+strconv.FormatBool(options.SummaryOnly))
 	args = append(args, "--try_decode_protobuf="+strconv.FormatBool(options.TryDecodeProtobuf))
 	args = append(args, "--same_fps="+strconv.FormatBool(options.SameFps))
+	args = append(args, "--no_display="+strconv.FormatBool(options.NoDisplay))
 	if options.OutputVideoFilePath != "" {
 		args = append(args, "--output_video_filepath", options.OutputVideoFilePath)
 	}

@@ -21,6 +21,10 @@ std::string GetTypeClass(const Packet& p) {
   return p.header().type().type_class();
 }
 
+std::string GetType(const Packet& p) {
+  return p.header().type().type_descriptor().type();
+}
+
 std::string GetTypeName(const Packet& p) {
   absl::string_view type_class = p.header().type().type_class();
   absl::string_view type = p.header().type().type_descriptor().type();
@@ -106,6 +110,10 @@ absl::StatusOr<google::protobuf::Value> GetMetadataField(const std::string& key,
   return p.header().metadata().fields().at(key);
 }
 
+bool IsProtobufPacket(const Packet& p) {
+  return GetTypeClass(p) == std::string("protobuf");
+}
+
 bool IsSignalPacket(const Packet& p) {
   return GetTypeClass(p) == std::string("signal");
 }
@@ -114,8 +122,17 @@ bool IsPhantomPacket(const Packet& p) {
   return GetTypeName(p) == std::string("signal/phantom");
 }
 
+bool IsEOSPacket(const Packet& p) {
+  return GetTypeName(p) == std::string("signal/eos");
+}
+
 absl::StatusOr<Packet> MakePhantomPacket() {
   Signal s(Signal::SignalCode::kPhantom);
+  return MakePacket(std::move(s));
+}
+
+absl::StatusOr<Packet> MakeEOSPacket() {
+  Signal s(Signal::SignalCode::kEOS);
   return MakePacket(std::move(s));
 }
 

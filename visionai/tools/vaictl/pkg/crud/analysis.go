@@ -29,11 +29,9 @@ func newCreateAnalysisCmd() *cobra.Command {
 		Use: `analysis ANALYSIS_ID ANALYSIS_PROGRAM_FNAME
     [-i PLACEHOLDER_ID:STREAM_ID]... [-o PLACEHOLDER_ID:STREAM_ID]...`,
 		Short: "Create an analysis.",
-		Long: `This command will run an analysis over the specified input streams,
-and produce its result on the specified output streams.
+		Long: `This command will create an analysis that read inputs from the specified input streams and produce outputs on the specified output streams.
 
-The analysis will listen for events containing the specified input
-streams and automatically create processes to process them.
+If the event watch is not disabled, then the LVA will listen for new events containing the specified input streams and automatically create processes from them.
 `,
 		Args: cobra.ExactArgs(2),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -86,6 +84,13 @@ streams and automatically create processes to process them.
 	viper.BindPFlag("analysis.outputIDMappings",
 		command.Flags().Lookup("outputs"))
 
+	command.Flags().BoolP(
+		"disable-event-watch", "", false,
+		"If true, then no event watch will be registered for this analysis.",
+	)
+	viper.BindPFlag("analysis.disableEventWatch",
+		command.Flags().Lookup("disable-event-watch"))
+
 	return command
 }
 
@@ -126,32 +131,28 @@ func newListAnalysesCmd() *cobra.Command {
 	return command
 }
 
-// printAnalysesTable uses the go libary go_pretty:table prety the print of the analyses.
+// printAnalysesTable uses the go library go_pretty:table prety the print of the analyses.
 func printAnalysesTable(analyses []*lvapb.Analysis) {
 	tw := table.NewWriter()
 	// Defines the maximum character length of the columns
 	tw.SetColumnConfigs([]table.ColumnConfig{
 		{
-			Name:     "Name",
-			WidthMax: 15,
-		},
-		{
 			Name:     "Definition",
-			WidthMax: 120,
+			WidthMax: 100,
 		},
 	})
-	tw.AppendHeader(table.Row{"Name", "Definition", "Create Time"})
+	tw.AppendHeader(table.Row{"ID", "Definition", "Create Time"})
 
 	for _, analysis := range analyses {
-		name := analysis.GetName()
-		createTime := time.Unix(analysis.GetCreateTime().GetSeconds(), 0).Format(time.RFC3339)
+		analysisID := util.ResourceNameToID(analysis.GetName())
 		definition := analysis.GetAnalysisDefinition()
-		tw.AppendRow(table.Row{name, definition, createTime})
-		tw.AppendSeparator()
+		createTime := time.Unix(analysis.GetCreateTime().GetSeconds(), 0).Format(time.RFC3339)
+		tw.AppendRow(table.Row{analysisID, definition, createTime})
 	}
 	// Custom sort the analyses by the ascending order of the "Create Time"
 	tw.SortBy([]table.SortBy{{Name: "Create Time", Mode: table.Asc}})
-
+	tw.SetStyle(table.StyleColoredBright)
+	tw.SetAutoIndex(true)
 	fmt.Printf("%s\n", tw.Render())
 }
 
@@ -214,9 +215,12 @@ func makeAnalysis(analysisID string, analysisFname string) (*lvapb.Analysis, err
 		return nil, err
 	}
 
+	disableEventWatch := viper.GetBool("analysis.DisableEventWatch")
+
 	analysis := lvapb.Analysis_builder{
 		Name:                 analysisName,
 		AnalysisDefinition:   analysisDefinition,
+		DisableEventWatch:    disableEventWatch,
 		InputStreamsMapping:  inputMappings,
 		OutputStreamsMapping: outputMappings,
 	}.Build()

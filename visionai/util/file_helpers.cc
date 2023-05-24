@@ -56,11 +56,15 @@ absl::Status SetFileContents(absl::string_view file_name,
                         strerror(errno)));
   }
 
-  fwrite(content.data(), sizeof(char), content.size(), fp);
-  size_t ret = fclose(fp);
-  if (ret == 0 && ferror(fp)) {
+  size_t written = fwrite(content.data(), sizeof(char), content.size(), fp);
+  if (written != content.size()) {
     return absl::InternalError(
-        absl::StrFormat("Error while writing file: %s", file_name));
+        absl::StrFormat("Error while fwrite file: %s", file_name));
+  }
+  if (fclose(fp)) {
+    return absl::InternalError(
+        absl::StrFormat("Error while fclose file: %s. \n fclose errno:\n%s\n",
+                        file_name, strerror(errno)));
   }
   return absl::OkStatus();
 }

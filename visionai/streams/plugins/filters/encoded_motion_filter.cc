@@ -13,6 +13,7 @@
 #include "glog/logging.h"
 #include "absl/status/status.h"
 #include "absl/strings/match.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
 #include "absl/synchronization/notification.h"
@@ -50,6 +51,8 @@ constexpr char kLowMotionDetectionSensitivity[] = "low";
 constexpr float kHighMotionSensitityThreshold = 0.3;
 constexpr float kMediumMotionSensitivityThreshold = 0.6;
 constexpr float kLowMotionSensitivityThreshold = 0.9;
+constexpr bool kExcludeAnnotatedZone = false;
+constexpr char kZoneAnnotation[] = "";
 
 // The minimum number of consecutive motion frames to be considered as the start
 // of a new motion event.
@@ -60,12 +63,12 @@ constexpr int kPcQueueSize = 30;
 }  // namespace
 
 absl::Status EncodedMotionFilter::Init(FilterInitContext* ctx) {
-  // Get declared options.
+  // Get declared options for motion detector config.
   int spatial_grid_number = kSpatialGridNumber;
   int temporal_buffer_frames = kTemporalBufferFrames;
   std::string motion_detection_sensitivity = kMediumMotionDetectionSensitivity;
 
-  // Get attributes to initialize the motion detector.
+  // Get attributes to initialize the motion detector config.
   VAI_RETURN_IF_ERROR(ctx->GetAttr("spatial_grid_number", &spatial_grid_number));
   if (spatial_grid_number <= 0) {
     LOG(WARNING) << absl::StrCat(
@@ -95,9 +98,10 @@ absl::Status EncodedMotionFilter::Init(FilterInitContext* ctx) {
       motion_detection_sensitivity != kMediumMotionDetectionSensitivity &&
       motion_detection_sensitivity != kLowMotionDetectionSensitivity) {
     LOG(WARNING) << absl::StrCat(
-        "The motion_detection_sensitivity must be one of \"%s\", "
-        "\"%s\", \"%s\". Got ",
-        motion_detection_sensitivity,
+        "The motion_detection_sensitivity must be one of ",
+        kHighMotionDetectionSensitivity, ", ",
+        kMediumMotionDetectionSensitivity, ", ", kLowMotionDetectionSensitivity,
+        ". Got ", motion_detection_sensitivity,
         ". Reset to default: ", kMediumMotionDetectionSensitivity);
     motion_detection_sensitivity = kMediumMotionDetectionSensitivity;
   }
@@ -117,6 +121,23 @@ absl::Status EncodedMotionFilter::Init(FilterInitContext* ctx) {
   mv_motion_detector_config_.set_temporal_buffer_frames(temporal_buffer_frames);
   mv_motion_detector_config_.set_motion_sensitivity(motion_sensitivity);
   mv_motion_detector_.reset();
+
+  // Get declared options for motion detector zone config.
+  std::string zone_annotation = kZoneAnnotation;
+  bool exclude_annotated_zone = kExcludeAnnotatedZone;
+
+  // Get attributes to initialize the motion detector zone config.
+  VAI_RETURN_IF_ERROR(ctx->GetAttr("zone_annotation", &zone_annotation));
+  VAI_RETURN_IF_ERROR(
+      ctx->GetAttr("exclude_annotated_zone", &exclude_annotated_zone));
+
+  LOG(INFO) << "zone_annotation: " << zone_annotation;
+  LOG(INFO) << "exclude_annotated_zone: " << exclude_annotated_zone;
+
+  mv_motion_detector_zone_config_.Clear();
+  mv_motion_detector_zone_config_.set_exclude_annotated_zone(
+      exclude_annotated_zone);
+  mv_motion_detector_zone_config_.set_zone_annotation(zone_annotation);
 
   // Get attributes to initialize the motion filter.
   int poll_time_out_in_ms = kPollTimeOutInMs;
@@ -266,7 +287,9 @@ absl::Status EncodedMotionFilter::RunInternal(
   pcqueue_->Pop(timed_frame);
   absl::Time timestamp = timed_frame.timestamp;
 
-  bool motion_prediction = mv_motion_detector_->DetectMotion(motion_vectors);
+  VAI_ASSIGN_OR_RETURN(bool motion_prediction,
+                   mv_motion_detector_->ZoneBasedDetectMotion(
+                       motion_vectors, mv_motion_detector_zone_config_));
   UpdateMotionDetection(motion_prediction, timestamp);
 
   if (timed_frame.is_key_frame && current_gop_active_ &&
@@ -422,6 +445,8 @@ REGISTER_FILTER_INTERFACE("EncodedMotionFilter")
     .Attr("lookback_window_in_seconds", "int")
     .Attr("cool_down_period_in_seconds", "int")
     .Attr("time_out_in_ms", "int")
+    .Attr("zone_annotation", "string")
+    .Attr("exclude_annotated_zone", "bool")
     .Doc(
         "EncodedMotionFilter is to filter out video segments that do not "
         "contain motion.");

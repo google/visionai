@@ -8,6 +8,8 @@ package sema
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"google3/third_party/visionai/golang/pkg/lva/program/compiler/asg/asg"
 )
@@ -81,4 +83,74 @@ func checkAndSetAttributeInformation(n *asg.Node) error {
 	default:
 		return fmt.Errorf("internal error: unrecognized ASG element type %T", n.Name())
 	}
+}
+
+func checkAndSetAttributeOverrides(n *asg.Node, analyzerToAttributeOverrides map[string][]string) error {
+	analyzerElement, ok := n.Element().(*asg.AnalyzerElement)
+	if !ok {
+		return nil
+	}
+	analyzerInfo := analyzerElement.Info
+
+	// Determine the attribute name and their types for this analyzer's operator.
+	operator := analyzerInfo.Operator
+	operatorAttrTypeMap := make(map[string]string)
+	for _, attributeInfo := range operator.Attributes {
+		operatorAttrTypeMap[attributeInfo.Name] = attributeInfo.Type
+	}
+
+	// Override the attribute values with those supplied.
+	// Perform semantic checks before actually setting the values.
+	analyzerAttrMap := analyzerInfo.Attributes
+	attributeOverrides, ok := analyzerToAttributeOverrides[analyzerInfo.Name]
+	if !ok {
+		return nil
+	}
+	for _, override := range attributeOverrides {
+		// Parse the override attribute name and value strings.
+		parsedOverride := strings.SplitN(override, "=", 2)
+		if len(parsedOverride) != 2 {
+			return fmt.Errorf("analyzer %q received an unrecognized attribute override %q; it must take the format \"attr=val\"", analyzerInfo.Name, override)
+		}
+		attrName := parsedOverride[0]
+		attrValue := parsedOverride[1]
+
+		// Check that the attribute is actually defined in the operator.
+		attrType, ok := operatorAttrTypeMap[attrName]
+		if !ok {
+			return fmt.Errorf("analyzer %q received an override for attribute %q, which is not defined in its operator %q", analyzerInfo.Name, attrName, analyzerInfo.Operator.Name)
+		}
+
+		// Convert and set the override value.
+		errMsgTemplate := "attribute %q of operator %q expects a %v, but got an override value string of %q"
+		switch attrType {
+		case "int":
+			val, err := strconv.ParseInt(attrValue, 10, 0)
+			if err != nil {
+				return fmt.Errorf(errMsgTemplate, attrName, analyzerInfo.Operator.Name, "int", attrValue)
+			}
+			analyzerAttrMap[attrName].Value = val
+		case "float":
+			val, err := strconv.ParseFloat(attrValue, 64)
+			if err != nil {
+				return fmt.Errorf(errMsgTemplate, attrName, analyzerInfo.Operator.Name, "float", attrValue)
+			}
+			analyzerAttrMap[attrName].Value = val
+		case "bool":
+			val, err := strconv.ParseBool(attrValue)
+			if err != nil {
+				return fmt.Errorf(errMsgTemplate, attrName, analyzerInfo.Operator.Name, "bool", attrValue)
+			}
+			analyzerAttrMap[attrName].Value = val
+		case "string":
+			analyzerAttrMap[attrName].Value = attrValue
+		default:
+			return fmt.Errorf("internal error: unrecognized overriding attribute type %q", attrType)
+		}
+	}
+
+	// Mark the analyzer override as complete by deleting its entry.
+	delete(analyzerToAttributeOverrides, analyzerInfo.Name)
+
+	return nil
 }

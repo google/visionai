@@ -1,3 +1,7 @@
+# Copyright (c) 2023 Google LLC All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 package(
@@ -56,23 +60,13 @@ cc_library(
     deps = [
         ":motion_vector_based_motion_detector_config_cc_proto",
         ":util",
+        "//visionai/algorithms/stream_annotation:geometry_lib",
+        "//visionai/algorithms/stream_annotation:stream_annotation_util",
         "//visionai/types:motion_vector",
         "//visionai/util/array:array3d",
         "//visionai/util/gtl:circularbuffer",
         "//visionai/util/status:status_macros",
         "@com_google_absl//absl/status",
-    ],
-)
-
-cc_test(
-    name = "motion_vector_based_motion_detector_test",
-    srcs = ["motion_vector_based_motion_detector_test.cc"],
-    deps = [
-        ":motion_vector_based_motion_detector",
-        ":motion_vector_based_motion_detector_config_cc_proto",
-        "//visionai/types:motion_vector",
-        "//visionai/util/array:array3d",
-        "//visionai/util/gtl:circularbuffer",
-        "@com_google_googletest//:gtest_main",
+        "@com_google_absl//absl/status:statusor",
     ],
 )

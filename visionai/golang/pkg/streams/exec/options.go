@@ -132,6 +132,9 @@ type VisualizationAppOptions struct {
 	// The full path and filename of the annotated video, supports only .avi format. If it is empty, no video file will be generated.
 	OutputVideoFilePath string
 
+	// Should disable render to container display.
+	NoDisplay bool
+
 	// Receive options.
 	ReceiveOptions *ReceiveOptions
 }

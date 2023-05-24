@@ -13,6 +13,7 @@ import (
 
 	lvagpb "google3/google/cloud/visionai/v1alpha1_lva_go_grpc_proto"
 	lvapb "google3/google/cloud/visionai/v1alpha1_lva_go_proto"
+	lropb "google3/google/longrunning/operations_go_proto"
 	lro "google3/google/longrunning/operations_grpc_go"
 	"google3/third_party/golang/google_api/option/option"
 	"google3/third_party/golang/google_api/transport/transport"
@@ -27,6 +28,12 @@ type Interface interface {
 	GetAnalysis(name string) (*lvapb.Analysis, error)
 	CreateAnalysis(parent, id string, analysis *lvapb.Analysis) error
 	DeleteAnalysis(name string) error
+
+	ListProcesses(parent string) ([]*lvapb.Process, error)
+	GetProcess(name string) (*lvapb.Process, error)
+	CreateProcess(parent, id string, process *lvapb.Process) error
+	DeleteProcess(name string) error
+	BatchRunProcess(parent string, createProcessRequests []*lvapb.CreateProcessRequest) (*lropb.Operation, error)
 }
 
 // NewManager creates a LVA manager.
@@ -98,4 +105,59 @@ func (m *manager) DeleteAnalysis(name string) error {
 	newCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	return util.WaitForOperation(newCtx, m.opClient, op)
+}
+
+func (m *manager) ListProcesses(parent string) ([]*lvapb.Process, error) {
+	md := metadata.New(map[string]string{"x-goog-request-params": fmt.Sprintf("parent=%s", parent)})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	resp, err := m.client.ListProcesses(ctx, lvapb.ListProcessesRequest_builder{
+		Parent: parent,
+	}.Build())
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetProcesses(), nil
+}
+
+func (m *manager) GetProcess(name string) (*lvapb.Process, error) {
+	md := metadata.New(map[string]string{"x-goog-request-params": fmt.Sprintf("name=%s", name)})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	return m.client.GetProcess(ctx, lvapb.GetProcessRequest_builder{Name: name}.Build())
+}
+
+func (m *manager) CreateProcess(parent, id string, process *lvapb.Process) error {
+	md := metadata.New(map[string]string{"x-goog-request-params": fmt.Sprintf("parent=%s", parent)})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	op, err := m.client.CreateProcess(ctx, lvapb.CreateProcessRequest_builder{Parent: parent, ProcessId: id, Process: process}.Build())
+	if err != nil {
+		return err
+	}
+	newCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	return util.WaitForOperation(newCtx, m.opClient, op)
+}
+
+func (m *manager) DeleteProcess(name string) error {
+	md := metadata.New(map[string]string{"x-goog-request-params": fmt.Sprintf("name=%s", name)})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	op, err := m.client.DeleteProcess(ctx, lvapb.DeleteProcessRequest_builder{Name: name}.Build())
+	if err != nil {
+		return err
+	}
+	newCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	return util.WaitForOperation(newCtx, m.opClient, op)
+}
+
+func (m *manager) BatchRunProcess(parent string, createProcessRequests []*lvapb.CreateProcessRequest) (*lropb.Operation, error) {
+	md := metadata.New(map[string]string{"x-goog-request-params": fmt.Sprintf("parent=%s", parent)})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	op, err := m.client.BatchRunProcess(ctx, lvapb.BatchRunProcessRequest_builder{
+		Parent:   parent,
+		Requests: createProcessRequests,
+	}.Build())
+	if err != nil {
+		return nil, err
+	}
+	return op, nil
 }

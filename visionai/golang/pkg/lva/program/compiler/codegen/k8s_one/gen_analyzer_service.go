@@ -17,21 +17,27 @@ type serviceTmplInfo struct {
 	AnalyzerServiceName   string
 	AnalyzerNamespaceName string
 	InternalGrpcPort      int
+	InternalStatePort     int
 	MetricsPort           int
 	MetricsDisabled       bool
 	EventID               string
 	AnalyzerName          string
 	AnalysisName          string
+	ProcessName           string
 }
 
+// TODO(b/271164856): Match the service and deployment/pod only via process label after live/submission merging.
 var serviceTemplate = `apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    process: "{{.ProcessName}}"
   name: "{{.AnalyzerServiceName}}"
   namespace: {{.AnalyzerNamespaceName}}
 spec:
   type: ClusterIP
   selector:
+    process: "{{.ProcessName}}"
     event: "{{.EventID}}"
     analyzer: {{.AnalyzerName}}
     analysis: "{{.AnalysisName}}"
@@ -39,6 +45,10 @@ spec:
     - name: tcp
       port: {{.InternalGrpcPort}}
       targetPort: {{.InternalGrpcPort}}
+      protocol: TCP
+    - name: grpc-state-port
+      port: {{.InternalStatePort}}
+      targetPort: {{.InternalStatePort}}
       protocol: TCP
     {{- if not .MetricsDisabled}}
     - name: http-prometheus
@@ -50,14 +60,8 @@ spec:
 
 // genAnalyzerService generates a service based on the given
 // analyzer info.
+// Generate services for all analyzers, including the sink operators.
 func genAnalyzerService(info *asg.AnalyzerInfo, ctx *Context) (string, error) {
-	// No need for a service if there are no outputs.
-	//
-	// Recall that, for now, only grpc streams appear in OutputStreams.
-	// AIS outputs are taken care by the StreamSink special case.
-	if len(info.OutputStreams) == 0 {
-		return "", nil
-	}
 	tmpl, err := template.New("service").Parse(serviceTemplate)
 	if err != nil {
 		return "", err
@@ -66,11 +70,13 @@ func genAnalyzerService(info *asg.AnalyzerInfo, ctx *Context) (string, error) {
 		AnalyzerNamespaceName: namespaceTemplateString,
 		AnalyzerServiceName:   analyzerNameTemplate(info.Name),
 		InternalGrpcPort:      internalGrpcOutputPort,
+		InternalStatePort:     defaultStateServerPort,
 		MetricsPort:           analyzerMetricsPort(info.MonitoringInfo),
 		MetricsDisabled:       analyzerMetricsDisabled(info.MonitoringInfo),
 		EventID:               eventIDTemplateString,
 		AnalyzerName:          info.Name,
 		AnalysisName:          analysisNameTemplateString,
+		ProcessName:           processNameTemplateString,
 	}
 	var renderedTmpl bytes.Buffer
 	err = tmpl.Execute(&renderedTmpl, tmplInfo)

@@ -7,7 +7,9 @@
 package sema
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"google3/base/go/runfiles"
@@ -20,14 +22,19 @@ func testOperatorRegistry() (*operators.OperatorRegistry, error) {
 	return operators.RegistryFromOpListFile(runfiles.Path("google3/third_party/visionai/golang/pkg/lva/program/data/test_oplist.pbtxt"))
 }
 
-func runSemaOnText(inputText string) (*asg.Graph, error) {
+type testArguments struct {
+	inputText          string
+	attributeOverrides []string
+}
+
+func runSemaOnText(args testArguments) (*asg.Graph, error) {
 	registry, err := testOperatorRegistry()
 	if err != nil {
 		return nil, err
 	}
 
 	pctx := &parse.Context{
-		InputProgramText: inputText,
+		InputProgramText: args.inputText,
 		OperatorRegistry: registry,
 	}
 	asg, err := parse.Parse(pctx)
@@ -36,7 +43,8 @@ func runSemaOnText(inputText string) (*asg.Graph, error) {
 	}
 
 	sctx := &Context{
-		Asg: asg,
+		Asg:                asg,
+		AttributeOverrides: args.attributeOverrides,
 	}
 
 	if err := Sema(sctx); err != nil {
@@ -96,7 +104,9 @@ analyzers: <
   >
 >
 `
-	aGraph, err := runSemaOnText(analysisText)
+	aGraph, err := runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNil(t, err)
 
 	streamInfoMap, err := getStreamInfoMap(aGraph)
@@ -160,7 +170,34 @@ analyzers: <
   >
 >
 `
-	_, err := runSemaOnText(analysisText)
+	_, err := runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
+	checkNil(t, err)
+
+	analysisText = `
+analyzers: <
+  analyzer: "placeholder"
+  operator: "Placeholder"
+>
+analyzers: <
+  analyzer: "detector"
+  operator: "FakeDetector"
+  inputs: <
+    input: "placeholder:output"
+  >
+>
+analyzers: <
+  analyzer: "protobuf_sink"
+  operator: "ProtobufSink"
+  inputs: <
+    input: "detector:bbox"
+  >
+>
+`
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNil(t, err)
 
 	analysisText = `
@@ -183,7 +220,9 @@ analyzers: <
   >
 >
 `
-	_, err = runSemaOnText(analysisText)
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNotNil(t, err)
 
 	analysisText = `
@@ -203,7 +242,9 @@ analyzers: <
   >
 >
 `
-	_, err = runSemaOnText(analysisText)
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNotNil(t, err)
 
 	analysisText = `
@@ -212,7 +253,9 @@ analyzers: <
   operator: "Fake"
 >
 `
-	_, err = runSemaOnText(analysisText)
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNotNil(t, err)
 }
 
@@ -223,7 +266,9 @@ analyzers: <
   operator: "AttributesOnly"
 >
 `
-	_, err := runSemaOnText(analysisText)
+	_, err := runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNotNil(t, err)
 
 	analysisText = `
@@ -238,7 +283,9 @@ analyzers: <
   >
 >
 `
-	aGraph, err := runSemaOnText(analysisText)
+	aGraph, err := runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNil(t, err)
 
 	analyzerInfoMap, err := getAnalyzerInfoMap(aGraph)
@@ -271,8 +318,193 @@ analyzers: <
   >
 >
 `
-	_, err = runSemaOnText(analysisText)
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
 	checkNotNil(t, err)
+}
+
+func TestSema_AttributeOverrideTest(t *testing.T) {
+	analysisText := `
+analyzers: <
+  analyzer: "attr_only"
+  operator: "AttributesOnly"
+  attrs: <
+    key: "required"
+    value: <
+      s: "explicitly_supplied"
+    >
+  >
+>
+`
+
+	// Test for successful attribute overrides.
+	overrideStringValue := "new!"
+	var overrideIntValue int64 = 42
+	overrideFloatValue := 2.0
+	overrideBoolValue := true
+	aGraph, err := runSemaOnText(testArguments{
+		inputText: analysisText,
+		attributeOverrides: []string{
+			fmt.Sprintf("attr_only:required=%v", overrideStringValue),
+			fmt.Sprintf("attr_only:not_required=%v", overrideStringValue),
+			fmt.Sprintf("attr_only:not_required_int=%v", overrideIntValue),
+			fmt.Sprintf("attr_only:not_required_float=%v", overrideFloatValue),
+			fmt.Sprintf("attr_only:not_required_bool=%v", overrideBoolValue),
+		},
+	})
+	checkNil(t, err)
+
+	analyzerInfoMap, err := getAnalyzerInfoMap(aGraph)
+	checkNil(t, err)
+
+	aInfo, ok := analyzerInfoMap["attr_only"]
+	checkTrue(t, ok)
+
+	attrValueInfo, ok := aInfo.Attributes["required"]
+	checkTrue(t, ok)
+	actualStringValue, ok := attrValueInfo.Value.(string)
+	checkTrue(t, ok)
+	checkEqual(t, actualStringValue, overrideStringValue)
+
+	attrValueInfo, ok = aInfo.Attributes["not_required"]
+	checkTrue(t, ok)
+	actualStringValue, ok = attrValueInfo.Value.(string)
+	checkTrue(t, ok)
+	checkEqual(t, actualStringValue, overrideStringValue)
+
+	attrValueInfo, ok = aInfo.Attributes["not_required_int"]
+	checkTrue(t, ok)
+	actualIntValue, ok := attrValueInfo.Value.(int64)
+	checkTrue(t, ok)
+	checkEqual(t, actualIntValue, overrideIntValue)
+
+	attrValueInfo, ok = aInfo.Attributes["not_required_float"]
+	checkTrue(t, ok)
+	actualFloatValue, ok := attrValueInfo.Value.(float64)
+	checkTrue(t, ok)
+	checkEqual(t, actualFloatValue, overrideFloatValue)
+
+	attrValueInfo, ok = aInfo.Attributes["not_required_bool"]
+	checkTrue(t, ok)
+	actualBoolValue, ok := attrValueInfo.Value.(bool)
+	checkTrue(t, ok)
+	checkEqual(t, actualBoolValue, overrideBoolValue)
+
+	// Test for unknown analyzer.
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+		attributeOverrides: []string{
+			"unknown_analyzer:attr1=val1",
+		},
+	})
+	checkNotNil(t, err)
+	wantErrorSubstr := "encountered attribute overrides for an unknown analyzer"
+	if !strings.Contains(err.Error(), wantErrorSubstr) {
+		t.Fatalf("expected error string to contain %q. Actual message: %q", wantErrorSubstr, err.Error())
+	}
+
+	// Test for unknown attribute.
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+		attributeOverrides: []string{
+			"attr_only:attr1=val1",
+		},
+	})
+	checkNotNil(t, err)
+	wantErrorSubstr = "which is not defined in its operator"
+	if !strings.Contains(err.Error(), wantErrorSubstr) {
+		t.Fatalf("expected error string to contain %q. Actual message: %q", wantErrorSubstr, err.Error())
+	}
+
+	// Test for bad int override value.
+	badOverrideIntValue := "clearly_a_string"
+	_, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+		attributeOverrides: []string{
+			fmt.Sprintf("attr_only:not_required_int=%v", badOverrideIntValue),
+		},
+	})
+	checkNotNil(t, err)
+	wantErrorSubstr = fmt.Sprintf("but got an override value string of %q", badOverrideIntValue)
+	if !strings.Contains(err.Error(), wantErrorSubstr) {
+		t.Fatalf("expected error string to contain %q. Actual message: %q", wantErrorSubstr, err.Error())
+	}
+}
+
+func TestSema_NodeInfoUpdateTest(t *testing.T) {
+	analysisText := `
+analyzers: <
+  analyzer: "video_src"
+  operator: "VideoSource"
+>
+analyzers: <
+  analyzer: "audio_src"
+  operator: "AudioSource"
+>
+analyzers: <
+  analyzer: "fake"
+  operator: "Fake"
+  inputs: <
+    input: "video_src:output"
+  >
+  inputs: <
+    input: "audio_src:output"
+  >
+>
+`
+	aGraph, err := runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
+	checkNil(t, err)
+
+	streamInfoMap, err := getStreamInfoMap(aGraph)
+	checkNil(t, err)
+	streamInfo, ok := streamInfoMap["video_src:output"]
+	checkTrue(t, ok)
+	checkEqual(t, 1, streamInfo.DownstreamAnalyzers)
+
+	streamInfo, ok = streamInfoMap["audio_src:output"]
+	checkTrue(t, ok)
+	checkEqual(t, 1, streamInfo.DownstreamAnalyzers)
+
+	streamInfo, ok = streamInfoMap["fake:action"]
+	checkTrue(t, ok)
+	checkEqual(t, 0, streamInfo.DownstreamAnalyzers)
+
+	streamInfo, ok = streamInfoMap["fake:identity"]
+	checkTrue(t, ok)
+	checkEqual(t, 0, streamInfo.DownstreamAnalyzers)
+
+	analysisText = `
+analyzers: <
+  analyzer: "placeholder"
+  operator: "Placeholder"
+>
+analyzers: <
+  analyzer: "detector0"
+  operator: "FakeDetector"
+  inputs: <
+    input: "placeholder:output"
+  >
+>
+analyzers: <
+  analyzer: "detector1"
+  operator: "FakeDetector"
+  inputs: <
+    input: "placeholder:output"
+  >
+>`
+	aGraph, err = runSemaOnText(testArguments{
+		inputText: analysisText,
+	})
+	checkNil(t, err)
+
+	streamInfoMap, err = getStreamInfoMap(aGraph)
+	checkNil(t, err)
+	streamInfo, ok = streamInfoMap["placeholder:output"]
+	checkTrue(t, ok)
+	checkEqual(t, 2, streamInfo.DownstreamAnalyzers)
 }
 
 func checkNil(t *testing.T, obj interface{}) {

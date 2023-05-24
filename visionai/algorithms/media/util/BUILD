@@ -1,3 +1,7 @@
+# Copyright (c) 2023 Google LLC All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
 package(
     default_visibility = [
         "//cloud/ai/visionai:__subpackages__",
@@ -41,10 +45,10 @@ cc_library(
     ],
     deps = [
         ":util",
-        "@com_google_absl//absl/debugging:leak_check",
-        "@com_google_absl//absl/status",
         "//third_party/gstreamer/subprojects/gstreamer:gst",
         "//visionai/util/status:status_macros",
+        "@com_google_absl//absl/debugging:leak_check",
+        "@com_google_absl//absl/status",
     ] + ALL_PLUGINS,
 )
 
@@ -58,10 +62,10 @@ cc_library(
     ],
     deps = [
         ":util",
-        "@com_google_absl//absl/debugging:leak_check",
-        "@com_google_absl//absl/status",
         "//third_party/gstreamer/subprojects/gstreamer:gst",
         "//visionai/util/status:status_macros",
+        "@com_google_absl//absl/debugging:leak_check",
+        "@com_google_absl//absl/status",
     ] + ALL_PLUGINS_FOR_SDK,
 )
 
@@ -201,5 +205,33 @@ cc_library(
         "//visionai/util:file_helpers",
         "//visionai/util/status:status_macros",
         "@com_google_absl//absl/status:statusor",
+    ],
+)
+
+cc_library(
+    name = "codec_validator",
+    srcs = ["codec_validator.cc"],
+    hdrs = ["codec_validator.h"],
+    deps = [
+        ":gstreamer_runner",
+        ":util",
+        "//third_party/gstreamer/subprojects/gstreamer:gst",
+        "//visionai/types:gstreamer_buffer",
+        "//visionai/util/status:status_macros",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_test(
+    name = "codec_validator_test",
+    srcs = ["codec_validator_test.cc"],
+    data = ["//visionai/testing/testdata/media:data"],
+    deps = [
+        ":codec_validator",
+        ":gstreamer_registry",
+        "//visionai/util:file_path",
+        "@com_google_absl//absl/debugging:leak_check",
+        "@com_google_googletest//:gtest_main",
     ],
 )

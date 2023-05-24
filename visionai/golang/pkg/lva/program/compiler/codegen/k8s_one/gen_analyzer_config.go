@@ -9,6 +9,7 @@ package k8s
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	cspb "visionai/proto/cluster_selection_go_proto"
 	acpb "google3/third_party/visionai/proto/lva/analyzer_config_go_proto"
@@ -69,26 +70,61 @@ func genGrpcInputChannelConfig(streamName string) (*ccpb.InputChannelConfig, err
 	return inputChannelConfig, nil
 }
 
-func genInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiverConfig, error) {
-	// TODO: Treat StreamSource in a special way. Improve the IR to remove this.
-	if info.Operator.Name == "StreamSource" {
-		ctx.inputPlaceholderNames = append(ctx.inputPlaceholderNames, info.Name)
-		seriesPlaceholderName := fmt.Sprintf(
-			inputPlaceholderTemplateString,
-			len(ctx.inputPlaceholderNames)-1,
-		)
-		streamPlaceholderID := fmt.Sprintf(inputStreamIDTemplateString, len(ctx.inputPlaceholderNames)-1)
-		channelConfig, err := genAisInputChannelConfig(seriesPlaceholderName, streamPlaceholderID)
-		if err != nil {
-			return nil, err
-		}
-		inputReceiverConfigs := []*icpb.InputReceiverConfig{
-			icpb.InputReceiverConfig_builder{
-				ChannelConfig: channelConfig,
-			}.Build(),
-		}
-		return inputReceiverConfigs, nil
+// Generates the input config specifically for "StreamSource" operators.
+func genStreamSourceInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiverConfig, error) {
+	ctx.inputPlaceholderNames = append(ctx.inputPlaceholderNames, info.Name)
+	seriesPlaceholderName := fmt.Sprintf(
+		inputPlaceholderTemplateString,
+		len(ctx.inputPlaceholderNames)-1,
+	)
+	streamPlaceholderID := fmt.Sprintf(inputStreamIDTemplateString, len(ctx.inputPlaceholderNames)-1)
+	channelConfig, err := genAisInputChannelConfig(seriesPlaceholderName, streamPlaceholderID)
+	if err != nil {
+		return nil, err
 	}
+	inputReceiverConfigs := []*icpb.InputReceiverConfig{
+		icpb.InputReceiverConfig_builder{
+			ChannelConfig: channelConfig,
+		}.Build(),
+	}
+	return inputReceiverConfigs, nil
+}
+
+// Generates the input config specifically for "GcsVideoSource" operators.
+func genGcsVideoSourceInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiverConfig, error) {
+	inputVideoGcsPath := info.Attributes["input_video_gcs_path"]
+	inputReceiverConfigs := []*icpb.InputReceiverConfig{
+		icpb.InputReceiverConfig_builder{
+			ChannelConfig: ccpb.InputChannelConfig_builder{
+				GcsInputChannelConfig: ccpb.GcsInputChannelConfig_builder{
+					InputVideoGcsPath: inputVideoGcsPath.Value.(string),
+				}.Build(),
+			}.Build(),
+		}.Build(),
+	}
+	return inputReceiverConfigs, nil
+}
+
+// Generates the input config specifically for "WarehouseVideoSource" operators.
+func genWarehouseVideoSourceInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiverConfig, error) {
+	warehouseEndpoint := info.Attributes["warehouse_endpoint"]
+	assetName := info.Attributes["asset_name"]
+	inputReceiverConfigs := []*icpb.InputReceiverConfig{
+		icpb.InputReceiverConfig_builder{
+			ChannelConfig: ccpb.InputChannelConfig_builder{
+				WarehouseVideoInputChannelConfig: ccpb.WarehouseVideoInputChannelConfig_builder{
+					WarehouseEndpoint:       warehouseEndpoint.Value.(string),
+					WarehouseVideoAssetName: assetName.Value.(string),
+				}.Build(),
+			}.Build(),
+		}.Build(),
+	}
+	return inputReceiverConfigs, nil
+}
+
+// Generates the input config for general operators.
+// In this case, all inputs are grpc channels.
+func genGeneralSourceInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiverConfig, error) {
 
 	inputReceiverConfigs := []*icpb.InputReceiverConfig{}
 	for _, streamInfo := range info.InputStreams {
@@ -102,6 +138,23 @@ func genInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiver
 			}.Build())
 	}
 	return inputReceiverConfigs, nil
+}
+
+func genInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiverConfig, error) {
+	// TODO(b/271594223): We currently treat "StreamSource" and "GcsVideoSource"
+	// in a special way. We will want to have this be itself customizable
+	// through the operator framework so that we can handle this branch more
+	// uniformly, rather than relying on specific operator triggers.
+	switch info.Operator.Name {
+	case "StreamSource":
+		return genStreamSourceInputConfig(info, ctx)
+	case "GcsVideoSource":
+		return genGcsVideoSourceInputConfig(info, ctx)
+	case "WarehouseVideoSource":
+		return genWarehouseVideoSourceInputConfig(info, ctx)
+	default:
+		return genGeneralSourceInputConfig(info, ctx)
+	}
 }
 
 func genAisOutputChannelConfig(seriesName, streamID string) (*ccpb.OutputChannelConfig, error) {
@@ -136,12 +189,14 @@ func genAisOutputChannelConfig(seriesName, streamID string) (*ccpb.OutputChannel
 	return outputChannelConfig, nil
 }
 
-func genGrpcOutputChannelConfig(streamName string) (*ccpb.OutputChannelConfig, error) {
-	tokens := strings.Split(streamName, ":")
+func genGrpcOutputChannelConfig(streamInfo *asg.OutputStreamInfo) (*ccpb.OutputChannelConfig, error) {
+	tokens := strings.Split(streamInfo.Stream.Name, ":")
 	seriesName := tokens[1]
 	outputChannelConfig := ccpb.OutputChannelConfig_builder{
 		GrpcOutputChannelConfig: ccpb.GrpcOutputChannelConfig_builder{
-			Series: seriesName,
+			Series:                      seriesName,
+			Peers:                       int32(streamInfo.Stream.DownstreamAnalyzers),
+			DownstreamConnectionTimeout: int32(defaultDownstreamConnectionTimeout / time.Second),
 		}.Build(),
 	}.Build()
 	return outputChannelConfig, nil
@@ -170,7 +225,7 @@ func genOutputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.OutputSender
 
 	outputSenderConfigs := []*icpb.OutputSenderConfig{}
 	for _, streamInfo := range info.OutputStreams {
-		channelConfig, err := genGrpcOutputChannelConfig(streamInfo.Stream.Name)
+		channelConfig, err := genGrpcOutputChannelConfig(streamInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -222,6 +277,20 @@ func genAnalyzerConfig(info *asg.AnalyzerInfo, ctx *Context) (*acpb.AnalyzerConf
 		monitoringConfig = nil
 	}
 
+	runMode := acpb.AnalyzerConfig_RUN_MODE_UNSPECIFIED
+	switch ctx.FeatureOptions.RunMode {
+	case "live":
+		runMode = acpb.AnalyzerConfig_LIVE
+	case "submission":
+		runMode = acpb.AnalyzerConfig_SUBMISSION
+	default:
+		return nil, fmt.Errorf("got an unsupported run mode %q", ctx.FeatureOptions.RunMode)
+	}
+
+	stateServerConfig := acpb.AnalyzerConfig_StateServerConfig_builder{
+		Port: defaultStateServerPort,
+	}.Build()
+
 	analyzerConfig := acpb.AnalyzerConfig_builder{
 		InputConfig: acpb.AnalyzerConfig_InputConfig_builder{
 			InputReceivers: inputConfig,
@@ -230,7 +299,9 @@ func genAnalyzerConfig(info *asg.AnalyzerInfo, ctx *Context) (*acpb.AnalyzerConf
 		OutputConfig: acpb.AnalyzerConfig_OutputConfig_builder{
 			OutputSenders: outputConfig,
 		}.Build(),
-		MonitoringConfig: monitoringConfig,
+		MonitoringConfig:  monitoringConfig,
+		RunMode:           runMode,
+		StateServerConfig: stateServerConfig,
 	}.Build()
 	if ctx.Verbose {
 		title := fmt.Sprintf("AnalyzerConfig for %q", info.Name)

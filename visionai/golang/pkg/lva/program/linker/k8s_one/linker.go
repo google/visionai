@@ -50,7 +50,10 @@ type K8SOneSymbols struct {
 	// specified in each compiled K8SOneProgram.
 	OutputSeries map[string]string
 
-	// The project ID.
+	// The tenant project ID.
+	TenantProjectID string
+
+	// The consumer project ID.
 	ProjectID string
 
 	// The location ID.
@@ -85,6 +88,12 @@ type K8SOneSymbols struct {
 
 	// The name of analysis.
 	AnalysisName string
+
+	// The name of the process.
+	ProcessName string
+
+	// The billing mode of the Process.
+	BillingMode string
 }
 
 // Link uses the given K8SOneSymbols to complete a K8SOneProgram.
@@ -120,6 +129,11 @@ func Link(program *kopb.K8SOneProgram, symbols *K8SOneSymbols) (string, error) {
 		return "", fmt.Errorf("the given K8SOneSymbols does not contain an EventID")
 	}
 	templateData.EventID = symbols.EventID
+
+	if symbols.TenantProjectID == "" {
+		return "", fmt.Errorf("the given K8SOneSymbols does not contain a TenantProjectID")
+	}
+	templateData.TenantProjectID = symbols.TenantProjectID
 
 	if symbols.ProjectID == "" {
 		return "", fmt.Errorf("the given K8SOneSymbols does not contain a ProjectID")
@@ -177,6 +191,16 @@ func Link(program *kopb.K8SOneProgram, symbols *K8SOneSymbols) (string, error) {
 	}
 	templateData.AnalysisName = symbols.AnalysisName
 
+	if symbols.ProcessName == "" {
+		return "", fmt.Errorf("the given K8SOneSymbols does not contain a ProcessName")
+	}
+	templateData.ProcessName = symbols.ProcessName
+
+	if symbols.BillingMode == "" {
+		return "", fmt.Errorf("the given K8SOneSymbols does not contain a BillingMode")
+	}
+	templateData.BillingMode = symbols.BillingMode
+
 	linked, err := renderTemplate(program.GetYamlTemplate(), templateData)
 	if err != nil {
 		return "", fmt.Errorf("failed to render program template: %v", err)
@@ -193,6 +217,7 @@ type symbolsTemplateData struct {
 	InputSeries          []string
 	OutputSeries         []string
 	ProjectID            string
+	TenantProjectID      string
 	LocationID           string
 	ClusterID            string
 	EventID              string
@@ -201,6 +226,8 @@ type symbolsTemplateData struct {
 	Lessee               string
 	AnalyzerSuffix       string
 	AnalysisName         string
+	ProcessName          string
+	BillingMode          string
 }
 
 // renderTemplate is the method that actually applies values to the template.

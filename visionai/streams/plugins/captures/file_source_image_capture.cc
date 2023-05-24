@@ -12,10 +12,12 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "visionai/algorithms/media/util/codec_validator.h"
 #include "visionai/algorithms/media/util/gstreamer_runner.h"
 #include "visionai/algorithms/media/util/type_util.h"
-#include "visionai/util/producer_consumer_queue.h"
+#include "visionai/streams/constants.h"
 #include "visionai/util/file_helpers.h"
+#include "visionai/util/producer_consumer_queue.h"
 
 namespace visionai {
 
@@ -54,33 +56,8 @@ absl::Status FileSourceImageCapture::Init(CaptureInitContext* ctx) {
   return absl::OkStatus();
 }
 
-// TODO(chenyangwei): Migrate the H264 gstreamer validator to the util.
-absl::Status FileSourceImageCapture::IsH264Input() {
-  GstreamerRunner::Options pipeline_opts;
-  std::string media_type;
-  pipeline_opts.processing_pipeline_string =
-      absl::StrFormat("filesrc location=%s ! parsebin", source_uri_);
-  pipeline_opts.receiver_callback =
-        [&](GstreamerBuffer buffer) -> absl::Status {
-      media_type = buffer.media_type();
-      // Once the pipeline received the first packet, pause/halt the pipeline.
-      return absl::CancelledError();
-    };
-
-  VAI_ASSIGN_OR_RETURN(auto pipeline, GstreamerRunner::Create(pipeline_opts));
-  while (!is_cancelled_.HasBeenNotified() && !pipeline->IsCompleted()) {
-  }
-  if (media_type != "video/x-h264") {
-    return absl::FailedPreconditionError(
-      absl::StrFormat("The input media type - \"%s\" is not supported. "
-        "Currently the only supported media type is \"video/x-h264\"",
-        media_type));
-  }
-  return absl::OkStatus();
-}
-
 absl::Status FileSourceImageCapture::Run(CaptureRunContext* ctx) {
-  VAI_RETURN_IF_ERROR(IsH264Input());
+  VAI_RETURN_IF_ERROR(IsVideoH264Input(source_uri_));
   do {
     GstreamerRunner::Options pipeline_opts;
     pipeline_opts.processing_pipeline_string = GstPipelineStr();
@@ -102,10 +79,12 @@ absl::Status FileSourceImageCapture::Run(CaptureRunContext* ctx) {
     // Once created, the GStreamer pipeline will run continuously in the
     // background.
     VAI_ASSIGN_OR_RETURN(auto pipeline, GstreamerRunner::Create(pipeline_opts));
-    while (!is_cancelled_.HasBeenNotified() && !pipeline->IsCompleted()) {
+    while (!is_cancelled_.HasBeenNotified() &&
+           !pipeline->WaitUntilCompleted(
+               absl::Milliseconds(kDefaultCapturePollCompletionIntervalMs))) {
     }
     pipeline->SignalEOS();
-  } while (loop_);
+  } while (loop_ && !is_cancelled_.HasBeenNotified());
   return absl::OkStatus();
 }
 

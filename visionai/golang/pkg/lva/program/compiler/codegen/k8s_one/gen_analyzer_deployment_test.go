@@ -13,7 +13,31 @@ import (
 	"google3/third_party/visionai/golang/pkg/lva/program/operators/operators"
 )
 
-func TestGenAnalyzerDeployment(t *testing.T) {
+func TestGenStreamSourceAnalyzerDeployment(t *testing.T) {
+	_, err := genAnalyzerDeployment(&asg.AnalyzerInfo{
+		Name: "name",
+		Operator: &operators.OperatorInfo{
+			Name: "StreamSource",
+		},
+		Resources: &asg.ResourceInfo{
+			LatencyBudgetMs: 10,
+		},
+	}, &Context{
+		FeatureOptions: FeatureOptions{
+			RunMode: "live",
+			RuntimeInfo: &asg.RuntimeInfo{
+				IncludeEnv:   true,
+				AnalysisName: "analysis",
+			},
+		},
+	})
+
+	if err != nil {
+		t.Errorf("error generating deployment: %v", err)
+	}
+}
+
+func TestGenGeneralSourceAnalyzerDeployment(t *testing.T) {
 	_, err := genAnalyzerDeployment(&asg.AnalyzerInfo{
 		Name: "name",
 		Operator: &operators.OperatorInfo{
@@ -30,9 +54,114 @@ func TestGenAnalyzerDeployment(t *testing.T) {
 			},
 		},
 	}, &Context{
-		RuntimeInfo: &asg.RuntimeInfo{
-			IncludeEnv:   true,
-			AnalysisName: "analysis",
+		FeatureOptions: FeatureOptions{
+			RunMode: "live",
+			RuntimeInfo: &asg.RuntimeInfo{
+				IncludeEnv:   true,
+				AnalysisName: "analysis",
+			},
+		},
+	})
+
+	if err != nil {
+		t.Errorf("error generating deployment: %v", err)
+	}
+}
+
+func TestDeIDAnalyzerDeployment(t *testing.T) {
+	analyzerAttrMap := make(map[string]*asg.AttributeValueInfo)
+	var frameRate int64 = 6
+	analyzerAttrMap["frame_rate"] = &asg.AttributeValueInfo{
+		Type:  "int",
+		Value: frameRate,
+	}
+	_, err := genAnalyzerDeployment(&asg.AnalyzerInfo{
+		Name: "name",
+		Operator: &operators.OperatorInfo{
+			Name: "de_id_0",
+		},
+		Attributes: analyzerAttrMap,
+		Resources: &asg.ResourceInfo{
+			LatencyBudgetMs: 10,
+		},
+		InputStreams: []*asg.InputStreamInfo{
+			&asg.InputStreamInfo{
+				Stream: &asg.StreamInfo{
+					Name: "analyzer:16000",
+				},
+			},
+		},
+	}, &Context{
+		FeatureOptions: FeatureOptions{
+			RunMode: "live",
+			RuntimeInfo: &asg.RuntimeInfo{
+				IncludeEnv:   true,
+				AnalysisName: "analysis",
+			},
+		},
+	})
+
+	if err != nil {
+		t.Errorf("error generating deployment: %v", err)
+	}
+}
+
+func TestGenGcsVideoSourceAnalyzerDeployment(t *testing.T) {
+	analyzerAttrMap := make(map[string]*asg.AttributeValueInfo)
+	analyzerAttrMap["input_video_gcs_path"] = &asg.AttributeValueInfo{
+		Type:  "string",
+		Value: "gs://test-bucket/test-video.mp4",
+	}
+	_, err := genAnalyzerDeployment(&asg.AnalyzerInfo{
+		Name: "name",
+		Operator: &operators.OperatorInfo{
+			Name: "GcsVideoSource",
+		},
+		Resources: &asg.ResourceInfo{
+			LatencyBudgetMs: 10,
+		},
+		Attributes: analyzerAttrMap,
+	}, &Context{
+		FeatureOptions: FeatureOptions{
+			RunMode: "submission",
+			RuntimeInfo: &asg.RuntimeInfo{
+				IncludeEnv:   true,
+				AnalysisName: "analysis",
+			},
+		},
+	})
+
+	if err != nil {
+		t.Errorf("error generating deployment: %v", err)
+	}
+}
+
+func TestGenWarehouseVideoSourceAnalyzerDeployment(t *testing.T) {
+	analyzerAttrMap := make(map[string]*asg.AttributeValueInfo)
+	analyzerAttrMap["warehouse_endpoint"] = &asg.AttributeValueInfo{
+		Type:  "string",
+		Value: "http://localhost:0",
+	}
+	analyzerAttrMap["asset_name"] = &asg.AttributeValueInfo{
+		Type:  "string",
+		Value: "projects/123345/locations/us-west1/corpora/342533/assets/3432523",
+	}
+	_, err := genAnalyzerDeployment(&asg.AnalyzerInfo{
+		Name: "name",
+		Operator: &operators.OperatorInfo{
+			Name: "WarehouseVideoSource",
+		},
+		Resources: &asg.ResourceInfo{
+			LatencyBudgetMs: 10,
+		},
+		Attributes: analyzerAttrMap,
+	}, &Context{
+		FeatureOptions: FeatureOptions{
+			RunMode: "submission",
+			RuntimeInfo: &asg.RuntimeInfo{
+				IncludeEnv:   true,
+				AnalysisName: "analysis",
+			},
 		},
 	})
 

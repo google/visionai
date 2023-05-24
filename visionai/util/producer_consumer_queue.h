@@ -48,6 +48,9 @@ class ProducerConsumerQueue {
   // Returns the capacity of the queue.
   int capacity() const;
 
+  // Returns true if the queue is empty and false otherwise.
+  bool empty() const ABSL_LOCKS_EXCLUDED(mu_);
+
   // Emplaces an element onto the queue.
   // This blocks the calling thread if the queue is full.
   template <typename... Args>
@@ -121,6 +124,12 @@ int ProducerConsumerQueue<T>::count() const {
 template <typename T>
 inline int ProducerConsumerQueue<T>::capacity() const {
   return capacity_;
+}
+
+template <typename T>
+inline bool ProducerConsumerQueue<T>::empty() const {
+  absl::MutexLock lock(&mu_);
+  return static_cast<int>(q_.size()) == 0;
 }
 
 template <typename T>

@@ -21,6 +21,10 @@ type Context struct {
 	// The operator registry.
 	OperatorRegistry *operators.OperatorRegistry
 
+	// The operator information.
+	OperatorsInfo map[string]*operators.OperatorInfo
+
+	// The abstract syntax graph.
 	aGraph *asg.Graph
 }
 

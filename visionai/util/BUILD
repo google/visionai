@@ -34,11 +34,11 @@ cc_library(
     deps = [
         ":file_path",
         "@com_github_google_glog//:glog",
-        "@com_github_google_re2//:re2",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_googlesource_code_re2//:re2",
     ],
 )
 
@@ -194,6 +194,7 @@ cc_test(
     srcs = [
         "examine_stack_test.cc",
     ],
+    tags = ["not_run:arm"],
     deps = [
         ":examine_stack",
         "@com_google_absl//absl/strings",
@@ -208,20 +209,6 @@ cc_library(
     deps = [
         ":completion_signal",
         ":producer_consumer_queue",
-    ],
-)
-
-cc_library(
-    name = "work_agent",
-    hdrs = [
-        "work_agent.h",
-    ],
-    deps = [
-        "@com_github_google_glog//:glog",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/time",
     ],
 )
 
@@ -284,16 +271,5 @@ cc_test(
     deps = [
         ":line_crossing_util",
         "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "lva_runtime_util",
-    srcs = ["lva_runtime_util.cc"],
-    hdrs = ["lva_runtime_util.h"],
-    deps = [
-        "//visionai/streams/packet",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/time",
     ],
 )

@@ -45,6 +45,12 @@ constexpr int32_t kDefaultEventSinkWriteBufferCapacity =
 // Default event sink finalization timeout.
 constexpr int32_t kDefaultEventSinkFinalizationTimeoutMs = 10000;
 
+// ----------------------------------------------------------------------------
+// Capture Defaults
+
+// Default capture poll interval for checking pipeline completion.
+constexpr int32_t kDefaultCapturePollCompletionIntervalMs = 1000;
+
 }  // namespace visionai
 
 #endif  // VISIONAI_STREAMS_CONSTANTS_H_

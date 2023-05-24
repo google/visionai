@@ -20,6 +20,14 @@ filter_config {
     key: "lookback_window_in_seconds"
     value: "10"
   }
+  attr {
+    key: "zone_annotation"
+    value: "0:0;0:10;10:10-20:10;30:10;20:20;30:20"
+  }
+  attr {
+    key: "exclude_annotated_zone"
+    value: "true"
+  }
 }
 event_writer_config {
   name: "LocalVideoEventWriter"

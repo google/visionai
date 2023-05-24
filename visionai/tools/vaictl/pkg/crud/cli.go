@@ -18,6 +18,9 @@ var (
 	// ListCmd is the root for the list command.
 	ListCmd = newListCmd()
 
+	// DescribeCmd is the root for the describe command.
+	DescribeCmd = newDescribeCmd()
+
 	// DeleteCmd is the root for the delete command.
 	DeleteCmd = newDeleteCmd()
 
@@ -34,6 +37,7 @@ var (
 	createStreamCmd = newCreateStreamCmd()
 	listStreamsCmd  = newListStreamsCmd()
 	deleteStreamCmd = newDeleteStreamCmd()
+
 	enableStreamMwhExportCmd  = newEnableStreamMwhExportCmd()
 	disableStreamMwhExportCmd = newDisableStreamMwhExportCmd()
 
@@ -130,6 +134,23 @@ func newDisableCmd() *cobra.Command {
 		Use:           "disable",
 		Short:         "Disable features for specific resources in Vision AI.",
 		Long:          `Disable features for specific resources in Vision AI.`,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := common.CallParentPersistentPreRunE(cmd, args); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	return command
+}
+
+func newDescribeCmd() *cobra.Command {
+	command := &cobra.Command{
+		Use:           "describe",
+		Short:         "Describe API resources in Vision AI.",
+		Long:          `Describe API resources in Vision AI.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

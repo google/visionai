@@ -25,3 +25,12 @@ message MotionVectorBasedMotionDetectorConfig {
   // Currently used for max magnitude entropy
   optional float motion_sensitivity = 3 [default = 0.6];
 }
+
+message MotionVectorBasedMotionDetectorZoneConfig {
+  // A string to annotation zones in the frame.
+  optional string zone_annotation = 1 [default = ""];
+
+  // A boolean to include or exclude annotated zone.
+  // Default is to only detect motion in the annotated zone.
+  optional bool exclude_annotated_zone = 2 [default = false];
+}

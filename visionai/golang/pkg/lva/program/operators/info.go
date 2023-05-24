@@ -71,4 +71,7 @@ type OperatorInfo struct {
 
 	// Resources contains the resource requirements.
 	Resources *ResourceInfo
+
+	// GCR Link to the docker image.
+	DockerImage string
 }

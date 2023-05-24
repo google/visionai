@@ -9,7 +9,10 @@
 #ifndef THIRD_PARTY_VISIONAI_STREAMS_PLUGINS_CAPTURES_FILE_SOURCE_CAPTURE_H_
 #define THIRD_PARTY_VISIONAI_STREAMS_PLUGINS_CAPTURES_FILE_SOURCE_CAPTURE_H_
 
+#include <memory>
+
 #include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 #include "visionai/streams/framework/capture.h"
 #include "visionai/streams/framework/capture_def_registry.h"
 
@@ -33,13 +36,10 @@ class FileSourceCapture : public Capture {
   // mostly for testing, so we don't need true infinite. This makes testing
   // easier, and allows specifying this value too.
   int64_t loop_count_ = std::numeric_limits<int64_t>::max();
+  // Sets a timeout to detect the increasing latency of the underlying gstreamer
+  // pipeline.
+  int timeout_sec_ = 5;
   absl::Notification is_cancelled_;
-
-  // Constructs the GStreamer pipeline command to read from local files.
-  std::string GstPipelineStr();
-
-  // Checks whether the input media type is "video/x-h264".
-  absl::Status IsH264Input();
 };
 
 }  // namespace visionai

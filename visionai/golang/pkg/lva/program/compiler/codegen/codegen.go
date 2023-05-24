@@ -23,7 +23,7 @@ func Codegen(ctx *Context) error {
 
 	// Dispatch to the chosen codegen backend.
 	var err error
-	switch backend := ctx.BackendName; backend {
+	switch backend := ctx.Options.BackendName; backend {
 	case "graphviz":
 		err = doGraphviz(ctx)
 	case "k8s_one":
@@ -56,10 +56,13 @@ func doGraphviz(ctx *Context) error {
 // Call into the k8s_one backend.
 func doK8sOne(ctx *Context) error {
 	kctx := &k8s.Context{
-		Verbose:     ctx.Verbose,
-		EnableDebug: ctx.EnableDebug,
-		Asg:         ctx.Asg,
-		RuntimeInfo: ctx.RuntimeInfo,
+		Verbose: ctx.Verbose,
+		FeatureOptions: k8s.FeatureOptions{
+			RunMode:     ctx.Options.RunMode,
+			EnableDebug: ctx.Options.EnableDebug,
+			RuntimeInfo: ctx.Options.RuntimeInfo,
+		},
+		Asg: ctx.Asg,
 	}
 
 	err := k8s.Codegen(kctx)

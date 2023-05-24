@@ -10,23 +10,18 @@ import (
 	"fmt"
 
 	"google3/third_party/visionai/golang/pkg/lva/program/compiler/asg/asg"
+	"google3/third_party/visionai/golang/pkg/lva/program/compiler/codegen/codegen"
 	"google3/third_party/visionai/golang/pkg/lva/program/operators/operators"
 )
 
 // Context contains data relevant across all phases of
 // a single compiler invocation.
 type Context struct {
-	// The codegen backend to use.
-	BackendName string
-
-	// Add debugging capability to the generated code.
-	EnableDebug bool
-
 	// Controls the verbosity of the compiler.
 	Verbose bool
 
-	// Runtime information.
-	RuntimeInfo *asg.RuntimeInfo
+	// Options to configure the behavior of the code generator.
+	CodegenOptions *codegen.Options
 
 	// The string containing the input analysis definition.
 	//
@@ -38,6 +33,16 @@ type Context struct {
 	//
 	// After a successful compile, the result will be stored here.
 	OutputProgramText string
+
+	// A list of attributes and their values used for overriding
+	// existing values in the input program text.
+	//
+	// The format of each element is
+	// "<analyzer_name>:<attribute_name>=<override_value>".
+	AttributeOverrides []string
+
+	// The operators infomation, indexed by the analyzer name.
+	OperatorsInfo map[string]*operators.OperatorInfo
 
 	// The operator registry.
 	operatorRegistry *operators.OperatorRegistry
@@ -61,7 +66,9 @@ func NewDefaultContext() (*Context, error) {
 	}
 	ctx.operatorRegistry = opRegistry
 
-	ctx.RuntimeInfo = &asg.RuntimeInfo{}
+	ctx.CodegenOptions = &codegen.Options{
+		RuntimeInfo: &asg.RuntimeInfo{},
+	}
 
 	return ctx, nil
 }

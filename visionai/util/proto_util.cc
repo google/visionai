@@ -143,4 +143,25 @@ absl::StatusOr<std::string> BuildSerializedStreamAnnotations(
   }
 }
 
+void ForceLinkAnnotationProtos() {
+  google::cloud::visionai::v1::PersonalProtectiveEquipmentDetectionOutput
+      personal_protective_equipment_detection_instance;
+  google::cloud::visionai::v1::ObjectDetectionPredictionResult
+      object_detection_instance;
+  google::cloud::visionai::v1::ImageObjectDetectionPredictionResult
+      image_object_detection_instance;
+  google::cloud::visionai::v1::ClassificationPredictionResult
+      image_classification_instance;
+  google::cloud::visionai::v1::ImageSegmentationPredictionResult
+      image_segmentation_instance;
+  google::cloud::visionai::v1::VideoActionRecognitionPredictionResult
+      video_action_recognition_instance;
+  google::cloud::visionai::v1::VideoObjectTrackingPredictionResult
+      video_object_tracking_instance;
+  google::cloud::visionai::v1::VideoClassificationPredictionResult
+      video_classification_instance;
+  google::cloud::visionai::v1::OccupancyCountingPredictionResult
+      occupancy_count_instance;
+}
+
 }  // namespace visionai

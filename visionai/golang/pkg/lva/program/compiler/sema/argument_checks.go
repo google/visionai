@@ -20,8 +20,15 @@ func isIgnorableType(t string) bool {
 	return t == "special/any"
 }
 
+// It needs to allow the operator to accept the subtype input from the upstream operator.
+// e.g.:
+// protobuf/google.cloud.visionai.v1.VideoActionRecognitionPredictionResult -> protobuf
+func isSubtype(t1 string, t2 string) bool {
+	return strings.HasPrefix(t1, t2)
+}
+
 func areStreamTypesMatched(t1 string, t2 string) bool {
-	if isIgnorableType(t1) || isIgnorableType(t2) {
+	if isIgnorableType(t1) || isIgnorableType(t2) || isSubtype(t1, t2) {
 		return true
 	}
 	return t1 == t2

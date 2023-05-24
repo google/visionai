@@ -21,6 +21,7 @@ namespace visionai {
 // google3/cloud/ai/mediawarehouse/client/grpc/grpc_client.h
 //
 // TODO: port all API methods.
+// TODO: Uncomment the google3 only annotations after the API launch.
 template <class Service>
 class WarehouseGrpcClient {
  public:

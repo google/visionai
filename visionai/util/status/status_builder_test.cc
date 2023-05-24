@@ -35,7 +35,7 @@ struct Locs {
   static const SourceLocation kBar;
 };
 
-class StatusBuilderTest : public Test {
+class StatusBuilderTestWithLog : public Test {
  protected:
   void SetUp() override {}
 
@@ -53,14 +53,14 @@ void ConvertToStatusAndIgnore(const StatusBuilder& s) {
   (void)status;
 }
 
-TEST_F(StatusBuilderTest, Size) {
+TEST(StatusBuilderTest, Size) {
   EXPECT_LE(sizeof(StatusBuilder), 40)
       << "Relax this test with caution and thorough testing. If StatusBuilder "
          "is too large it can potentially blow stacks, especially in debug "
          "builds. See the comments for StatusBuilder::Rep.";
 }
 
-TEST_F(StatusBuilderTest, ExplicitSourceLocation) {
+TEST(StatusBuilderTest, ExplicitSourceLocation) {
   const SourceLocation kLocation = VISIONAI_STREAMS_LOC;
 
   {
@@ -71,7 +71,7 @@ TEST_F(StatusBuilderTest, ExplicitSourceLocation) {
   }
 }
 
-TEST_F(StatusBuilderTest, ImplicitSourceLocation) {
+TEST(StatusBuilderTest, ImplicitSourceLocation) {
   const StatusBuilder builder(absl::OkStatus());
   auto loc = VISIONAI_STREAMS_LOC;
   EXPECT_THAT(builder.source_location().file_name(),
@@ -80,7 +80,7 @@ TEST_F(StatusBuilderTest, ImplicitSourceLocation) {
               AnyOf(Eq(1), Eq(loc.line() - 1)));
 }
 
-TEST_F(StatusBuilderTest, StatusCode) {
+TEST(StatusBuilderTest, StatusCode) {
   // OK
   {
     const StatusBuilder builder(absl::StatusCode::kOk);
@@ -95,7 +95,7 @@ TEST_F(StatusBuilderTest, StatusCode) {
   }
 }
 
-TEST_F(StatusBuilderTest, Streaming) {
+TEST(StatusBuilderTest, Streaming) {
   EXPECT_THAT(
       ToStatus(StatusBuilder(absl::CancelledError(), Locs::kFoo) << "booyah"),
       Eq(absl::CancelledError("booyah")));
@@ -105,7 +105,7 @@ TEST_F(StatusBuilderTest, Streaming) {
               Eq(absl::AbortedError("hello; world")));
 }
 
-TEST_F(StatusBuilderTest, PrependLvalue) {
+TEST(StatusBuilderTest, PrependLvalue) {
   {
     StatusBuilder builder(absl::CancelledError(), SourceLocation());
     EXPECT_THAT(ToStatus(builder.SetPrepend() << "booyah"),
@@ -118,7 +118,7 @@ TEST_F(StatusBuilderTest, PrependLvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, PrependRvalue) {
+TEST(StatusBuilderTest, PrependRvalue) {
   EXPECT_THAT(
       ToStatus(
           StatusBuilder(absl::CancelledError(), SourceLocation()).SetPrepend()
@@ -131,7 +131,7 @@ TEST_F(StatusBuilderTest, PrependRvalue) {
       Eq(absl::AbortedError("world hello")));
 }
 
-TEST_F(StatusBuilderTest, AppendLvalue) {
+TEST(StatusBuilderTest, AppendLvalue) {
   {
     StatusBuilder builder(absl::CancelledError(), SourceLocation());
     EXPECT_THAT(ToStatus(builder.SetAppend() << "booyah"),
@@ -144,7 +144,7 @@ TEST_F(StatusBuilderTest, AppendLvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, AppendRvalue) {
+TEST(StatusBuilderTest, AppendRvalue) {
   EXPECT_THAT(
       ToStatus(
           StatusBuilder(absl::CancelledError(), SourceLocation()).SetAppend()
@@ -157,7 +157,7 @@ TEST_F(StatusBuilderTest, AppendRvalue) {
       Eq(absl::AbortedError("hello world")));
 }
 
-TEST_F(StatusBuilderTest, LogToMultipleErrorLevelsLvalue) {
+TEST_F(StatusBuilderTestWithLog, LogToMultipleErrorLevelsLvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning,
                   HasSubstr(Locs::kSecret.file_name()), HasSubstr("no!")))
@@ -189,7 +189,7 @@ TEST_F(StatusBuilderTest, LogToMultipleErrorLevelsLvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, LogToMultipleErrorLevelsRvalue) {
+TEST_F(StatusBuilderTestWithLog, LogToMultipleErrorLevelsRvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning,
                   HasSubstr(Locs::kSecret.file_name()), HasSubstr("no!")))
@@ -219,7 +219,7 @@ TEST_F(StatusBuilderTest, LogToMultipleErrorLevelsRvalue) {
       StatusBuilder(absl::AbortedError(""), Locs::kSecret).VLog(2) << "Oui!");
 }
 
-TEST_F(StatusBuilderTest, LogEveryNFirstLogs) {
+TEST_F(StatusBuilderTestWithLog, LogEveryNFirstLogs) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning,
                   HasSubstr(Locs::kSecret.file_name()), HasSubstr("no!")))
@@ -232,7 +232,7 @@ TEST_F(StatusBuilderTest, LogEveryNFirstLogs) {
                            << "no!");
 }
 
-TEST_F(StatusBuilderTest, LogEveryN2Lvalue) {
+TEST_F(StatusBuilderTestWithLog, LogEveryN2Lvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning,
                   HasSubstr(Locs::kSecret.file_name()), HasSubstr("no!")))
@@ -248,7 +248,7 @@ TEST_F(StatusBuilderTest, LogEveryN2Lvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, LogEveryN3Lvalue) {
+TEST_F(StatusBuilderTestWithLog, LogEveryN3Lvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning,
                   HasSubstr(Locs::kSecret.file_name()), HasSubstr("no!")))
@@ -264,7 +264,7 @@ TEST_F(StatusBuilderTest, LogEveryN3Lvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, LogEveryN7Lvalue) {
+TEST_F(StatusBuilderTestWithLog, LogEveryN7Lvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning,
                   HasSubstr(Locs::kSecret.file_name()), HasSubstr("no!")))
@@ -280,7 +280,7 @@ TEST_F(StatusBuilderTest, LogEveryN7Lvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, LogEveryNRvalue) {
+TEST_F(StatusBuilderTestWithLog, LogEveryNRvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning,
                   HasSubstr(Locs::kSecret.file_name()), HasSubstr("no!")))
@@ -297,7 +297,7 @@ TEST_F(StatusBuilderTest, LogEveryNRvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, LogIncludesFileAndLine) {
+TEST_F(StatusBuilderTestWithLog, LogIncludesFileAndLine) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kWarning, HasSubstr("/foo/secret.cc"),
                   HasSubstr("maybe?")))
@@ -310,7 +310,7 @@ TEST_F(StatusBuilderTest, LogIncludesFileAndLine) {
                            << "maybe?");
 }
 
-TEST_F(StatusBuilderTest, NoLoggingLvalue) {
+TEST_F(StatusBuilderTestWithLog, NoLoggingLvalue) {
   EXPECT_CALL(scoped_mock_log_, Log(_, _, _)).Times(0);
 
   scoped_mock_log_.StartCapturingLogs();
@@ -328,7 +328,7 @@ TEST_F(StatusBuilderTest, NoLoggingLvalue) {
   }
 }
 
-TEST_F(StatusBuilderTest, NoLoggingRvalue) {
+TEST_F(StatusBuilderTestWithLog, NoLoggingRvalue) {
   EXPECT_CALL(scoped_mock_log_, Log(_, _, _)).Times(0);
 
   scoped_mock_log_.StartCapturingLogs();
@@ -344,7 +344,8 @@ TEST_F(StatusBuilderTest, NoLoggingRvalue) {
               Eq(absl::AbortedError("not at all")));
 }
 
-TEST_F(StatusBuilderTest, EmitStackTracePlusSomethingLikelyUniqueLvalue) {
+TEST_F(StatusBuilderTestWithLog,
+       EmitStackTracePlusSomethingLikelyUniqueLvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kError, HasSubstr("/bar/baz.cc"),
                   HasSubstr("EmitStackTracePlusSomethingLikelyUniqueLvalue")))
@@ -356,7 +357,8 @@ TEST_F(StatusBuilderTest, EmitStackTracePlusSomethingLikelyUniqueLvalue) {
   ConvertToStatusAndIgnore(builder.LogError().EmitStackTrace() << "maybe?");
 }
 
-TEST_F(StatusBuilderTest, EmitStackTracePlusSomethingLikelyUniqueRvalue) {
+TEST_F(StatusBuilderTestWithLog,
+       EmitStackTracePlusSomethingLikelyUniqueRvalue) {
   EXPECT_CALL(scoped_mock_log_,
               Log(absl::LogSeverity::kError, HasSubstr("/bar/baz.cc"),
                   HasSubstr("EmitStackTracePlusSomethingLikelyUniqueRvalue")))
@@ -370,21 +372,21 @@ TEST_F(StatusBuilderTest, EmitStackTracePlusSomethingLikelyUniqueRvalue) {
                            << "maybe?");
 }
 
-TEST_F(StatusBuilderTest, WithRvalueRef) {
+TEST(StatusBuilderTest, WithRvalueRef) {
   auto policy = [](StatusBuilder sb) { return sb << "policy"; };
   EXPECT_THAT(ToStatus(StatusBuilder(absl::AbortedError("hello"), Locs::kLevel0)
                            .With(policy)),
               Eq(absl::AbortedError("hello; policy")));
 }
 
-TEST_F(StatusBuilderTest, WithRef) {
+TEST(StatusBuilderTest, WithRef) {
   auto policy = [](StatusBuilder sb) { return sb << "policy"; };
   StatusBuilder sb(absl::AbortedError("zomg"), Locs::kLevel1);
   EXPECT_THAT(ToStatus(sb.With(policy)),
               Eq(absl::AbortedError("zomg; policy")));
 }
 
-TEST_F(StatusBuilderTest, WithTypeChange) {
+TEST(StatusBuilderTest, WithTypeChange) {
   auto policy = [](StatusBuilder sb) -> std::string {
     return sb.ok() ? "true" : "false";
   };
@@ -395,7 +397,7 @@ TEST_F(StatusBuilderTest, WithTypeChange) {
             "true");
 }
 
-TEST_F(StatusBuilderTest, WithVoidTypeAndSideEffects) {
+TEST(StatusBuilderTest, WithVoidTypeAndSideEffects) {
   absl::StatusCode code;
   auto policy = [&code](absl::Status status) { code = status.code(); };
   StatusBuilder(absl::CancelledError(), SourceLocation()).With(policy);
@@ -411,7 +413,7 @@ struct MoveOnlyAdaptor {
   }
 };
 
-TEST_F(StatusBuilderTest, WithMoveOnlyAdaptor) {
+TEST(StatusBuilderTest, WithMoveOnlyAdaptor) {
   StatusBuilder sb(absl::AbortedError("zomg"), SourceLocation());
   EXPECT_THAT(sb.With(MoveOnlyAdaptor{std::make_unique<int>(100)}),
               Pointee(100));
@@ -427,7 +429,7 @@ std::string ToStringViaStream(const T& x) {
   return os.str();
 }
 
-TEST_F(StatusBuilderTest, StreamInsertionOperator) {
+TEST(StatusBuilderTest, StreamInsertionOperator) {
   absl::Status status = absl::AbortedError("zomg");
   StatusBuilder builder(status, SourceLocation());
   EXPECT_EQ(ToStringViaStream(status), ToStringViaStream(builder));

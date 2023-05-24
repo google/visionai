@@ -36,10 +36,15 @@ type deploymentTmplInfo struct {
 	IncludeRuntimeEnv bool
 	AnalysisNameEnv   string
 	AnalyzerNameEnv   string
+	ProjectIDEnv      string
 
 	EventID      string
 	AnalysisName string
 	OperatorName string
+	ProcessName  string
+
+	DockerImageLink   string
+	EnableNewRegistry bool
 }
 
 var deploymentTemplate = `
@@ -49,6 +54,7 @@ metadata:
   name: '{{.AnalyzerDeploymentName}}'
   namespace: "{{.AnalyzerNamespaceName}}"
   labels:
+    process: "{{.ProcessName}}"
     event: "{{.EventID}}"
     analyzer: {{.AnalyzerNameEnv}}
     analysis: "{{.AnalysisName}}"
@@ -64,15 +70,19 @@ spec:
     type: Recreate
   selector:
     matchLabels:
+      process: "{{.ProcessName}}"
       event: "{{.EventID}}"
       analyzer: {{.AnalyzerNameEnv}}
       analysis: "{{.AnalysisName}}"
+      operator: {{.OperatorName}}
   template:
     metadata:
       labels:
+        process: "{{.ProcessName}}"
         event: "{{.EventID}}"
         analyzer: {{.AnalyzerNameEnv}}
         analysis: "{{.AnalysisName}}"
+        operator: {{.OperatorName}}
     {{- if not .MetricsDisabled}}
       annotations:
         prometheus.io/scrape: "true"
@@ -82,7 +92,11 @@ spec:
       enableServiceLinks: false
       containers:
         - name: {{.ContainerName}}
-          image: "{{.DockerRegistry}}/{{.DockerImageName}}:{{.DockerImageTag}}"
+    {{- if .EnableNewRegistry}}
+		      image: "{{.DockerImageLink}}"
+    {{- else}}
+          image: "{{.DockerRegistry}}/operators/{{.DockerImageName}}:{{.DockerImageTag}}"
+		{{- end}}
           ports:
     {{- if not .MetricsDisabled}}
             - name: http-prometheus
@@ -106,6 +120,8 @@ spec:
           env:
             - name: GLOG_alsologtostderr
               value: "1"
+            - name: PROJECT_ID
+              value: "{{.ProjectIDEnv}}"
     {{- if .IncludeRuntimeEnv}}
             - name: ANALYSIS_NAME
               value: "{{.AnalysisNameEnv}}"
@@ -141,7 +157,7 @@ func genAnalyzerDeployment(info *asg.AnalyzerInfo, ctx *Context) (string, error)
 		return "", err
 	}
 	tmplInfo := &deploymentTmplInfo{
-		EnableDebug:              ctx.EnableDebug,
+		EnableDebug:              ctx.FeatureOptions.EnableDebug,
 		AnalyzerDeploymentName:   analyzerNameTemplate(info.Name),
 		AnalyzerNamespaceName:    namespaceTemplateString,
 		ContainerName:            mainContainerName,
@@ -156,13 +172,17 @@ func genAnalyzerDeployment(info *asg.AnalyzerInfo, ctx *Context) (string, error)
 		MetricsPort:              analyzerMetricsPort(info.MonitoringInfo),
 		MetricsDisabled:          analyzerMetricsDisabled(info.MonitoringInfo),
 
-		IncludeRuntimeEnv: ctx.RuntimeInfo.IncludeEnv,
-		AnalysisNameEnv:   ctx.RuntimeInfo.AnalysisName,
+		IncludeRuntimeEnv: ctx.FeatureOptions.RuntimeInfo.IncludeEnv,
+		AnalysisNameEnv:   ctx.FeatureOptions.RuntimeInfo.AnalysisName,
 		AnalyzerNameEnv:   info.Name,
+		ProjectIDEnv:      tenantProjectIDTemplateString,
 
-		AnalysisName: analysisNameTemplateString,
-		EventID:      eventIDTemplateString,
-		OperatorName: info.Operator.Name,
+		AnalysisName:      analysisNameTemplateString,
+		EventID:           eventIDTemplateString,
+		OperatorName:      info.Operator.Name,
+		ProcessName:       processNameTemplateString,
+		EnableNewRegistry: info.Operator.DockerImage != "",
+		DockerImageLink:   info.Operator.DockerImage,
 	}
 	var renderedTmpl bytes.Buffer
 	err = tmpl.Execute(&renderedTmpl, tmplInfo)

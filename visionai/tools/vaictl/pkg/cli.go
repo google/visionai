@@ -27,6 +27,7 @@ var (
 func init() {
 	rootCmd.AddCommand(crud.CreateCmd)
 	rootCmd.AddCommand(crud.ListCmd)
+	rootCmd.AddCommand(crud.DescribeCmd)
 	rootCmd.AddCommand(crud.DeleteCmd)
 	rootCmd.AddCommand(crud.EnableCmd)
 	rootCmd.AddCommand(crud.DisableCmd)
@@ -34,6 +35,7 @@ func init() {
 	rootCmd.AddCommand(receive.ReceiveCmd)
 }
 
+// TODO(b/276759666): Implement GetOperation cmd in vaictl
 func newRootCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "vaictl",

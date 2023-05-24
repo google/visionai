@@ -8,6 +8,7 @@ package k8s
 
 import (
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -20,12 +21,15 @@ const (
 	outputPlaceholderTemplateString    = "{{index .OutputSeries %d}}"
 	lesseeTemplateString               = "{{.Lessee}}"
 	projectIDTemplateString            = "{{.ProjectID}}"
+	tenantProjectIDTemplateString      = "{{.TenantProjectID}}"
 	locationIDTemplateString           = "{{.LocationID}}"
 	clusterIDTemplateString            = "{{.ClusterID}}"
 	inputStreamIDTemplateString        = "{{index .InputStream %d}}"
 	outputStreamIDTemplateString       = "{{index .OutputStream %d}}"
 	eventIDTemplateString              = "{{.EventID}}"
 	analyzerSuffixTemplateString       = "{{.AnalyzerSuffix}}"
+	processNameTemplateString          = "{{.ProcessName}}"
+	billingModeTemplateString          = "{{.BillingMode}}"
 
 	mainContainerName = "main"
 	mainBinaryName    = "main"
@@ -34,8 +38,16 @@ const (
 	containerWorkdir = "/google"
 	configVolumeName = "config"
 
+	processManagerImageName = "process-manager"
+
 	internalGrpcOutputPort = 16000
 	defaultLatencyBudgetMs = 10000
+	defaultStateServerPort = 17000
+
+	defaultHealthCheckMaxAttempts      = 3
+	defaultHealthCheckTimeout          = 60 * time.Second
+	defaultHealthCheckInterval         = 5 * time.Second
+	defaultDownstreamConnectionTimeout = 60 * time.Second
 )
 
 var (

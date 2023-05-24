@@ -12,11 +12,9 @@
 
 #include "visionai/algorithms/detection/motion_detection/opencv_motion_detector.h"
 
-#include "opencv2/imgproc.hpp"
-#include "opencv2/core.hpp"
-#include "opencv2/core/types_c.h"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/video/background_segm.hpp"
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
+#include "opencv4/opencv2/video.hpp"
 #include "absl/status/status.h"
 #include "visionai/algorithms/detection/motion_detection/opencv_motion_detector_config.pb.h"
 #include "visionai/algorithms/detection/motion_detection/util.h"
@@ -36,8 +34,8 @@ OpenCVMotionDetector::OpenCVMotionDetector(
 
 OpenCVMotionDetector::~OpenCVMotionDetector() = default;
 
-absl::Status OpenCVMotionDetector::ComputeForeground(
-    const cv::Mat &image_frame, cv::Mat *foreground) {
+absl::Status OpenCVMotionDetector::ComputeForeground(const cv::Mat &image_frame,
+                                                     cv::Mat *foreground) {
   CHECK(foreground != nullptr);
 
   // Compute the new size for the frame.
@@ -53,7 +51,7 @@ absl::Status OpenCVMotionDetector::ComputeForeground(
   // Resize and convert the image to grayscale.
   cv::Mat input_image_scaled;
   cv::resize(image_frame, input_image_scaled, cv::Size(new_width, new_height),
-              0, 0, cv::INTER_LINEAR);
+             0, 0, cv::INTER_LINEAR);
   cv::Mat input_image_gray;
   if (image_frame.channels() > 1) {
     cv::cvtColor(input_image_scaled, input_image_gray, cv::COLOR_RGB2GRAY);

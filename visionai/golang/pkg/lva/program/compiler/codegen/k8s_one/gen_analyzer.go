@@ -19,14 +19,27 @@ func genAnalyzer(info *asg.AnalyzerInfo, ctx *Context) error {
 		return fmt.Errorf("internal error: got a nil AnalyzerInfo")
 	}
 
-	// Generate the analyzer's deployment.
-	// Deployment resources will also be filled.
-	deploymentString, err := genAnalyzerDeployment(info, ctx)
-	if err != nil {
-		return err
-	}
-	if deploymentString != "" {
-		ctx.yamls = append(ctx.yamls, deploymentString)
+	switch ctx.FeatureOptions.RunMode {
+	case "submission":
+		// Generate the analyzer's pod.
+		// Pod resources will also be filled.
+		podString, err := genAnalyzerPod(info, ctx)
+		if err != nil {
+			return err
+		}
+		if podString != "" {
+			ctx.yamls = append(ctx.yamls, podString)
+		}
+	default:
+		// Generate the analyzer's deployment.
+		// Deployment resources will also be filled.
+		deploymentString, err := genAnalyzerDeployment(info, ctx)
+		if err != nil {
+			return err
+		}
+		if deploymentString != "" {
+			ctx.yamls = append(ctx.yamls, deploymentString)
+		}
 	}
 
 	// Generate the analyzer's services.

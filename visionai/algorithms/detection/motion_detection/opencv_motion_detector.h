@@ -18,8 +18,8 @@
 // subtraction on consecutive video frames and return a foreground mask.
 // Note: These modules are not thread-safe.
 
-#include "opencv2/core.hpp"
-#include "opencv2/video/background_segm.hpp"
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/video.hpp"
 #include "absl/status/status.h"
 #include "visionai/algorithms/detection/motion_detection/opencv_motion_detector_config.pb.h"
 #include "visionai/types/raw_image.h"

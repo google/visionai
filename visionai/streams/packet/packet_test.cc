@@ -143,6 +143,7 @@ TEST(PacketTest, ProtobufPacketTest) {
 
     auto protobuf_packet = MakePacket(*string_packet);
     EXPECT_TRUE(protobuf_packet.ok());
+    EXPECT_TRUE(IsProtobufPacket(*protobuf_packet));
 
     // Test that it is not possible to read it out as another protobuf message.
     auto bad_packet = PacketAs<GstreamerBufferDescriptor>(*protobuf_packet);
@@ -306,6 +307,57 @@ TEST(PacketTest, GetTypeClassTest) {
   }
 }
 
+TEST(PacketTest, GetTypeTest) {
+  {
+    std::string s("hello!");
+    auto packet = MakePacket(s);
+    EXPECT_TRUE(packet.ok());
+    auto type = GetType(*packet);
+    std::string expected = std::string();
+    EXPECT_EQ(type, expected);
+  }
+  {
+    // Create a protobuf Packet containing a Packet protobuf.
+    std::string s("hello!");
+    auto string_packet = MakePacket(s);
+    EXPECT_TRUE(string_packet.ok());
+
+    auto protobuf_packet = MakePacket(*string_packet);
+    EXPECT_TRUE(protobuf_packet.ok());
+
+    auto type = GetType(*protobuf_packet);
+    std::string expected = Packet().GetTypeName();
+    EXPECT_EQ(type, expected);
+  }
+  {
+    // Create some make-believe gstreamer buffer.
+    std::string caps(
+        "video/x-h264, "
+        "codec_data=(buffer)"
+        "01f4000dffe1001d67f4000d919b28283f602d41804150000003001000000303c8f142"
+        "996001000568ebec4480, stream-format=(string)avc, "
+        "alignment=(string)au, level=(string)1.3, profile=(string)high-4:4:4, "
+        "width=(int)320, height=(int)240, pixel-aspect-ratio=(fraction)1/1, "
+        "framerate=(fraction)30/1, interlace-mode=(string)progressive, "
+        "colorimetry=(string)bt601, chroma-site=(string)jpeg, "
+        "multiview-mode=(string)mono, "
+        "multiview-flags=(GstVideoMultiviewFlagsSet)0:ffffffff:/"
+        "right-view-first/left-flipped/left-flopped/right-flipped/"
+        "right-flopped/half-aspect/mixed-mono, chroma-format=(string)4:4:4, "
+        "bit-depth-luma=(uint)8, bit-depth-chroma=(uint)8, "
+        "parsed=(boolean)true");
+    GstreamerBuffer gstreamer_buffer;
+    gstreamer_buffer.set_caps_string(caps);
+
+    auto gst_packet = MakePacket(gstreamer_buffer);
+    EXPECT_TRUE(gst_packet.ok());
+
+    auto type = GetType(*gst_packet);
+    std::string expected = "video/x-h264";
+    EXPECT_EQ(type, expected);
+  }
+}
+
 TEST(PacketTest, GetTypeNameTest) {
   {
     std::string s("hello!");
@@ -446,6 +498,13 @@ TEST(PacketTest, SignalPacketMethodTest) {
     EXPECT_TRUE(packet.ok());
     EXPECT_TRUE(IsSignalPacket(*packet));
     EXPECT_TRUE(IsPhantomPacket(*packet));
+  }
+  {
+    auto packet = MakeEOSPacket();
+    EXPECT_TRUE(packet.ok());
+    EXPECT_TRUE(IsSignalPacket(*packet));
+    EXPECT_TRUE(IsEOSPacket(*packet));
+    EXPECT_FALSE(IsPhantomPacket(*packet));
   }
 }
 

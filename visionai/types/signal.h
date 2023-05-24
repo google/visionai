@@ -21,6 +21,7 @@ class Signal {
   enum class SignalCode : int {
     kUnknown = 0,
     kPhantom,
+    kEOS,
   };
 
   // The default constructor constructs an unknown signal.

@@ -23,6 +23,10 @@ func Sema(ctx *Context) error {
 		return err
 	}
 
+	if err := ctx.verifyFinalization(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -34,6 +38,12 @@ func doLocalTasks(ctx *Context) error {
 			return err
 		}
 		if err := checkAndSetAttributeInformation(n); err != nil {
+			return err
+		}
+		if err := checkAndSetAttributeOverrides(n, ctx.analyzerToAttributeOverrides); err != nil {
+			return err
+		}
+		if err := updateNodeInfomation(n); err != nil {
 			return err
 		}
 		return nil

@@ -14,7 +14,10 @@
 
 #include <vector>
 
+#include "absl/status/statusor.h"
 #include "visionai/algorithms/detection/motion_detection/motion_vector_based_motion_detector_config.pb.h"
+#include "visionai/algorithms/stream_annotation/geometry_lib.h"
+#include "visionai/algorithms/stream_annotation/stream_annotation_util.h"
 #include "visionai/types/motion_vector.h"
 #include "visionai/util/array/array3d.h"
 #include "visionai/util/gtl/circularbuffer.h"
@@ -32,7 +35,26 @@ class MotionVectorBasedMotionDetector {
   // Perform motion detection by calculating features from motion vector in the
   // specific frame.
   bool DetectMotion(const MotionVectors& motion_vectors);
+
+  // Performs motion detection with regard to the annotated zones.
+  // Accepts a vector of motion vectors and a zone configuration.
+  // If the zone config contains no zone, detect motion in the whole frame.
+  // Else, detects motion only within the zones specified in the zone config.
+  // Default in zone config is to use annotated zones as regions of interest and
+  // only detect motion in the annotated zones.
+  // Set exclude_annotated_zone to TRUE to detect motion outside of the zones.
+  absl::StatusOr<bool> ZoneBasedDetectMotion(
+      const MotionVectors& motion_vectors,
+      MotionVectorBasedMotionDetectorZoneConfig zone_config);
+
+  // Return motion vector features based on spatial grid.
   std::vector<float> GetMotionVectorFeatures();
+
+  // Return filtered motion vector based on zone config.
+  std::vector<MotionVector> GetFilteredMotionVector();
+
+  // Return zone map.
+  std::map<uint64_t, stream_annotation::Polygon> GetZoneMap();
 
  private:
   MotionVectorBasedMotionDetectorConfig config_;
@@ -43,8 +65,14 @@ class MotionVectorBasedMotionDetector {
   // updated  when new motion vectors come in.
   gtl::CircularBuffer<Array3D<float>> grids_features_buffer_;
 
-  // Final motion features used for motion prediction in all the spatial grids.
+  // Motion features used for motion prediction in all the spatial grids.
   std::vector<float> mv_features_spatial_temporal_;
+
+  // Filtered motion vector based on zone config.
+  std::vector<MotionVector> filtered_motion_vectors_;
+
+  // Zone map from zone annotation.
+  std::map<uint64_t, stream_annotation::Polygon> zone_map_;
 };
 
 }  // namespace motion_detection

@@ -1,0 +1,30 @@
+analyzers: {
+  analyzer: "input_0"
+  operator: "GcsVideoSource"
+  attrs: {
+    key: "input_video_gcs_path"
+    value: {
+      s: "gs://lva-batch-testing/face-blur-test.mp4"
+    }
+  }
+}
+analyzers: {
+  analyzer: "de_id_0"
+  operator: "DeID"
+  inputs: {
+    input: "input_0:output_stream"
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "GcsVideoSink"
+  attrs: {
+    key: "output_video_gcs_path"
+    value: {
+      s: "gs://lva-batch-testing/test-deid.mp4"
+    }
+  }
+  inputs: {
+    input: "de_id_0:output_stream"
+  }
+}

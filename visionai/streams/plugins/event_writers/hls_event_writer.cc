@@ -18,6 +18,7 @@
 #include "re2/re2.h"
 #include "visionai/streams/framework/event_writer_def_registry.h"
 #include "visionai/util/file_helpers.h"
+#include "visionai/util/gstreamer/constants.h"
 #include "visionai/util/telemetry/metrics/stats.h"
 #include "visionai/util/status/status_macros.h"
 
@@ -32,8 +33,6 @@ namespace {
       .Set(                                               \
           absl::FDivDuration((absl::Now() - capture_time), absl::Seconds(1)));
 constexpr inline int KMaxLocalDirLength = 256;
-constexpr absl::Duration kGstreamerRunnerFinalizationDeadline =
-    absl::Seconds(5);
 }  // namespace
 
 std::string HLSEventWriter::PipelineString() {

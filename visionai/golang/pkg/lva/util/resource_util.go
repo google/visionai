@@ -23,3 +23,15 @@ func MakeAnalysisName(projectID, locationID, clusterID, analysisID string) (stri
 	}
 	return fmt.Sprintf("%v/analyses/%v", clusterName, analysisID), nil
 }
+
+// MakeProcessName assembles the resource name from the given project-id, location-id, cluster-id, and process-id.
+func MakeProcessName(projectID, locationID, clusterID, processID string) (string, error) {
+	if err := util.IsValidResourceID(processID); err != nil {
+		return "", fmt.Errorf("the given process-id had errors: %v", err)
+	}
+	clusterName, err := util.MakeClusterName(projectID, locationID, clusterID)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%v/processes/%v", clusterName, processID), nil
+}

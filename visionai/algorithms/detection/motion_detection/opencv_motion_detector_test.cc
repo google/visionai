@@ -16,9 +16,9 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/core/mat.hpp"
-#include "opencv2/imgcodecs/imgcodecs.hpp"
+#include "opencv4/opencv2/core.hpp"
+#include "opencv4/opencv2/imgcodecs.hpp"
+#include "opencv4/opencv2/imgproc.hpp"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "visionai/util/file_path.h"
@@ -46,8 +46,8 @@ TEST(OpenCVMotionDetectorTest, TestComputeForeground) {
     ASSERT_TRUE(detector.ComputeForeground(image_frame, &foreground).ok());
 
     filename = absl::StrCat("foreground01", absl::StrFormat("%02d", i), ".png");
-    cv::Mat expected_foreground = cv::imread(
-        file::JoinPath(kTestFolder, filename), cv::IMREAD_GRAYSCALE);
+    cv::Mat expected_foreground =
+        cv::imread(file::JoinPath(kTestFolder, filename), cv::IMREAD_GRAYSCALE);
     EXPECT_LE(cv::countNonZero(foreground != expected_foreground), 2);
   }
 }

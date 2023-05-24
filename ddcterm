@@ -1,0 +1,260 @@
+#! /usr/bin/env python3
+"""A tool that manages the terminal access of a development docker container.
+
+This tool manages a build/test environment in a docker container during
+code development. It is assumed that each directory is associated with one
+development container.
+
+The workflow is as follows:
+
+To start the development container:
+  $ ./ddcterm up <docker_image_spec>
+where <docker_image_spec> is the full docker image specification.
+
+To enter the development container:
+  $ ./ddcterm enter
+
+To end the development container:
+  $ ./ddcterm down
+"""
+
+import argparse
+import getpass
+import hashlib
+import logging
+import os
+import os.path
+import pwd
+import shlex
+import subprocess as sp
+import sys
+
+_CONTAINER_WORKDIR = "/workdir"
+_CONTAINER_SHELL = "/bin/bash"
+
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
+
+
+def _get_user_info_dict():
+  user_info_struct = pwd.getpwnam(getpass.getuser())
+  return {
+      "username": user_info_struct.pw_name,
+      "uid": user_info_struct.pw_uid,
+      "gid": user_info_struct.pw_gid
+  }
+
+
+def _container_name_from_cwd():
+  return "{}-{}".format(
+      os.path.basename(__file__),
+      hashlib.sha256(os.getcwd().encode("latin-1")).hexdigest())
+
+
+def _is_container_running(container_name):
+  docker_inspect_command = ("docker inspect "
+                            "-f '{{{{.State.Running}}}}' "
+                            "{container_name}").format(
+                                container_name=container_name)
+  try:
+    sp.check_output(shlex.split(docker_inspect_command), stderr=sp.STDOUT)
+  except sp.CalledProcessError:
+    return False
+  return True
+
+
+def _is_image_local(image_name):
+  docker_inspect_command = ("docker inspect {image_name}").format(
+      image_name=image_name)
+  try:
+    sp.check_output(shlex.split(docker_inspect_command), stderr=sp.STDOUT)
+  except sp.CalledProcessError:
+    return False
+  return True
+
+
+def up(args):
+  """Bring up the development container."""
+
+  container_name = _container_name_from_cwd()
+
+  if _is_container_running(container_name):
+    logging.warning("A container is already up: %s", container_name)
+    sys.exit(1)
+
+  if not _is_image_local(args.image_spec):
+    logging.error(
+        "%s is not found locally.\nPlease run `docker pull %s` and try again.",
+        args.image_spec, args.image_spec)
+    sys.exit(1)
+
+  def _docker_display_flags():
+    return "-v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY -e XAUTHORITY"
+
+  def _docker_gdb_enable_ptrace_flags():
+    return "--cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+
+  # Run the docker container based on the given image spec.
+  docker_run_config = {
+      "gpus":
+          "" if args.no_nvidia else "--gpus all",
+      "gdb_ptrace":
+          "" if args.no_gdb_ptrace else _docker_gdb_enable_ptrace_flags(),
+      "host_network":
+          "" if args.no_host_network else "--network host",
+      "host_display":
+          "" if args.no_host_display else _docker_display_flags(),
+      "host_sourcedir":
+          os.getcwd(),
+      "container_workdir":
+          _CONTAINER_WORKDIR,
+      "container_name":
+          container_name,
+      "image_spec":
+          args.image_spec,
+      "container_shell":
+          _CONTAINER_SHELL,
+  }
+  docker_run_command = ("docker run "
+                        "-t -d --rm "
+                        "{gpus} "
+                        "{gdb_ptrace} "
+                        "{host_network} "
+                        "{host_display} "
+                        "-v {host_sourcedir}:{container_workdir} "
+                        "-w {container_workdir} "
+                        "--name {container_name} "
+                        "{image_spec} {container_shell}").format(
+                            **docker_run_config)
+  try:
+    sp.check_output(shlex.split(docker_run_command))
+  except sp.CalledProcessError as e:
+    logging.error("%s", e.output.decode("UTF-8"))
+    sys.exit(1)
+
+  # Create a non-root user in the container that agrees with the host user.
+  user_info = _get_user_info_dict()
+  docker_exec_user_config = {
+      "username": user_info["username"],
+      "groupname": user_info["username"],
+      "uid": user_info["uid"],
+      "gid": user_info["gid"],
+      "container_name": docker_run_config["container_name"],
+  }
+  docker_exec_command = ("docker exec "
+                         "{container_name} "
+                         "groupadd -g {gid} "
+                         "{groupname}").format(**docker_exec_user_config)
+  sp.check_output(shlex.split(docker_exec_command))
+
+  docker_exec_command = ("docker exec "
+                         "{container_name} "
+                         "useradd -g {gid} -u {uid} -m "
+                         "{username}").format(**docker_exec_user_config)
+  sp.check_output(shlex.split(docker_exec_command))
+
+  logging.info("%s is up.", container_name)
+
+
+def enter(args):
+  """Enter the development container."""
+
+  container_name = _container_name_from_cwd()
+  if not _is_container_running(container_name):
+    logging.error("Container %s is not running.", container_name)
+    sys.exit(1)
+
+  user_info = _get_user_info_dict()
+  docker_exec_config = {
+      "container_name":
+          _container_name_from_cwd(),
+      "user_flag":
+          "" if args.root else "-u {uid}:{gid}".format(**user_info),
+      "alsologtostderr":
+          "" if args.no_alsologtostderr else "-e GLOG_alsologtostderr=1",
+      "gst_plugin_path":
+          "-e GST_PLUGIN_PATH={}".format(args.gst_plugin_path),
+      "container_shell":
+          _CONTAINER_SHELL,
+  }
+
+  logging.info("Entering container as \'%s\'",
+               "root" if args.root else user_info["username"])
+
+  docker_exec_command = ("docker exec "
+                         "-it "
+                         "{user_flag} "
+                         "{alsologtostderr} "
+                         "{gst_plugin_path} "
+                         "{container_name} "
+                         "{container_shell}").format(**docker_exec_config)
+  docker_exec_tokens = shlex.split(docker_exec_command)
+  os.execlp(docker_exec_tokens[0], *docker_exec_tokens)
+
+
+def down(args):  # pylint: disable=unused-argument
+  """Bring down the development container."""
+
+  container_name = _container_name_from_cwd()
+  if not _is_container_running(container_name):
+    logging.error("Container %s is not running.", container_name)
+    sys.exit(1)
+
+  docker_stop_command = "docker container stop {}".format(container_name)
+  sp.check_output(shlex.split(docker_stop_command))
+  logging.info("%s is down.", container_name)
+
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser(
+      description="Docker development container terminal.")
+  subparsers = parser.add_subparsers()
+
+  # Options for "up" .
+  subparser_up = subparsers.add_parser("up")
+  subparser_up.add_argument(
+      "image_spec",
+      type=str,
+      help="The docker image spec in which the terminal will be run.")
+  subparser_up.add_argument(
+      "--no-gdb-ptrace",
+      action="store_true",
+      help="Do not enable ptrace for gdb.")
+  subparser_up.add_argument(
+      "--no-host-display",
+      action="store_true",
+      help="Do not connect to the host display.")
+  subparser_up.add_argument(
+      "--no-host-network",
+      action="store_true",
+      help="Run the container without using the host network interfaces.")
+  subparser_up.add_argument(
+      "--no-nvidia",
+      action="store_true",
+      help="Run the container without enabling GPUs.")
+  subparser_up.set_defaults(func=up)
+
+  # Options for "enter".
+  subparser_enter = subparsers.add_parser("enter")
+  subparser_enter.add_argument(
+      "--root", action="store_true", help="Enter the container as root.")
+  subparser_enter.add_argument(
+      "--no-alsologtostderr",
+      action="store_true",
+      help="Do not set GLOG_alsologtostderr")
+  subparser_enter.add_argument(
+      "--gst-plugin-path",
+      type=str,
+      default="/workdir/visionai-sdk/bazel-bin/visionai/gstreamer/plugins:${GST_PLUGIN_PATH}",
+      help="Value for GST_PLUGIN_PATH")
+  subparser_enter.set_defaults(func=enter)
+
+  # Options for "down".
+  subparser_down = subparsers.add_parser("down")
+  subparser_down.set_defaults(func=down)
+
+  if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit(1)
+
+  parsed_args = parser.parse_args()
+  parsed_args.func(parsed_args)

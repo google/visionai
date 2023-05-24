@@ -24,8 +24,8 @@ cc_test(
     srcs = ["warehouse_grpc_client_test.cc"],
     deps = [
         ":warehouse_grpc_client",
-        "@com_github_googleapis_googleapis//google/cloud/visionai/v1alpha1:visionai_cc_grpc",
-        "@com_github_googleapis_googleapis//google/cloud/visionai/v1alpha1:visionai_cc_proto",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_grpc",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
         "@com_google_googletest//:gtest_main",
     ],
 )

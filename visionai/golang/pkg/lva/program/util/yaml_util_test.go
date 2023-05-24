@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	appsv1 "google3/third_party/golang/kubeapi/apps/v1/v1"
-	corev1 "google3/third_party/golang/kubeapi/core/v1/v1"
-	"google3/third_party/golang/kubeapimachinery/pkg/apis/meta/v1/v1"
-	"google3/third_party/golang/kubeapimachinery/pkg/runtime/runtime"
-	"google3/third_party/golang/kubeapimachinery/pkg/util/intstr/intstr"
+	appsv1 "google3/third_party/golang/k8s_io/api/v/v0_23/apps/v1/v1"
+	corev1 "google3/third_party/golang/k8s_io/api/v/v0_23/core/v1/v1"
+	"google3/third_party/golang/k8s_io/apimachinery/v/v0_23/pkg/apis/meta/v1/v1"
+	"google3/third_party/golang/k8s_io/apimachinery/v/v0_23/pkg/runtime/runtime"
+	"google3/third_party/golang/k8s_io/apimachinery/v/v0_23/pkg/util/intstr/intstr"
 )
 
 func TestParse(t *testing.T) {

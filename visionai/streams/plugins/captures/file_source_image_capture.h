@@ -34,9 +34,6 @@ class FileSourceImageCapture : public Capture {
 
   // Constructs the GStreamer pipeline command to read from local files.
   std::string GstPipelineStr();
-
-  // Checks whether the input media type is "video/x-h264".
-  absl::Status IsH264Input();
 };
 
 }  // namespace visionai

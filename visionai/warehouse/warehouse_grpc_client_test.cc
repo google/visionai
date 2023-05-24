@@ -6,24 +6,24 @@
 
 #include "visionai/warehouse/warehouse_grpc_client.h"
 
-#include "google/cloud/visionai/v1alpha1/warehouse.grpc.pb.h"
-#include "google/cloud/visionai/v1alpha1/warehouse.pb.h"
-#include "google/cloud/visionai/v1alpha1/warehouse.pb.h"
-#include "google/cloud/visionai/v1alpha1/warehouse_mock.grpc.pb.h"
+#include "google/cloud/visionai/v1/warehouse.grpc.pb.h"
+#include "google/cloud/visionai/v1/warehouse.pb.h"
+#include "google/cloud/visionai/v1/warehouse.pb.h"
+#include "google/cloud/visionai/v1/warehouse_mock.grpc.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace visionai {
 namespace {
 
-using ::google::cloud::visionai::v1alpha1::Annotation;
-using ::google::cloud::visionai::v1alpha1::Asset;
-using ::google::cloud::visionai::v1alpha1::ClipAssetRequest;
-using ::google::cloud::visionai::v1alpha1::ClipAssetResponse;
-using ::google::cloud::visionai::v1alpha1::CreateAnnotationRequest;
-using ::google::cloud::visionai::v1alpha1::CreateAssetRequest;
-using ::google::cloud::visionai::v1alpha1::MockWarehouseStub;
-using ::google::cloud::visionai::v1alpha1::Warehouse;
+using ::google::cloud::visionai::v1::Annotation;
+using ::google::cloud::visionai::v1::Asset;
+using ::google::cloud::visionai::v1::ClipAssetRequest;
+using ::google::cloud::visionai::v1::ClipAssetResponse;
+using ::google::cloud::visionai::v1::CreateAnnotationRequest;
+using ::google::cloud::visionai::v1::CreateAssetRequest;
+using ::google::cloud::visionai::v1::MockWarehouseStub;
+using ::google::cloud::visionai::v1::Warehouse;
 using ::testing::_;
 using ::testing::Eq;
 using ::testing::HasSubstr;

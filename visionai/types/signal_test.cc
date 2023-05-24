@@ -42,6 +42,12 @@ TEST(SignalTest, StringRepresentationTest) {
     EXPECT_EQ(*code_string, "phantom");
   }
   {
+    Signal s(Signal::SignalCode::kEOS);
+    auto code_string = ToString(s.code());
+    EXPECT_TRUE(code_string.ok());
+    EXPECT_EQ(*code_string, "eos");
+  }
+  {
     std::string code_string = "unknown";
     auto code = ToSignalCode(code_string);
     EXPECT_TRUE(code.ok());
@@ -52,6 +58,12 @@ TEST(SignalTest, StringRepresentationTest) {
     auto code = ToSignalCode(code_string);
     EXPECT_TRUE(code.ok());
     EXPECT_EQ(*code, Signal::SignalCode::kPhantom);
+  }
+  {
+    std::string code_string = "eos";
+    auto code = ToSignalCode(code_string);
+    EXPECT_TRUE(code.ok());
+    EXPECT_EQ(*code, Signal::SignalCode::kEOS);
   }
   {
     std::string code_string = "foo";
