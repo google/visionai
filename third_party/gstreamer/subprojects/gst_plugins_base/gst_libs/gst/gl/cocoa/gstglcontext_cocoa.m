@@ -313,7 +313,7 @@ gst_gl_context_cocoa_create_context (GstGLContext *context, GstGLAPI gl_api,
   context_cocoa->priv->pixel_format = fmt;
   context_cocoa->priv->gl_context = glContext;
 
-  _invoke_on_main ((GstGLWindowCB) gst_gl_window_cocoa_create_window,
+  _gst_gl_invoke_on_main ((GstGLWindowCB) gst_gl_window_cocoa_create_window,
       gst_object_ref (window_cocoa), (GDestroyNotify) gst_object_unref);
 
   if (!context_cocoa->priv->gl_context) {
@@ -352,7 +352,12 @@ gst_gl_context_cocoa_swap_buffers (GstGLContext * context)
 static void
 gst_gl_context_cocoa_destroy_context (GstGLContext *context)
 {
-  /* FIXME: Need to release context and other things? */
+  GstGLContextCocoa *context_cocoa = GST_GL_CONTEXT_COCOA (context);
+
+  if (context_cocoa->priv->gl_context != NULL) {
+    CGLDestroyContext(context_cocoa->priv->gl_context);
+    context_cocoa->priv->gl_context = NULL;
+  }
 }
 
 static guintptr

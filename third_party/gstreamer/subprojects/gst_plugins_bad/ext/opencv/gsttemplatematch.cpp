@@ -57,11 +57,11 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include <gst/gst-i18n-plugin.h>
-#include "gsttemplatematch.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/gst-i18n-plugin.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gsttemplatematch.h"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 

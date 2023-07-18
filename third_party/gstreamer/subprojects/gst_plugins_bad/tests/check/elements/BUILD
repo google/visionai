@@ -32,6 +32,7 @@ cc_test(
     copts = DEFAULT_COPTS,
     deps = [
         ":parser",
+        "//third_party/gstreamer/subprojects/gst_plugins_bad:config",
         "//third_party/gstreamer/subprojects/gst_plugins_bad/gst/videoparsers",
         "//third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/codecparsers",
         "//third_party/gstreamer/subprojects/gst_plugins_base:gst_libs_video",

@@ -110,6 +110,10 @@ inline constexpr char kServiceNamePubSub[] = "Pub/Sub";
 inline constexpr char kAnalysisNameEnv[] = "ANALYSIS_NAME";
 // Analyzer name
 inline constexpr char kAnalyzerNameEnv[] = "ANALYZER_NAME";
+// Process name
+inline constexpr char kProcessNameEnv[] = "PROCESS_NAME";
+// Input stream name
+inline constexpr char kInputStreamNameEnv[] = "INPUT_STREAM";
 
 }  // namespace visionai
 

@@ -106,7 +106,8 @@ static void gst_rtmp_connection_dispose (GObject * object);
 static void gst_rtmp_connection_finalize (GObject * object);
 static void gst_rtmp_connection_set_cancellable (GstRtmpConnection * self,
     GCancellable * cancellable);
-static void gst_rtmp_connection_emit_error (GstRtmpConnection * self);
+static void gst_rtmp_connection_emit_error (GstRtmpConnection * self,
+    GError * error);
 static gboolean gst_rtmp_connection_input_ready (GInputStream * is,
     gpointer user_data);
 static void gst_rtmp_connection_start_write (GstRtmpConnection * self);
@@ -244,7 +245,7 @@ gst_rtmp_connection_class_init (GstRtmpConnectionClass * klass)
   gobject_class->finalize = gst_rtmp_connection_finalize;
 
   signals[SIGNAL_ERROR] = g_signal_new ("error", G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL, G_TYPE_NONE, 1, G_TYPE_ERROR);
 
   signals[SIGNAL_STREAM_CONTROL] = g_signal_new ("stream-control",
       G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST, 0, NULL, NULL, NULL,
@@ -372,7 +373,7 @@ gst_rtmp_connection_new (GSocketConnection * connection,
 }
 
 static void
-cancel_all_commands (GstRtmpConnection * self)
+cancel_all_commands (GstRtmpConnection * self, const gchar * reason)
 {
   GList *l;
 
@@ -380,7 +381,7 @@ cancel_all_commands (GstRtmpConnection * self)
     Transaction *cc = l->data;
     GST_LOG_OBJECT (self, "calling transaction callback %s",
         GST_DEBUG_FUNCPTR_NAME (cc->func));
-    cc->func ("<cancelled>", NULL, cc->user_data);
+    cc->func (reason, NULL, cc->user_data);
   }
   g_list_free_full (self->transactions, transaction_free);
   self->transactions = NULL;
@@ -389,7 +390,7 @@ cancel_all_commands (GstRtmpConnection * self)
     ExpectedCommand *cc = l->data;
     GST_LOG_OBJECT (self, "calling expected command callback %s",
         GST_DEBUG_FUNCPTR_NAME (cc->func));
-    cc->func ("<cancelled>", NULL, cc->user_data);
+    cc->func (reason, NULL, cc->user_data);
   }
   g_list_free_full (self->expected_commands, expected_command_free);
   self->expected_commands = NULL;
@@ -403,7 +404,7 @@ gst_rtmp_connection_close (GstRtmpConnection * self)
   }
 
   g_cancellable_cancel (self->cancellable);
-  cancel_all_commands (self);
+  cancel_all_commands (self, "connection closed locally");
 
   if (self->input_source) {
     g_source_destroy (self->input_source);
@@ -474,6 +475,12 @@ gst_rtmp_connection_input_ready (GInputStream * is, gpointer user_data)
       sc->input_bytes->data + oldsize, READ_SIZE, sc->cancellable, &error);
   g_byte_array_set_size (sc->input_bytes, oldsize + (ret > 0 ? ret : 0));
 
+  if (ret == 0) {
+    error = g_error_new (G_IO_ERROR, G_IO_ERROR_CONNECTION_CLOSED,
+        "connection closed remotely");
+    ret = -1;
+  }
+
   if (ret < 0) {
     gint code = error->code;
 
@@ -488,13 +495,8 @@ gst_rtmp_connection_input_ready (GInputStream * is, gpointer user_data)
 
     GST_ERROR_OBJECT (sc, "read error: %s %d %s",
         g_quark_to_string (error->domain), code, error->message);
-    g_error_free (error);
-  } else if (ret == 0) {
-    GST_INFO_OBJECT (sc, "read EOF");
-  }
 
-  if (ret <= 0) {
-    gst_rtmp_connection_emit_error (sc);
+    gst_rtmp_connection_emit_error (sc, error);
     return G_SOURCE_REMOVE;
   }
 
@@ -575,18 +577,15 @@ out:
 }
 
 static void
-gst_rtmp_connection_emit_error (GstRtmpConnection * self)
+gst_rtmp_connection_emit_error (GstRtmpConnection * self, GError * error)
 {
-  if (self->error) {
-    return;
+  if (!self->error) {
+    self->error = TRUE;
+    cancel_all_commands (self, error->message);
+    g_signal_emit (self, signals[SIGNAL_ERROR], 0, error);
   }
 
-  GST_INFO_OBJECT (self, "connection error");
-  self->error = TRUE;
-
-  cancel_all_commands (self);
-
-  g_signal_emit (self, signals[SIGNAL_ERROR], 0);
+  g_error_free (error);
 }
 
 static void
@@ -617,8 +616,7 @@ gst_rtmp_connection_write_buffer_done (GObject * obj,
           "write error: %s (wrote %" G_GSIZE_FORMAT " bytes)",
           error->message, bytes_written);
     }
-    gst_rtmp_connection_emit_error (self);
-    g_error_free (error);
+    gst_rtmp_connection_emit_error (self, error);
     g_object_unref (self);
     return;
   }

@@ -310,7 +310,7 @@ gst_opus_dec_negotiate (GstOpusDec * dec, const GstAudioChannelPosition * pos)
     gst_structure_fixate_field_nearest_int (s, "rate", dec->sample_rate);
     gst_structure_get_int (s, "rate", &rate);
     channels = dec->n_channels > 0 ? dec->n_channels : 2;
-    gst_structure_fixate_field_nearest_int (s, "channels", dec->n_channels);
+    gst_structure_fixate_field_nearest_int (s, "channels", channels);
     gst_structure_get_int (s, "channels", &channels);
 
     gst_caps_unref (inter);
@@ -363,6 +363,7 @@ gst_opus_dec_parse_header (GstOpusDec * dec, GstBuffer * buf)
 {
   GstAudioChannelPosition pos[64];
   const GstAudioChannelPosition *posn = NULL;
+  guint8 n_channels;
 
   if (!gst_opus_header_is_id_header (buf)) {
     GST_ELEMENT_ERROR (dec, STREAM, FORMAT, (NULL),
@@ -372,7 +373,7 @@ gst_opus_dec_parse_header (GstOpusDec * dec, GstBuffer * buf)
 
   if (!gst_codec_utils_opus_parse_header (buf,
           &dec->sample_rate,
-          (guint8 *) & dec->n_channels,
+          &n_channels,
           &dec->channel_mapping_family,
           &dec->n_streams,
           &dec->n_stereo_streams,
@@ -381,6 +382,7 @@ gst_opus_dec_parse_header (GstOpusDec * dec, GstBuffer * buf)
         ("Failed to parse Opus ID header"));
     return GST_FLOW_ERROR;
   }
+  dec->n_channels = n_channels;
   dec->r128_gain_volume = gst_opus_dec_get_r128_volume (dec->r128_gain);
 
   GST_INFO_OBJECT (dec,
@@ -886,13 +888,15 @@ gst_opus_dec_set_format (GstAudioDecoder * bdec, GstCaps * caps)
     }
   } else {
     const GstAudioChannelPosition *posn = NULL;
+    guint8 n_channels;
 
     if (!gst_codec_utils_opus_parse_caps (caps, &dec->sample_rate,
-            (guint8 *) & dec->n_channels, &dec->channel_mapping_family,
+            &n_channels, &dec->channel_mapping_family,
             &dec->n_streams, &dec->n_stereo_streams, dec->channel_mapping)) {
       ret = FALSE;
       goto done;
     }
+    dec->n_channels = n_channels;
 
     if (dec->channel_mapping_family == 1 && dec->n_channels <= 8)
       posn = gst_opus_channel_positions[dec->n_channels - 1];

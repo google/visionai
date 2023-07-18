@@ -218,7 +218,9 @@ cc_library(
         "//third_party/gstreamer/subprojects/gstreamer:gst",
         "//visionai/types:gstreamer_buffer",
         "//visionai/util/status:status_macros",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
 )
@@ -230,6 +232,7 @@ cc_test(
     deps = [
         ":codec_validator",
         ":gstreamer_registry",
+        "//visionai/testing/status:status_matchers",
         "//visionai/util:file_path",
         "@com_google_absl//absl/debugging:leak_check",
         "@com_google_googletest//:gtest_main",

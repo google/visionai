@@ -183,7 +183,7 @@ gst_qt_get_gl_wrapcontext (GstGLDisplay * display,
   GstGLAPI G_GNUC_UNUSED gl_api;
   guintptr G_GNUC_UNUSED gl_handle;
   GstGLContext *current;
-  GError *error;
+  GError *error = NULL;
 
   g_return_val_if_fail (display != NULL && wrap_glcontext != NULL, FALSE);
 
@@ -248,6 +248,7 @@ gst_qt_get_gl_wrapcontext (GstGLDisplay * display,
     gst_gl_context_activate(*wrap_glcontext, TRUE);
     if (!gst_gl_context_fill_info (*wrap_glcontext, &error)) {
       GST_ERROR ("failed to retrieve qt context info: %s", error->message);
+      gst_gl_context_activate(*wrap_glcontext, FALSE);
       gst_clear_object (wrap_glcontext);
       return FALSE;
     }

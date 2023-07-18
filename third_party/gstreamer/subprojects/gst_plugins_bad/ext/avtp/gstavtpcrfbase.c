@@ -137,7 +137,8 @@ gst_avtp_crf_base_change_state (GstElement * element, GstStateChange transition)
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
       thread_data->past_periods =
-          g_malloc0 (sizeof (guint64) * MAX_NUM_PERIODS_STORED);
+          g_malloc0 (sizeof (thread_data->past_periods[0]) *
+          MAX_NUM_PERIODS_STORED);
       thread_data->mr = -1;
       thread_data->is_running = TRUE;
       thread_data->thread =
@@ -180,7 +181,7 @@ setup_socket (GstAvtpCrfBase * avtpcrfbase)
   guint8 addr[ETH_ALEN];
   int fd, res, ifindex;
 
-  fd = socket (AF_PACKET, SOCK_DGRAM, htons (ETH_P_TSN));
+  fd = socket (AF_PACKET, SOCK_DGRAM, htons (ETH_P_ALL));
   if (fd < 0) {
     GST_ERROR_OBJECT (avtpcrfbase, "Failed to open socket: %s",
         g_strerror (errno));
@@ -196,7 +197,7 @@ setup_socket (GstAvtpCrfBase * avtpcrfbase)
   }
 
   sk_addr.sll_family = AF_PACKET;
-  sk_addr.sll_protocol = htons (ETH_P_TSN);
+  sk_addr.sll_protocol = htons (ETH_P_ALL);
   sk_addr.sll_ifindex = ifindex;
 
   res = bind (fd, (struct sockaddr *) &sk_addr, sizeof (sk_addr));
@@ -408,7 +409,7 @@ calculate_average_period (GstAvtpCrfBase * avtpcrfbase,
   GstAvtpCrfThreadData *data = &avtpcrfbase->thread_data;
   GstClockTime first_pkt_tstamp, last_pkt_tstamp;
   int num_pkt_tstamps, past_periods_iter;
-  GstClockTime accumulate_period = 0;
+  gdouble accumulate_period = 0;
 
   num_pkt_tstamps = data->num_pkt_tstamps;
   past_periods_iter = data->past_periods_iter;
@@ -430,7 +431,7 @@ calculate_average_period (GstAvtpCrfBase * avtpcrfbase,
 
     if (!data->last_received_tstamp ||
         ((data->last_seqnum + 1) % 255 != seqnum)) {
-      GstClockTime average_period = data->average_period;
+      gdouble average_period = data->average_period;
 
       if (!data->last_received_tstamp) {
         gdouble base_freq_mult;
@@ -451,12 +452,13 @@ calculate_average_period (GstAvtpCrfBase * avtpcrfbase,
     }
 
     data->past_periods[past_periods_iter] =
-        first_pkt_tstamp - data->last_received_tstamp;
+        (gdouble) (first_pkt_tstamp - data->last_received_tstamp) /
+        data->timestamp_interval;
     data->last_received_tstamp = first_pkt_tstamp;
     data->last_seqnum = seqnum;
   } else {
     data->past_periods[past_periods_iter] =
-        (last_pkt_tstamp - first_pkt_tstamp) /
+        (gdouble) (last_pkt_tstamp - first_pkt_tstamp) /
         (data->timestamp_interval * (num_pkt_tstamps - 1));
   }
 
@@ -508,7 +510,8 @@ crf_listener_thread_func (GstAvtpCrfBase * avtpcrfbase)
     g_assert (res == 0);
 
     if (media_clk_reset != data->mr) {
-      memset (data->past_periods, 0, sizeof (gint64) * MAX_NUM_PERIODS_STORED);
+      memset (data->past_periods, 0,
+          sizeof (data->past_periods[0]) * MAX_NUM_PERIODS_STORED);
       data->periods_stored = 0;
       data->average_period = 0;
       data->current_ts = 0;

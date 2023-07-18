@@ -18,10 +18,12 @@ pip3 --disable-pip-version-check install \
   gcloud \
   google-api-python-client \
   google-auth \
+  google-cloud-videointelligence \
   grpc-google-iam-v1 \
   grpcio \
   numpy \
   proto-plus \
   protobuf \
+  ratelimit \
   requests \
   wheel

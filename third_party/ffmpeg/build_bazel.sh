@@ -99,6 +99,7 @@ pushd "${BUILD_DIR}" &> /dev/null
   --enable-encoder=png \
   --enable-parser=png \
   --enable-filter=scale \
+  --enable-encoder=mjpeg \
   --enable-ffmpeg \
   --disable-gpl \
   --cc=${CC} \

@@ -1,0 +1,78 @@
+analyzers: {
+  analyzer: "input_0"
+  operator: "WarehouseVideoSource"
+  attrs: {
+    key: "warehouse_endpoint"
+    value: {
+      s: "staging-warehouse-visionai.sandbox.googleapis.com",
+    }
+  }
+  attrs: {
+    key: "asset_name"
+    value: {
+      s: "projects/389013567096/locations/us-central1/corpora/2314842873256276106/assets/15253763642707954702",
+    }
+  }
+}
+analyzers: {
+  analyzer: "text_detection_0"
+  operator: "TextDetection"
+  attrs: {
+    key: "is_live_video"
+    value: {
+      b: false
+    }
+  }
+  attrs: {
+    key: "ocr_service_address"
+    value: {
+      s: "staging-visionai-pa.sandbox.googleapis.com"
+    }
+  }
+  attrs: {
+    key: "language_hints"
+    value: {
+      s: ""
+    }
+  }
+  inputs: {
+    input: "input_0:output_video_stream"
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "TextDetectionWarehouseSink"
+  attrs: {
+    key: "warehouse_endpoint"
+    value: {
+      s: "staging-warehouse-visionai.sandbox.googleapis.com"
+    }
+  }
+attrs: {
+    key: "asset_name"
+    value: {
+      s: "projects/389013567096/locations/us-central1/corpora/2314842873256276106/assets/15253763642707954702"
+    }
+  }
+attrs: {
+    key: "text_detection_data_schema_id"
+    value: {
+      s: "ocr"
+    }
+  }
+attrs: {
+    key: "use_insecure_channel"
+    value: {
+      b: false
+    }
+  }
+attrs: {
+    key: "is_live_video"
+    value: {
+      b: false
+    }
+  }
+  inputs: {
+    input: "text_detection_0:output_stream"
+  }
+}

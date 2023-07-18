@@ -212,12 +212,8 @@ gst_v4l2_transform_set_caps (GstBaseTransform * trans, GstCaps * incaps,
     }
   }
 
-  /* TODO Add renegotiation support */
-  g_return_val_if_fail (!GST_V4L2_IS_ACTIVE (self->v4l2output), FALSE);
-  g_return_val_if_fail (!GST_V4L2_IS_ACTIVE (self->v4l2capture), FALSE);
-
-  gst_caps_replace (&self->incaps, incaps);
-  gst_caps_replace (&self->outcaps, outcaps);
+  gst_v4l2_object_stop (self->v4l2output);
+  gst_v4l2_object_stop (self->v4l2capture);
 
   if (!gst_v4l2_object_set_format (self->v4l2output, incaps, &error))
     goto incaps_failed;
@@ -225,11 +221,14 @@ gst_v4l2_transform_set_caps (GstBaseTransform * trans, GstCaps * incaps,
   if (!gst_v4l2_object_set_format (self->v4l2capture, outcaps, &error))
     goto outcaps_failed;
 
+  gst_caps_replace (&self->incaps, incaps);
+  gst_caps_replace (&self->outcaps, outcaps);
+
   /* FIXME implement fallback if crop not supported */
-  if (!gst_v4l2_object_set_crop (self->v4l2output))
+  if (!gst_v4l2_object_setup_padding (self->v4l2output))
     goto failed;
 
-  if (!gst_v4l2_object_set_crop (self->v4l2capture))
+  if (!gst_v4l2_object_setup_padding (self->v4l2capture))
     goto failed;
 
   return TRUE;
@@ -319,12 +318,16 @@ gst_v4l2_transform_decide_allocation (GstBaseTransform * trans,
   GST_DEBUG_OBJECT (self, "called");
 
   if (gst_v4l2_object_decide_allocation (self->v4l2capture, query)) {
-    GstBufferPool *pool = GST_BUFFER_POOL (self->v4l2capture->pool);
+    gboolean pool_active;
+    GstBufferPool *pool = gst_v4l2_object_get_buffer_pool (self->v4l2capture);
 
     ret = GST_BASE_TRANSFORM_CLASS (parent_class)->decide_allocation (trans,
         query);
 
-    if (!gst_buffer_pool_set_active (pool, TRUE))
+    pool_active = gst_buffer_pool_set_active (pool, TRUE);
+    if (pool)
+      gst_object_unref (pool);
+    if (!pool_active)
       goto activate_failed;
   }
 
@@ -884,7 +887,7 @@ gst_v4l2_transform_prepare_output_buffer (GstBaseTransform * trans,
     GstBuffer * inbuf, GstBuffer ** outbuf)
 {
   GstV4l2Transform *self = GST_V4L2_TRANSFORM (trans);
-  GstBufferPool *pool = GST_BUFFER_POOL (self->v4l2output->pool);
+  GstBufferPool *pool = gst_v4l2_object_get_buffer_pool (self->v4l2output);
   GstFlowReturn ret = GST_FLOW_OK;
   GstBaseTransformClass *bclass = GST_BASE_TRANSFORM_CLASS (parent_class);
 
@@ -933,6 +936,8 @@ gst_v4l2_transform_prepare_output_buffer (GstBaseTransform * trans,
     goto beach;
 
   do {
+    if (pool)
+      g_object_unref (pool);
     pool = gst_base_transform_get_buffer_pool (trans);
 
     if (!gst_buffer_pool_set_active (pool, TRUE))
@@ -945,7 +950,7 @@ gst_v4l2_transform_prepare_output_buffer (GstBaseTransform * trans,
     if (ret != GST_FLOW_OK)
       goto alloc_failed;
 
-    pool = self->v4l2capture->pool;
+    pool = gst_v4l2_object_get_buffer_pool (self->v4l2capture);
     ret =
         gst_v4l2_buffer_pool_process (GST_V4L2_BUFFER_POOL (pool), outbuf,
         NULL);
@@ -965,6 +970,8 @@ gst_v4l2_transform_prepare_output_buffer (GstBaseTransform * trans,
     }
 
 beach:
+  if (pool)
+    g_object_unref (pool);
   return ret;
 
 activate_failed:
@@ -1015,10 +1022,8 @@ gst_v4l2_transform_sink_event (GstBaseTransform * trans, GstEvent * event)
       GST_DEBUG_OBJECT (self, "flush stop");
       gst_v4l2_object_unlock_stop (self->v4l2capture);
       gst_v4l2_object_unlock_stop (self->v4l2output);
-      if (self->v4l2output->pool)
-        gst_v4l2_buffer_pool_flush (self->v4l2output->pool);
-      if (self->v4l2capture->pool)
-        gst_v4l2_buffer_pool_flush (self->v4l2capture->pool);
+      gst_v4l2_buffer_pool_flush (self->v4l2output);
+      gst_v4l2_buffer_pool_flush (self->v4l2capture);
       break;
     default:
       break;

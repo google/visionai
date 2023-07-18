@@ -1,0 +1,57 @@
+# proto-file: google3/google/cloud/visionai/v1main/lva_resources.proto
+# proto-message: google.cloud.visionai.v1main.Analysis
+
+analyzers: {
+  analyzer: "input_0"
+  operator: "StreamSource"
+}
+analyzers: {
+  analyzer: "vertex_ai_custom_0"
+  operator: "VertexAiCustom"
+  inputs: {
+    input: "input_0:output"
+  }
+  attrs: {
+    key: "input_name"
+    value: {
+      s: "image_bytes"
+    }
+  }
+  attrs {
+    key: "app_platform_metadata",
+    value {
+      s: "Ck5wcm9qZWN0cy81NTczNTU5OTU0NS9sb2NhdGlvbnMvdXMtY2VudHJhbDEvYXBwbGljYXRpb25zL3plcm9leWVzLWludGVncmF0aW9uLTASKXNkay1pbmdlc3QtdGVzdGluZy0yMDIzLTA3LTEwLTY5LTNjY2NkMDFmGg96ZXJvZXllcy1mYWtlLTAiUXByb2plY3RzL3Zpc2lvbmFpLXRlc3Rpbmctc3RhYmxlL2xvY2F0aW9ucy91cy1jZW50cmFsMS9wcm9jZXNzb3JzL3plcm9leWVzLWZha2UtMA"
+    }
+  }
+  attrs: {
+    key: "max_prediction_fps"
+    value {
+      i: 10
+    }
+  }
+  attrs: {
+    key: "pub_sub_topic_name"
+    value: {
+      s: "projects/visionai-testing-stable/topics/chenyangwei-test"
+    }
+  }
+  attrs: {
+    key: "vertex_endpoint_name"
+    value {
+      s: "projects/tenant-project/locations/us-central1/endpoints/123456"
+    }
+  }
+  attrs: {
+    key: "vertex_online_prediction_service_endpoint"
+    value {
+      s: "dns:///us-central1-autopush-prediction-aiplatform.sandbox.googleapis.com"
+    }
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "StreamSink"
+  inputs {
+    input:"vertex_ai_custom_0:prediction_result"
+  }
+}

@@ -33,7 +33,7 @@ absl::Status FileSourceCapture::Init(CaptureInitContext* ctx) {
     return absl::InvalidArgumentError("Given an empty filepath");
   } else if (!FileExists(source_uri_).ok()) {
     return absl::InvalidArgumentError(
-      absl::StrFormat("No such file \"%s\"", source_uri_));
+        absl::StrFormat("No such file \"%s\"", source_uri_));
   }
 
   bool loop = false;
@@ -62,7 +62,7 @@ absl::Status FileSourceCapture::Init(CaptureInitContext* ctx) {
 absl::Status FileSourceCapture::Run(CaptureRunContext* ctx) {
   absl::Duration total_duration_before_this_iteration;
   absl::Time last_updated_time = absl::Now();
-  VAI_RETURN_IF_ERROR(IsVideoH264Input(source_uri_));
+  VAI_RETURN_IF_ERROR(IsSupportedMediaType(source_uri_));
   while (loop_count_-- > 0 && !is_cancelled_.HasBeenNotified()) {
     absl::Duration this_duration;
     GstreamerRunner::Options pipeline_opts;

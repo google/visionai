@@ -109,12 +109,14 @@ func genGcsVideoSourceInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb
 func genWarehouseVideoSourceInputConfig(info *asg.AnalyzerInfo, ctx *Context) ([]*icpb.InputReceiverConfig, error) {
 	warehouseEndpoint := info.Attributes["warehouse_endpoint"]
 	assetName := info.Attributes["asset_name"]
+	fastMode := info.Attributes["fast_mode"]
 	inputReceiverConfigs := []*icpb.InputReceiverConfig{
 		icpb.InputReceiverConfig_builder{
 			ChannelConfig: ccpb.InputChannelConfig_builder{
 				WarehouseVideoInputChannelConfig: ccpb.WarehouseVideoInputChannelConfig_builder{
 					WarehouseEndpoint:       warehouseEndpoint.Value.(string),
 					WarehouseVideoAssetName: assetName.Value.(string),
+					FastMode:                fastMode.Value.(bool),
 				}.Build(),
 			}.Build(),
 		}.Build(),
@@ -291,6 +293,11 @@ func genAnalyzerConfig(info *asg.AnalyzerInfo, ctx *Context) (*acpb.AnalyzerConf
 		Port: defaultStateServerPort,
 	}.Build()
 
+	adminServerConfig := acpb.AnalyzerConfig_AdminServerConfig_builder{
+		Port:       defaultAdminServerPort,
+		NumThreads: defaultAdminServerNumThreads,
+	}.Build()
+
 	analyzerConfig := acpb.AnalyzerConfig_builder{
 		InputConfig: acpb.AnalyzerConfig_InputConfig_builder{
 			InputReceivers: inputConfig,
@@ -302,6 +309,7 @@ func genAnalyzerConfig(info *asg.AnalyzerInfo, ctx *Context) (*acpb.AnalyzerConf
 		MonitoringConfig:  monitoringConfig,
 		RunMode:           runMode,
 		StateServerConfig: stateServerConfig,
+		AdminServerConfig: adminServerConfig,
 	}.Build()
 	if ctx.Verbose {
 		title := fmt.Sprintf("AnalyzerConfig for %q", info.Name)

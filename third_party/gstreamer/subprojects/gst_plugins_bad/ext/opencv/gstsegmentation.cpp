@@ -86,10 +86,10 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstsegmentation.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstsegmentation.h"
 #include <opencv2/imgproc.hpp>
 
 GST_DEBUG_CATEGORY_STATIC (gst_segmentation_debug);

@@ -24,8 +24,8 @@ def visionai_deps(is_gob_source_only = False):
     maybe(
         http_archive,
         name = "com_github_grpc_grpc",
-        strip_prefix = "grpc-1.46.3",
-        urls = ["https://github.com/grpc/grpc/archive/v1.46.3.zip"],
+        strip_prefix = "grpc-1.55.1",
+        urls = ["https://github.com/grpc/grpc/archive/v1.55.1.zip"],
     )
 
     maybe(
@@ -63,17 +63,23 @@ def visionai_deps(is_gob_source_only = False):
     maybe(
         http_archive,
         name = "com_google_protobuf",
-        sha256 = "acb71ce46502683c31d4f15bafb611b9e7b858b6024804d6fb84b85750884208",
-        strip_prefix = "protobuf-{}".format("3.20.3"),
-        urls = ["https://github.com/protocolbuffers/protobuf/releases/download/v3.20.3/protobuf-all-3.20.3.tar.gz"],
+        sha256 = "209385d3c08252e320196b628584c8007f849f9ec8a26c2796a886345ee58bb6",
+        strip_prefix = "protobuf-2dca62f7296e5b49d729f7384f975cecb38382a0",
+        urls = [
+            "https://storage.googleapis.com/grpc-bazel-mirror/github.com/protocolbuffers/protobuf/archive/2dca62f7296e5b49d729f7384f975cecb38382a0.tar.gz",
+            "https://github.com/protocolbuffers/protobuf/archive/2dca62f7296e5b49d729f7384f975cecb38382a0.tar.gz",
+        ],
     )
 
     maybe(
         http_archive,
         name = "com_google_absl",
-        strip_prefix = "abseil-cpp-20211102.0",
-        url = "https://github.com/abseil/abseil-cpp/archive/20211102.0.tar.gz",
-        sha256 = "dcf71b9cba8dc0ca9940c4b316a0c796be8fab42b070bb6b7cab62b48f0e66c4",
+        sha256 = "5366d7e7fa7ba0d915014d387b66d0d002c03236448e1ba9ef98122c13b35c36",
+        strip_prefix = "abseil-cpp-20230125.3",
+        urls = [
+            "https://storage.googleapis.com/grpc-bazel-mirror/github.com/abseil/abseil-cpp/archive/20230125.3.tar.gz",
+            "https://github.com/abseil/abseil-cpp/archive/20230125.3.tar.gz",
+        ],
     )
 
     maybe(

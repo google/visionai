@@ -683,6 +683,8 @@ gst_audio_convert_fixate_channels (GstBaseTransform * base, GstStructure * ins,
   } else if (out_chans > 1) {
     GST_ERROR_OBJECT (base, "Have no default layout for %d channels",
         out_chans);
+    gst_structure_set (outs, "channel-mask", GST_TYPE_BITMASK,
+        G_GUINT64_CONSTANT (0), NULL);
   }
 }
 
@@ -916,6 +918,11 @@ gst_audio_convert_submit_input_buffer (GstBaseTransform * base,
   GstAudioConvert *this = GST_AUDIO_CONVERT (base);
 
   if (base->segment.format == GST_FORMAT_TIME) {
+    if (!GST_AUDIO_INFO_IS_VALID (&this->in_info)) {
+      GST_WARNING_OBJECT (this, "Got buffer, but not negotiated yet!");
+      return GST_FLOW_NOT_NEGOTIATED;
+    }
+
     input =
         gst_audio_buffer_clip (input, &base->segment, this->in_info.rate,
         this->in_info.bpf);

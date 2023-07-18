@@ -531,7 +531,10 @@ gst_text_render_chain (GstPad * pad, GstObject * parent, GstBuffer * inbuf)
 
   /* render text */
   GST_DEBUG ("rendering '%*s'", (gint) size, data);
-  pango_layout_set_markup (render->layout, (gchar *) data, size);
+  if (render->have_pango_markup)
+    pango_layout_set_markup (render->layout, (gchar *) data, size);
+  else
+    pango_layout_set_text (render->layout, (gchar *) data, size);
   gst_text_render_render_pangocairo (render);
   gst_buffer_unmap (inbuf, &map);
 
@@ -630,8 +633,44 @@ gst_text_render_event (GstPad * pad, GstObject * parent, GstEvent * event)
       }
       break;
     }
+    case GST_EVENT_CAPS:
+    {
+      GstCaps *caps;
+      GstStructure *structure;
+      const gchar *format;
+
+      gst_event_parse_caps (event, &caps);
+
+      structure = gst_caps_get_structure (caps, 0);
+      format = gst_structure_get_string (structure, "format");
+      render->have_pango_markup = (strcmp (format, "pango-markup") == 0);
+
+      gst_event_unref (event);
+      ret = TRUE;
+
+      break;
+    }
+    case GST_EVENT_GAP:
+      /* Negotiate caps first if we negotiated none so far as otherwise
+       * downstream wouldn't have received a segment event either and
+       * wouldn't know what to do with the gap event */
+      if (!gst_pad_has_current_caps (render->srcpad)) {
+        if (gst_text_render_renegotiate (render) != GST_FLOW_OK) {
+          gst_event_unref (event);
+          ret = FALSE;
+          break;
+        }
+      }
+
+      if (render->segment_event) {
+        gst_pad_push_event (render->srcpad, render->segment_event);
+        render->segment_event = NULL;
+      }
+
+      ret = gst_pad_event_default (pad, parent, event);
+      break;
     default:
-      ret = gst_pad_push_event (render->srcpad, event);
+      ret = gst_pad_event_default (pad, parent, event);
       break;
   }
 

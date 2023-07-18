@@ -759,6 +759,9 @@ gst_audio_resample_process (GstAudioResample * resample, GstBuffer * inbuf,
   in_len = srcabuf.n_samples;
   out_len = gst_audio_converter_get_out_frames (resample->converter, in_len);
 
+  GST_DEBUG_OBJECT (resample, "in %" G_GSIZE_FORMAT " frames, out %"
+      G_GSIZE_FORMAT " frames", in_len, out_len);
+
   /* ensure that the output buffer is not bigger than what we need */
   gst_buffer_set_size (outbuf, out_len * resample->in.bpf);
 
@@ -974,6 +977,11 @@ gst_audio_resample_submit_input_buffer (GstBaseTransform * base,
   GstAudioResample *resample = GST_AUDIO_RESAMPLE (base);
 
   if (base->segment.format == GST_FORMAT_TIME) {
+    if (!GST_AUDIO_INFO_IS_VALID (&resample->in)) {
+      GST_WARNING_OBJECT (resample, "Got buffer, but not negotiated yet!");
+      return GST_FLOW_NOT_NEGOTIATED;
+    }
+
     input =
         gst_audio_buffer_clip (input, &base->segment, resample->in.rate,
         resample->in.bpf);

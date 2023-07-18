@@ -66,14 +66,18 @@ GST_DEBUG_CATEGORY (gst_vp9_decoder_debug);
 
 struct _GstVp9DecoderPrivate
 {
-  gint width;
-  gint height;
+  gint frame_width;
+  gint frame_height;
+  gint render_width;
+  gint render_height;
   GstVP9Profile profile;
 
   gboolean had_sequence;
 
   GstVp9StatefulParser *parser;
   GstVp9Dpb *dpb;
+
+  gboolean support_non_kf_change;
 
   gboolean wait_keyframe;
   /* controls how many frames to delay when calling output_picture() */
@@ -134,6 +138,9 @@ gst_vp9_decoder_init (GstVp9Decoder * self)
   gst_video_decoder_set_packetized (GST_VIDEO_DECODER (self), TRUE);
 
   self->priv = gst_vp9_decoder_get_instance_private (self);
+
+  /* Assume subclass can support non-keyframe format change by default */
+  self->priv->support_non_kf_change = TRUE;
 }
 
 static gboolean
@@ -145,6 +152,11 @@ gst_vp9_decoder_start (GstVideoDecoder * decoder)
   priv->parser = gst_vp9_stateful_parser_new ();
   priv->dpb = gst_vp9_dpb_new ();
   priv->wait_keyframe = TRUE;
+  priv->profile = GST_VP9_PROFILE_UNDEFINED;
+  priv->frame_width = 0;
+  priv->frame_height = 0;
+  priv->render_width = 0;
+  priv->render_height = 0;
 
   priv->output_queue =
       gst_queue_array_new_for_struct (sizeof (GstVp9DecoderOutputFrame), 1);
@@ -168,54 +180,74 @@ gst_vp9_decoder_stop (GstVideoDecoder * decoder)
   return TRUE;
 }
 
+static gboolean
+gst_vp9_decoder_is_format_change (GstVp9Decoder * self,
+    const GstVp9FrameHeader * frame_hdr)
+{
+  GstVp9DecoderPrivate *priv = self->priv;
+
+  if (priv->frame_width != frame_hdr->width
+      || priv->frame_height != frame_hdr->height) {
+    GST_INFO_OBJECT (self, "frame resolution changed %dx%d", frame_hdr->width,
+        frame_hdr->height);
+    return TRUE;
+  }
+
+  if (priv->render_width != frame_hdr->render_width
+      || priv->render_height != frame_hdr->render_height) {
+    GST_INFO_OBJECT (self, "render resolution changed %dx%d",
+        frame_hdr->render_width, frame_hdr->render_height);
+    return TRUE;
+  }
+
+  if (priv->profile != frame_hdr->profile) {
+    GST_INFO_OBJECT (self, "profile changed %d", frame_hdr->profile);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 static GstFlowReturn
 gst_vp9_decoder_check_codec_change (GstVp9Decoder * self,
     const GstVp9FrameHeader * frame_hdr)
 {
   GstVp9DecoderPrivate *priv = self->priv;
+  GstVp9DecoderClass *klass = GST_VP9_DECODER_GET_CLASS (self);
   GstFlowReturn ret = GST_FLOW_OK;
-  gboolean changed = FALSE;
 
-  if (priv->width != frame_hdr->width || priv->height != frame_hdr->height) {
-    GST_INFO_OBJECT (self, "resolution changed %dx%d", frame_hdr->width,
-        frame_hdr->height);
-    priv->width = frame_hdr->width;
-    priv->height = frame_hdr->height;
-    changed = TRUE;
+  if (priv->had_sequence && !gst_vp9_decoder_is_format_change (self, frame_hdr)) {
+    return GST_FLOW_OK;
   }
 
-  if (priv->profile != frame_hdr->profile) {
-    GST_INFO_OBJECT (self, "profile changed %d", frame_hdr->profile);
-    priv->profile = frame_hdr->profile;
-    changed = TRUE;
+  priv->frame_width = frame_hdr->width;
+  priv->frame_height = frame_hdr->height;
+  priv->render_width = frame_hdr->render_width;
+  priv->render_height = frame_hdr->render_height;
+  priv->profile = frame_hdr->profile;
+
+  /* Drain before new sequence */
+  ret = gst_vp9_decoder_drain_internal (self, FALSE);
+  if (ret != GST_FLOW_OK) {
+    GST_WARNING_OBJECT (self, "Failed to drain pending frames, returned %s",
+        gst_flow_get_name (ret));
+    return ret;
   }
 
-  if (changed || !priv->had_sequence) {
-    GstVp9DecoderClass *klass = GST_VP9_DECODER_GET_CLASS (self);
+  priv->had_sequence = TRUE;
 
-    /* Drain before new sequence */
-    ret = gst_vp9_decoder_drain_internal (self, FALSE);
-    if (ret != GST_FLOW_OK) {
-      GST_WARNING_OBJECT (self, "Failed to drain pending frames, returned %s",
-          gst_flow_get_name (ret));
-      return ret;
-    }
-
-    priv->had_sequence = TRUE;
-
-    if (klass->get_preferred_output_delay) {
-      priv->preferred_output_delay =
-          klass->get_preferred_output_delay (self, priv->is_live);
-    } else {
-      priv->preferred_output_delay = 0;
-    }
-
-    if (klass->new_sequence)
-      ret = klass->new_sequence (self, frame_hdr);
-
-    if (ret != GST_FLOW_OK)
-      priv->had_sequence = FALSE;
+  if (klass->get_preferred_output_delay) {
+    priv->preferred_output_delay =
+        klass->get_preferred_output_delay (self, priv->is_live);
+  } else {
+    priv->preferred_output_delay = 0;
   }
+
+  if (klass->new_sequence)
+    ret = klass->new_sequence (self, frame_hdr);
+
+  if (ret != GST_FLOW_OK)
+    priv->had_sequence = FALSE;
 
   return ret;
 }
@@ -234,9 +266,6 @@ gst_vp9_decoder_set_format (GstVideoDecoder * decoder,
     gst_video_codec_state_unref (self->input_state);
 
   self->input_state = gst_video_codec_state_ref (state);
-
-  priv->width = GST_VIDEO_INFO_WIDTH (&state->info);
-  priv->height = GST_VIDEO_INFO_HEIGHT (&state->info);
 
   query = gst_query_new_latency ();
   if (gst_pad_peer_query (GST_VIDEO_DECODER_SINK_PAD (self), query))
@@ -339,13 +368,26 @@ gst_vp9_decoder_handle_frame (GstVideoDecoder * decoder,
     goto error;
   }
 
-  pres = gst_vp9_stateful_parser_parse_frame_header (priv->parser, &frame_hdr,
-      map.data, map.size);
+  pres =
+      gst_vp9_stateful_parser_parse_uncompressed_frame_header (priv->parser,
+      &frame_hdr, map.data, map.size);
 
   if (pres != GST_VP9_PARSER_OK) {
     GST_ERROR_OBJECT (self, "Failed to parsing frame header");
     ret = GST_FLOW_ERROR;
     goto unmap_and_error;
+  }
+
+  if (self->parse_compressed_headers && !frame_hdr.show_existing_frame) {
+    pres =
+        gst_vp9_stateful_parser_parse_compressed_frame_header (priv->parser,
+        &frame_hdr, map.data + frame_hdr.frame_header_length_in_bytes,
+        map.size);
+
+    if (pres != GST_VP9_PARSER_OK) {
+      GST_ERROR_OBJECT (self, "Failed to parse the compressed frame header");
+      goto unmap_and_error;
+    }
   }
 
   if (frame_hdr.show_existing_frame) {
@@ -381,6 +423,15 @@ gst_vp9_decoder_handle_frame (GstVideoDecoder * decoder,
       GST_WARNING_OBJECT (self, "Subclass cannot handle codec change");
       goto unmap_and_error;
     }
+  } else if (!frame_hdr.show_existing_frame && !priv->support_non_kf_change &&
+      gst_vp9_decoder_is_format_change (self, &frame_hdr)) {
+    GST_DEBUG_OBJECT (self, "Drop frame on non-keyframe format change");
+
+    gst_buffer_unmap (in_buf, &map);
+    gst_video_decoder_release_frame (decoder, frame);
+
+    /* Drains frames if any and waits for keyframe again */
+    return gst_vp9_decoder_drain_internal (self, TRUE);
   }
 
   if (!priv->had_sequence) {
@@ -420,7 +471,7 @@ gst_vp9_decoder_handle_frame (GstVideoDecoder * decoder,
   } else {
     picture = gst_vp9_picture_new ();
     picture->frame_hdr = frame_hdr;
-
+    picture->system_frame_number = frame->system_frame_number;
     picture->data = map.data;
     picture->size = map.size;
 
@@ -547,4 +598,22 @@ gst_vp9_decoder_drain_output_queue (GstVp9Decoder * self, guint num,
     if (*ret == GST_FLOW_OK)
       *ret = flow_ret;
   }
+}
+
+/**
+ * gst_vp9_decoder_set_non_keyframe_format_change_support:
+ * @decoder: a #GstVp9Decoder
+ * @support: whether subclass can support non-keyframe format change
+ *
+ * Called to set non-keyframe format change awareness
+ *
+ * Since: 1.20
+ */
+void
+gst_vp9_decoder_set_non_keyframe_format_change_support (GstVp9Decoder * decoder,
+    gboolean support)
+{
+  g_return_if_fail (GST_IS_VP9_DECODER (decoder));
+
+  decoder->priv->support_non_kf_change = support;
 }

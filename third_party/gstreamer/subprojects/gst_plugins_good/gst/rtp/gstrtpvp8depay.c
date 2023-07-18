@@ -231,7 +231,7 @@ send_new_lost_event (GstRtpVP8Depay * self, GstClockTime timestamp,
   event = gst_event_new_custom (GST_EVENT_CUSTOM_DOWNSTREAM,
       gst_structure_new ("GstRTPPacketLost",
           "timestamp", G_TYPE_UINT64, timestamp,
-          "duration", G_TYPE_UINT64, 0, NULL));
+          "duration", G_TYPE_UINT64, G_GUINT64_CONSTANT (0), NULL));
 
   GST_DEBUG_OBJECT (self, "Pushing lost event "
       "(picids 0x%x 0x%x, reason \"%s\"): %" GST_PTR_FORMAT,
@@ -354,6 +354,13 @@ gst_rtp_vp8_depay_process (GstRTPBaseDepayload * depay, GstRTPBuffer * rtp)
       gst_adapter_clear (self->adapter);
       self->started = FALSE;
 
+      if (self->wait_for_keyframe)
+        self->waiting_for_keyframe = TRUE;
+      if (self->request_keyframe)
+        gst_pad_push_event (GST_RTP_BASE_DEPAYLOAD_SINKPAD (depay),
+            gst_video_event_new_upstream_force_key_unit (GST_CLOCK_TIME_NONE,
+                TRUE, 0));
+
       send_new_lost_event (self, GST_BUFFER_PTS (rtp->buffer), picture_id,
           "Incomplete frame detected");
       sent_lost_event = TRUE;
@@ -368,6 +375,14 @@ gst_rtp_vp8_depay_process (GstRTPBaseDepayload * depay, GstRTPBuffer * rtp)
         send_last_lost_event (self);
         self->stop_lost_events = FALSE;
       }
+
+      if (self->wait_for_keyframe)
+        self->waiting_for_keyframe = TRUE;
+      if (self->request_keyframe)
+        gst_pad_push_event (GST_RTP_BASE_DEPAYLOAD_SINKPAD (depay),
+            gst_video_event_new_upstream_force_key_unit (GST_CLOCK_TIME_NONE,
+                TRUE, 0));
+
       goto done;
     }
 

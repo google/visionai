@@ -307,10 +307,17 @@ operators: <
       i: 0
     >
   >
+  attributes <
+    attribute: "pub_sub_topic_name"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
   resources <
-    cpu: "6"
+    cpu: "1"
     gpus: 0
-    memory: "6Gi"
+    memory: "2Gi"
     latency_budget_ms: 60000
   >
 >
@@ -462,6 +469,61 @@ operators: <
   output_args: <
     argument: "output_stream"
     type: "protobuf/google.cloud.visionai.v1.OccupancyCountingPredictionResult"
+  >
+  attributes: <
+    attribute: "detect_person"
+    type: "bool"
+    default_value: <
+      b: true
+    >
+  >
+  attributes: <
+    attribute: "detect_vehicle"
+    type: "bool"
+    default_value: <
+      b: true
+    >
+  >
+  attributes: <
+    attribute: "detect_dwelling"
+    type: "bool"
+    default_value: <
+      b: true
+    >
+  >
+  attributes: <
+    attribute: "lines"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  attributes: <
+    attribute: "zones"
+    type: "string"
+    default_value: <
+      s: ""
+    >
+  >
+  resources: <
+    cpu: "4"
+    memory: "1500Mi"
+    latency_budget_ms: 120000
+  >
+>
+operators: <
+  operator: "OccupancyCountingVisualizer"
+  input_args: <
+    argument: "input_stream"
+    type: "gst/video"
+  >
+  output_args: <
+    argument: "output_stream"
+    type: "protobuf/google.cloud.visionai.v1.OccupancyCountingPredictionResult"
+  >
+  output_args: <
+    argument: "visualization_stream"
+    type: "gst/video"
   >
   attributes: <
     attribute: "detect_person"
@@ -1824,8 +1886,8 @@ operators: <
       >
   >
   resources: <
-    cpu: "12"
-    memory: "20Gi"
+    cpu: "1"
+    memory: "2Gi"
   >
 >
 operators <
@@ -2014,10 +2076,6 @@ operators: <
     argument: "output_video_stream"
     type: "gst/video"
   >
-  output_args: <
-    argument: "output_audio_stream"
-    type: "gst/audio"
-  >
   attributes: <
     attribute: "warehouse_endpoint"
     type: "string"
@@ -2030,6 +2088,13 @@ operators: <
     type: "string"
     default_value: <
       s: ""
+    >
+  >
+  attributes: <
+    attribute: "fast_mode"
+    type: "bool"
+    default_value: <
+      b: false
     >
   >
   resources: <
@@ -2080,8 +2145,23 @@ operators: <
   >
   resources: <
     cpu: "1"
-    memory: "200Mi"
+    memory: "1Gi"
   >
+>
+operators: <
+  operator: "Decoding"
+  input_args: <
+    argument: "video"
+    type: "gst/video"
+  >
+  output_args: <
+    argument: "video"
+    type: "gst/video"
+  >
+  resources {
+    cpu: "10"
+    memory: "2Gi"
+  }
 >
 `
 )

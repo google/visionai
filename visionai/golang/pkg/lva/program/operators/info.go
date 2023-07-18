@@ -40,8 +40,14 @@ type ResourceInfo struct {
 	// The amount of CPU resources required.
 	Cpu string
 
+	// The amount of limited CPU resources.
+	CpuLimits string
+
 	// The amount of memory resources required.
 	Memory string
+
+	// The amount of limited memory resources.
+	MemoryLimits string
 
 	// The number of GPUs required.
 	Gpus int

@@ -29,7 +29,7 @@
 
 #include "third_party/gstreamer/subprojects/gst_plugins_good/gst/flv/gstflvelements.h"
 
-GST_DEBUG_CATEGORY_STATIC (flvdemux_debug);
+GST_DEBUG_CATEGORY (flvdemux_debug);
 #define GST_CAT_DEFAULT flvdemux_debug
 
 void

@@ -41,7 +41,7 @@ type Context struct {
 	// "<analyzer_name>:<attribute_name>=<override_value>".
 	AttributeOverrides []string
 
-	// The operators infomation, indexed by the analyzer name.
+	// The operators information, indexed by the analyzer name.
 	OperatorsInfo map[string]*operators.OperatorInfo
 
 	// The operator registry.

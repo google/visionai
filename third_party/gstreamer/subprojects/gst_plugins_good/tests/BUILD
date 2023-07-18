@@ -134,6 +134,8 @@ cc_test(
         "//third_party/glib/glib",
         "//third_party/gstreamer/subprojects/gst_plugins_base:gst_libs_app",
         "//third_party/gstreamer/subprojects/gst_plugins_base:gst_libs_video",
+        "//third_party/gstreamer/subprojects/gst_plugins_base:plugin_audiotestsrc",
+        "//third_party/gstreamer/subprojects/gst_plugins_base:plugin_videotestsrc",
         "//third_party/gstreamer/subprojects/gst_plugins_good:config",
         "//third_party/gstreamer/subprojects/gst_plugins_good:isomp4",
         "//third_party/gstreamer/subprojects/gst_plugins_good:matroska",

@@ -8,12 +8,34 @@ package(
 )
 
 py_library(
+    name = "streams",
+    srcs = [
+        "__init__.py",
+    ],
+    srcs_version = "PY3",
+    deps = [
+        ":client",
+    ],
+)
+
+py_library(
     name = "client",
     srcs = ["client.py"],
     srcs_version = "PY3",
     deps = [
-        "//visionai/python/protos/googleapis/v1:streams_py_pb2",
-        "//visionai/python/protos/googleapis/v1:streams_py_pb2_grpc",
+        "//visionai/python/gapic:visionai_v1",
+        "//visionai/python/net:channel",
+    ],
+)
+
+py_test(
+    name = "client_test",
+    srcs = ["client_test.py"],
+    deps = [
+        ":client",
+        "//visionai/python/gapic:visionai_v1",
+        "//visionai/python/net:channel",
+        "//visionai/python/testing:test",
     ],
 )
 
@@ -23,6 +45,7 @@ py_binary(
     srcs_version = "PY3",
     deps = [
         ":client",
+        "//visionai/python/net:channel",
         "@absl_py//absl:app",
         "@absl_py//absl/flags",
     ],

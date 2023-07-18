@@ -21,6 +21,10 @@ func TestGenStreamSourceAnalyzerDeployment(t *testing.T) {
 		},
 		Resources: &asg.ResourceInfo{
 			LatencyBudgetMs: 10,
+			Cpu:             "1",
+			CpuLimits:       "2",
+			Memory:          "1Gi",
+			MemoryLimits:    "2Gi",
 		},
 	}, &Context{
 		FeatureOptions: FeatureOptions{
@@ -45,6 +49,10 @@ func TestGenGeneralSourceAnalyzerDeployment(t *testing.T) {
 		},
 		Resources: &asg.ResourceInfo{
 			LatencyBudgetMs: 10,
+			Cpu:             "1",
+			CpuLimits:       "2",
+			Memory:          "1Gi",
+			MemoryLimits:    "2Gi",
 		},
 		InputStreams: []*asg.InputStreamInfo{
 			&asg.InputStreamInfo{
@@ -83,6 +91,10 @@ func TestDeIDAnalyzerDeployment(t *testing.T) {
 		Attributes: analyzerAttrMap,
 		Resources: &asg.ResourceInfo{
 			LatencyBudgetMs: 10,
+			Cpu:             "1",
+			CpuLimits:       "2",
+			Memory:          "1Gi",
+			MemoryLimits:    "2Gi",
 		},
 		InputStreams: []*asg.InputStreamInfo{
 			&asg.InputStreamInfo{
@@ -119,6 +131,10 @@ func TestGenGcsVideoSourceAnalyzerDeployment(t *testing.T) {
 		},
 		Resources: &asg.ResourceInfo{
 			LatencyBudgetMs: 10,
+			Cpu:             "1",
+			CpuLimits:       "2",
+			Memory:          "1Gi",
+			MemoryLimits:    "2Gi",
 		},
 		Attributes: analyzerAttrMap,
 	}, &Context{
@@ -146,6 +162,10 @@ func TestGenWarehouseVideoSourceAnalyzerDeployment(t *testing.T) {
 		Type:  "string",
 		Value: "projects/123345/locations/us-west1/corpora/342533/assets/3432523",
 	}
+	analyzerAttrMap["fast_mode"] = &asg.AttributeValueInfo{
+		Type:  "bool",
+		Value: false,
+	}
 	_, err := genAnalyzerDeployment(&asg.AnalyzerInfo{
 		Name: "name",
 		Operator: &operators.OperatorInfo{
@@ -153,6 +173,10 @@ func TestGenWarehouseVideoSourceAnalyzerDeployment(t *testing.T) {
 		},
 		Resources: &asg.ResourceInfo{
 			LatencyBudgetMs: 10,
+			Cpu:             "1",
+			CpuLimits:       "2",
+			Memory:          "1Gi",
+			MemoryLimits:    "2Gi",
 		},
 		Attributes: analyzerAttrMap,
 	}, &Context{

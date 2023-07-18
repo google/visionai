@@ -73,4 +73,15 @@ rules_proto_dependencies()
 
 rules_proto_toolchains()
 
+load("@rules_python//python:pip.bzl", "pip_install")
+
+pip_install(
+    name = "pytest_deps",
+    requirements = "//bazel/pytest:requirements.txt",
+)
+
+load("@pytest_deps//:requirements.bzl", "install_deps")
+
+install_deps()
+
 # comments

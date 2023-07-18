@@ -420,10 +420,10 @@ GST_PLAY_API
 void           gst_play_message_parse_buffering_percent          (GstMessage *msg, guint *percent);
 
 GST_PLAY_API
-void           gst_play_message_parse_error                      (GstMessage *msg, GError *error, GstStructure **details);
+void           gst_play_message_parse_error                      (GstMessage *msg, GError **error, GstStructure **details);
 
 GST_PLAY_API
-void           gst_play_message_parse_warning                    (GstMessage *msg, GError *error, GstStructure **details);
+void           gst_play_message_parse_warning                    (GstMessage *msg, GError **error, GstStructure **details);
 
 GST_PLAY_API
 void           gst_play_message_parse_video_dimensions_changed   (GstMessage *msg, guint *width, guint *height);

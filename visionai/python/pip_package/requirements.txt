@@ -1,10 +1,13 @@
 absl-py>=1.4.0
 gcloud>=0.18.3
+google-api-core>=2.10.2
 google-api-python-client>=2.85.0
 google-auth>=2.17.3
+google-cloud-videointelligence>=2.11.1
 grpc-google-iam-v1>=0.12.4
 grpcio>=1.53.0
 protobuf>=4.22.3
 proto-plus>=1.22.2
+ratelimit>=2.2.1
 requests>=2.28.2
 wheel>=0.34.2

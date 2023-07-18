@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	lvapb "google3/google/cloud/visionai/v1alpha1_lva_go_proto"
+	lvapb "google3/google/cloud/visionai/v1_lva_go_proto"
 	"github.com/spf13/cobra"
 	"google3/third_party/golang/go_pretty/table/table"
 	"google3/third_party/golang/protobuf/v2/encoding/prototext/prototext"

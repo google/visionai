@@ -321,7 +321,7 @@ static void send_stop (GstRtmpConnection * connection, const gchar * stream,
 static void send_secure_token_response (GTask * task,
     GstRtmpConnection * connection, const gchar * challenge);
 static void connection_error (GstRtmpConnection * connection,
-    gpointer user_data);
+    const GError * error, gpointer user_data);
 
 #define DEFAULT_TIMEOUT 5
 
@@ -426,8 +426,10 @@ socket_connect (GTask * task)
       GST_DEBUG ("Configuring TLS, validation flags 0x%02x",
           data->location.tls_flags);
       g_socket_client_set_tls (socket_client, TRUE);
+      G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
       g_socket_client_set_tls_validation_flags (socket_client,
           data->location.tls_flags);
+      G_GNUC_END_IGNORE_DEPRECATIONS;
       break;
 
     default:
@@ -508,12 +510,13 @@ handshake_done (GObject * source, GAsyncResult * result, gpointer user_data)
 }
 
 static void
-connection_error (GstRtmpConnection * connection, gpointer user_data)
+connection_error (GstRtmpConnection * connection, const GError * error,
+    gpointer user_data)
 {
   GTask *task = user_data;
+
   if (!g_task_had_error (task))
-    g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "error during connection attempt");
+    g_task_return_error (task, g_error_copy (error));
 }
 
 static gchar *
@@ -705,14 +708,14 @@ send_connect_done (const gchar * command_name, GPtrArray * args,
 
   if (!args) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "connect failed: %s", command_name);
+        "'connect' cmd failed: %s", command_name);
     g_object_unref (task);
     return;
   }
 
   if (args->len < 2) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "connect failed; not enough return arguments");
+        "'connect' cmd failed; not enough return arguments");
     g_object_unref (task);
     return;
   }
@@ -720,15 +723,15 @@ send_connect_done (const gchar * command_name, GPtrArray * args,
   optional_args = g_ptr_array_index (args, 1);
 
   node = gst_amf_node_get_field (optional_args, "code");
-  if (!node) {
+  code = node ? gst_amf_node_peek_string (node, NULL) : NULL;
+  if (!code) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "result code missing from connect cmd result");
+        "'connect' cmd failed; no status code");
     g_object_unref (task);
     return;
   }
 
-  code = gst_amf_node_peek_string (node, NULL);
-  GST_INFO ("connect result: %s", GST_STR_NULL (code));
+  GST_INFO ("connect result: %s", code);
 
   if (g_str_equal (code, "NetConnection.Connect.Success")) {
     node = gst_amf_node_get_field (optional_args, "secureToken");
@@ -744,15 +747,15 @@ send_connect_done (const gchar * command_name, GPtrArray * args,
     GstUri *query;
 
     node = gst_amf_node_get_field (optional_args, "description");
-    if (!node) {
+    desc = node ? gst_amf_node_peek_string (node, NULL) : NULL;
+    if (!desc) {
       g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
-          "Connect rejected; no description");
+          "'connect' cmd returned '%s'; no description", code);
       g_object_unref (task);
       return;
     }
 
-    desc = gst_amf_node_peek_string (node, NULL);
-    GST_DEBUG ("connect result desc: %s", GST_STR_NULL (desc));
+    GST_DEBUG ("connect result desc: %s", desc);
 
     if (authmod == GST_RTMP_AUTHMOD_AUTO && strstr (desc, "code=403 need auth")) {
       if (strstr (desc, "authmod=adobe")) {
@@ -763,14 +766,14 @@ send_connect_done (const gchar * command_name, GPtrArray * args,
       }
 
       g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
-          "unhandled authentication mode: %s", desc);
+          "'connect' cmd returned unhandled authmod: %s", desc);
       g_object_unref (task);
       return;
     }
 
     if (!g_regex_match (auth_regex, desc, 0, &match_info)) {
       g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
-          "failed to parse auth rejection: %s", desc);
+          "'connect' cmd returned '%s': %s", code, desc);
       g_object_unref (task);
       return;
     }
@@ -820,9 +823,17 @@ send_connect_done (const gchar * command_name, GPtrArray * args,
     {
       const gchar *reason = gst_uri_get_query_value (query, "reason");
 
+      if (!reason) {
+        g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
+            "authentication failed; no reason: %s", desc);
+        g_object_unref (task);
+        gst_uri_unref (query);
+        return;
+      }
+
       if (g_str_equal (reason, "authfailed")) {
         g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
-            "authentication failed! wrong credentials?");
+            "authentication failed; wrong credentials?: %s", desc);
         g_object_unref (task);
         gst_uri_unref (query);
         return;
@@ -830,24 +841,41 @@ send_connect_done (const gchar * command_name, GPtrArray * args,
 
       if (!g_str_equal (reason, "needauth")) {
         g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
-            "unhandled rejection reason '%s'", reason ? reason : "");
+            "authentication failed; reason '%s': %s", reason, desc);
         g_object_unref (task);
         gst_uri_unref (query);
         return;
       }
     }
 
-    g_warn_if_fail (!data->auth_query);
-    data->auth_query = do_adobe_auth (data->location.username,
-        data->location.password, gst_uri_get_query_value (query, "salt"),
-        gst_uri_get_query_value (query, "opaque"),
-        gst_uri_get_query_value (query, "challenge"));
+    {
+      const gchar *salt, *opaque, *challenge;
+
+      salt = gst_uri_get_query_value (query, "salt");
+      if (!salt) {
+        g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
+            "salt missing from auth request: %s", desc);
+        g_object_unref (task);
+        gst_uri_unref (query);
+        return;
+      }
+
+      opaque = gst_uri_get_query_value (query, "opaque");
+      challenge = gst_uri_get_query_value (query, "challenge");
+
+      g_warn_if_fail (!data->auth_query);
+      data->auth_query = do_adobe_auth (data->location.username,
+          data->location.password, salt, opaque, challenge);
+    }
 
     gst_uri_unref (query);
 
     if (!data->auth_query) {
+      /* do_adobe_auth should not fail; send_connect tests if username
+       * and password are provided */
+      g_warn_if_reached ();
       g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-          "couldn't generate adobe style authentication query");
+          "internal error: failed to generate adobe auth query");
       g_object_unref (task);
       return;
     }
@@ -857,7 +885,7 @@ send_connect_done (const gchar * command_name, GPtrArray * args,
   }
 
   g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-      "unhandled connect result code: %s", GST_STR_NULL (code));
+      "'connect' cmd returned '%s'", code);
   g_object_unref (task);
 }
 
@@ -998,7 +1026,7 @@ send_secure_token_response (GTask * task, GstRtmpConnection * connection,
 
     if (!data->location.secure_token || !data->location.secure_token[0]) {
       g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
-          "server requires secure token authentication");
+          "server requires secureToken but no token provided");
       g_object_unref (task);
       return;
     }
@@ -1170,14 +1198,14 @@ create_stream_done (const gchar * command_name, GPtrArray * args,
 
   if (!args) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "createStream failed: %s", command_name);
+        "'createStream' cmd failed: %s", command_name);
     g_object_unref (task);
     return;
   }
 
   if (args->len < 2) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "createStream failed; not enough return arguments");
+        "'createStream' cmd failed; not enough return arguments");
     g_object_unref (task);
     return;
   }
@@ -1189,7 +1217,7 @@ create_stream_done (const gchar * command_name, GPtrArray * args,
     gst_amf_node_dump (result, -1, error_dump);
 
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "createStream failed: %s", error_dump->str);
+        "'createStream' cmd failed: %s: %s", command_name, error_dump->str);
     g_object_unref (task);
 
     g_string_free (error_dump, TRUE);
@@ -1201,7 +1229,7 @@ create_stream_done (const gchar * command_name, GPtrArray * args,
 
   if (data->id == 0) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-        "createStream returned ID 0");
+        "'createStream' cmd returned ID 0");
     g_object_unref (task);
     return;
   }
@@ -1263,14 +1291,14 @@ on_publish_or_play_status (const gchar * command_name, GPtrArray * args,
 
   if (!args) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "%s failed: %s", command, command_name);
+        "'%s' cmd failed: %s", command, command_name);
     g_object_unref (task);
     return;
   }
 
   if (args->len < 2) {
     g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-        "%s failed; not enough return arguments", command);
+        "'%s' cmd failed; not enough return arguments", command);
     g_object_unref (task);
     return;
   }
@@ -1297,7 +1325,7 @@ on_publish_or_play_status (const gchar * command_name, GPtrArray * args,
 
     if (g_strcmp0 (code, "NetStream.Publish.BadName") == 0) {
       g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_EXISTS,
-          "publish denied: stream already exists: %s", info_dump->str);
+          "publish denied; stream already exists: %s", info_dump->str);
       goto out;
     }
 
@@ -1317,13 +1345,13 @@ on_publish_or_play_status (const gchar * command_name, GPtrArray * args,
 
     if (g_strcmp0 (code, "NetStream.Play.StreamNotFound") == 0) {
       g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
-          "play denied: stream not found: %s", info_dump->str);
+          "play denied; stream not found: %s", info_dump->str);
       goto out;
     }
   }
 
   g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_FAILED,
-      "unhandled %s result: %s", command, info_dump->str);
+      "'%s' cmd failed: %s: %s", command, command_name, info_dump->str);
 
 out:
   g_string_free (info_dump, TRUE);

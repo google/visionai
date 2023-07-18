@@ -1,6 +1,9 @@
 load("//third_party/gstreamer:tools.bzl", "gen_config_file", "gnome_mkenums_simple")
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_visibility = ["//visibility:public"],
+    features = ["-layering_check"],
+)
 
 licenses(["restricted"])
 

@@ -10,6 +10,7 @@ exports_files([
 filegroup(
     name = "data",
     srcs = [
+        "av1.mp4",  # av1 encoded video.
         "h265.mp4",  # h265 encoded video.
         "page-brin-1-frame.mp4",  # 1 frame video.
         "page-brin-4-frames.mp4",  # 4 frame video.

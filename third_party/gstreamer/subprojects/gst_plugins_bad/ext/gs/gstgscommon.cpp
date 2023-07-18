@@ -19,9 +19,9 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include "gstgscommon.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/gs/gstgscommon.h"
 
-#include "google/cloud/storage/oauth2/compute_engine_credentials.h"
+#include "third_party/cloud_cpp/google/cloud/storage/oauth2/compute_engine_credentials.h"
 
 namespace gcs = google::cloud::storage;
 

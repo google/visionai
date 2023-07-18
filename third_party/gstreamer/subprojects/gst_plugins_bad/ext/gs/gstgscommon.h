@@ -26,7 +26,7 @@
 
 #include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
 
-#include <google/cloud/storage/client.h>
+#include "third_party/cloud_cpp/google/cloud/storage/client.h"
 
 std::unique_ptr<google::cloud::storage::Client> gst_gs_create_client(
     const gchar* service_account_email,

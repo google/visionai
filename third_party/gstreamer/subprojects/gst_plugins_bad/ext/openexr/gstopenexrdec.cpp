@@ -19,12 +19,12 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstopenexrdec.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/openexr/gstopenexrdec.h"
 
-#include <gst/base/base.h>
+#include "third_party/gstreamer/subprojects/gstreamer/libs/gst/base/base.h"
 #include <string.h>
 
 #include <ImfRgbaFile.h>

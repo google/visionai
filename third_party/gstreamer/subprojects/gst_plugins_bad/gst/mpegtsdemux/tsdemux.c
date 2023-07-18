@@ -172,6 +172,10 @@ struct _TSDemuxStream
   /* Output data */
   PendingPacketState state;
 
+  /* PES header being reconstructed (optional, allocated) */
+  guint8 *pending_header_data;
+  guint pending_header_size;
+
   /* Data being reconstructed (allocated) */
   guint8 *data;
 
@@ -976,6 +980,7 @@ gst_ts_demux_do_seek (MpegTSBase * base, GstEvent * event)
     if (G_UNLIKELY (start_offset == -1)) {
       GST_WARNING_OBJECT (demux,
           "Couldn't convert start position to an offset");
+      g_mutex_unlock (&demux->lock);
       goto done;
     }
 
@@ -1376,14 +1381,6 @@ create_pad_for_stream (MpegTSBase * base, MpegTSBaseStream * bstream,
       case ST_BD_AUDIO_AC3_PLUS:
         is_audio = TRUE;
         caps = gst_caps_new_empty_simple ("audio/x-eac3");
-        break;
-      case ST_BD_AUDIO_AC4:
-        /* Opus also uses 0x06, and there are bad streams that have HDMV registration ID,
-         * but contain an Opus registration id, so check for it */
-        if (bstream->registration_id != DRF_ID_OPUS) {
-          is_audio = TRUE;
-          caps = gst_caps_new_empty_simple ("audio/x-ac4");
-        }
         break;
       case ST_BD_AUDIO_AC3_TRUE_HD:
         is_audio = TRUE;
@@ -2143,6 +2140,9 @@ gst_ts_demux_stream_flush (TSDemuxStream * stream, GstTSDemux * tsdemux,
 
   g_free (stream->data);
   stream->data = NULL;
+  g_free (stream->pending_header_data);
+  stream->pending_header_data = NULL;
+  stream->pending_header_size = 0;
   stream->state = PENDING_PACKET_EMPTY;
   stream->expected_size = 0;
   stream->allocated_size = 0;
@@ -2597,9 +2597,26 @@ gst_ts_demux_parse_pes_header (GstTSDemux * demux, TSDemuxStream * stream,
 
   GST_MEMDUMP ("Header buffer", data, MIN (length, 32));
 
+  if (G_UNLIKELY (stream->pending_header_data)) {
+    /* Accumulate with previous header if present */
+    stream->pending_header_data =
+        g_realloc (stream->pending_header_data,
+        stream->pending_header_size + length);
+    memcpy (stream->pending_header_data + stream->pending_header_size, data,
+        length);
+    data = stream->pending_header_data;
+    length = stream->pending_header_size + length;
+  }
+
   parseres = mpegts_parse_pes_header (data, length, &header);
-  if (G_UNLIKELY (parseres == PES_PARSING_NEED_MORE))
-    goto discont;
+
+  if (G_UNLIKELY (parseres == PES_PARSING_NEED_MORE)) {
+    /* This can happen if PES header is bigger than a packet. */
+    if (!stream->pending_header_data)
+      stream->pending_header_data = g_memdup2 (data, length);
+    stream->pending_header_size = length;
+    return;
+  }
   if (G_UNLIKELY (parseres == PES_PARSING_BAD)) {
     GST_WARNING ("Error parsing PES header. pid: 0x%x stream_type: 0x%x",
         stream->stream.pid, stream->stream.stream_type);
@@ -2659,9 +2676,20 @@ gst_ts_demux_parse_pes_header (GstTSDemux * demux, TSDemuxStream * stream,
 
   stream->state = PENDING_PACKET_BUFFER;
 
+  if (stream->pending_header_data) {
+    g_free (stream->pending_header_data);
+    stream->pending_header_data = NULL;
+    stream->pending_header_size = 0;
+  }
+
   return;
 
 discont:
+  if (stream->pending_header_data) {
+    g_free (stream->pending_header_data);
+    stream->pending_header_data = NULL;
+    stream->pending_header_size = 0;
+  }
   stream->state = PENDING_PACKET_DISCONT;
   return;
 }
@@ -2697,6 +2725,10 @@ gst_ts_demux_queue_data (GstTSDemux * demux, TSDemuxStream * stream,
         if (G_UNLIKELY (stream->data)) {
           g_free (stream->data);
           stream->data = NULL;
+        }
+        if (G_UNLIKELY (stream->pending_header_data)) {
+          g_free (stream->pending_header_data);
+          stream->pending_header_data = NULL;
         }
         stream->state = PENDING_PACKET_HEADER;
       } else {
@@ -2752,6 +2784,10 @@ gst_ts_demux_queue_data (GstTSDemux * demux, TSDemuxStream * stream,
       if (G_UNLIKELY (stream->data)) {
         g_free (stream->data);
         stream->data = NULL;
+      }
+      if (G_UNLIKELY (stream->pending_header_data)) {
+        g_free (stream->pending_header_data);
+        stream->pending_header_data = NULL;
       }
       stream->continuity_counter = CONTINUITY_UNSET;
       break;

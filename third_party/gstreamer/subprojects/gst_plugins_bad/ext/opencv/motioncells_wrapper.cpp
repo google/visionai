@@ -51,7 +51,7 @@
 
 #include <stdio.h>
 #include <limits.h>
-#include "motioncells_wrapper.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/motioncells_wrapper.h"
 
 static int instanceCounter = 0;
 static bool element_id_was_max = false;

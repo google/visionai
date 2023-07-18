@@ -56,10 +56,10 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gsttextoverlay.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gsttextoverlay.h"
 
 GST_DEBUG_CATEGORY_STATIC (gst_opencv_text_overlay_debug);
 #define GST_CAT_DEFAULT gst_opencv_opencv_text_overlay_debug

@@ -132,6 +132,14 @@ static void gst_device_monitor_dispose (GObject * object);
 static guint gst_device_monitor_add_filter_unlocked (GstDeviceMonitor * monitor,
     const gchar * classes, GstCaps * caps);
 
+static void
+provider_hidden (GstDeviceProvider * provider, const gchar * hidden,
+    GstDeviceMonitor * monitor);
+
+static void
+provider_unhidden (GstDeviceProvider * provider, const gchar * hidden,
+    GstDeviceMonitor * monitor);
+
 struct DeviceFilter
 {
   guint id;
@@ -249,7 +257,7 @@ update_hidden_providers_list (GList ** hidden, GstDeviceProvider * provider)
   }
 }
 
-static void
+static GstBusSyncReply
 bus_sync_message (GstBus * bus, GstMessage * message,
     GstDeviceMonitor * monitor)
 {
@@ -297,6 +305,10 @@ bus_sync_message (GstBus * bus, GstMessage * message,
     if (matches)
       gst_bus_post (monitor->priv->bus, gst_message_ref (message));
   }
+
+  gst_message_unref (message);
+
+  return GST_BUS_DROP;
 }
 
 
@@ -319,7 +331,7 @@ gst_device_monitor_init (GstDeviceMonitor * self)
 
 
 static void
-gst_device_monitor_remove (GstDeviceMonitor * self, guint i)
+gst_device_monitor_remove_provider (GstDeviceMonitor * self, guint i)
 {
   GstDeviceProvider *provider = g_ptr_array_index (self->priv->providers, i);
   GstBus *bus;
@@ -327,8 +339,11 @@ gst_device_monitor_remove (GstDeviceMonitor * self, guint i)
   g_ptr_array_remove_index (self->priv->providers, i);
 
   bus = gst_device_provider_get_bus (provider);
-  g_signal_handlers_disconnect_by_func (bus, bus_sync_message, self);
+  gst_bus_set_sync_handler (bus, NULL, NULL, NULL);
   gst_object_unref (bus);
+
+  g_signal_handlers_disconnect_by_func (provider, provider_hidden, self);
+  g_signal_handlers_disconnect_by_func (provider, provider_unhidden, self);
 
   gst_object_unref (provider);
 }
@@ -342,7 +357,7 @@ gst_device_monitor_dispose (GObject * object)
 
   if (self->priv->providers) {
     while (self->priv->providers->len)
-      gst_device_monitor_remove (self, self->priv->providers->len - 1);
+      gst_device_monitor_remove_provider (self, self->priv->providers->len - 1);
     g_ptr_array_unref (self->priv->providers);
     self->priv->providers = NULL;
   }
@@ -350,6 +365,11 @@ gst_device_monitor_dispose (GObject * object)
   if (self->priv->filters) {
     g_ptr_array_unref (self->priv->filters);
     self->priv->filters = NULL;
+  }
+
+  if (self->priv->hidden) {
+    g_list_free_full (self->priv->hidden, g_free);
+    self->priv->hidden = NULL;
   }
 
   gst_object_replace ((GstObject **) & self->priv->bus, NULL);
@@ -699,9 +719,8 @@ gst_device_monitor_add_filter_unlocked (GstDeviceMonitor * monitor,
             (GCallback) provider_unhidden, monitor);
 
         matched = TRUE;
-        gst_bus_enable_sync_message_emission (bus);
-        g_signal_connect (bus, "sync-message",
-            G_CALLBACK (bus_sync_message), monitor);
+        gst_bus_set_sync_handler (bus, (GstBusSyncHandler) bus_sync_message,
+            monitor, NULL);
         gst_object_unref (bus);
         g_ptr_array_add (monitor->priv->providers, provider);
       }
@@ -774,7 +793,7 @@ gst_device_monitor_remove_filter (GstDeviceMonitor * monitor, guint filter_id)
       }
 
       if (!valid) {
-        gst_device_monitor_remove (monitor, i);
+        gst_device_monitor_remove_provider (monitor, i);
         i--;
       }
     }

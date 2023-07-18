@@ -28,11 +28,11 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstgssink.h"
-#include "gstgssrc.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/gs/gstgssink.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/gs/gstgssrc.h"
 
 static gboolean plugin_init(GstPlugin* plugin) {
   gboolean ret = FALSE;

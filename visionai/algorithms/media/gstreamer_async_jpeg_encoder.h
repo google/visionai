@@ -124,6 +124,13 @@ class GstreamerAsyncJpegEncoder {
   // created to continue encoding.
   void SignalEOS();
 
+  // Blocks until the encoder has completed or if the timeout expires.
+  // Returns true if the pipeline has completed; otherwise, false.
+  //
+  // Signaling EOS is a precursor to completion, so it must be either signaled
+  // manually or via the stream.
+  bool WaitUntilCompleted(absl::Duration timeout) const;
+
   // Disable copying.
   GstreamerAsyncJpegEncoder(const GstreamerAsyncJpegEncoder &) = delete;
   GstreamerAsyncJpegEncoder &operator=(const GstreamerAsyncJpegEncoder &) =
@@ -279,6 +286,16 @@ template <class... Args>
 void GstreamerAsyncJpegEncoder<Args...>::SignalEOS() {
   gstreamer_runner_.reset();
   eos_signaled_ = true;
+}
+
+template <class... Args>
+bool GstreamerAsyncJpegEncoder<Args...>::WaitUntilCompleted(
+    absl::Duration timeout) const {
+  if (gstreamer_runner_) {
+    return gstreamer_runner_->WaitUntilCompleted(timeout);
+  } else {
+    return true;
+  }
 }
 
 }  // namespace visionai

@@ -580,6 +580,7 @@ get_candidate_address (const gchar * candidate, gchar ** prefix,
     gchar ** address, gchar ** postfix)
 {
   char **tokens = NULL;
+  char *tmp_address = NULL;
 
   if (!g_str_has_prefix (candidate, "a=candidate:")) {
     GST_ERROR ("candidate \"%s\" does not start with \"a=candidate:\"",
@@ -598,13 +599,17 @@ get_candidate_address (const gchar * candidate, gchar ** prefix,
     goto failure;
   }
 
+  tmp_address = tokens[4];
   if (address)
-    *address = g_strdup (tokens[4]);
+    *address = g_strdup (tmp_address);
   tokens[4] = NULL;
+
   if (prefix)
     *prefix = g_strjoinv (" ", tokens);
   if (postfix)
     *postfix = g_strdup (tokens[5]);
+
+  tokens[4] = tmp_address;
 
   g_strfreev (tokens);
   return TRUE;
@@ -639,25 +644,26 @@ gst_webrtc_ice_add_candidate (GstWebRTCICE * ice, GstWebRTCICEStream * stream,
   if (!cand) {
     /* might be a .local candidate */
     char *prefix = NULL, *address = NULL, *postfix = NULL;
-    char *new_addr, *new_candidate;
+    char *new_addr = NULL, *new_candidate = NULL;
     char *new_candv[4] = { NULL, };
+    gboolean failure = TRUE;
 
     if (!get_candidate_address (candidate, &prefix, &address, &postfix)) {
       GST_WARNING_OBJECT (ice, "Failed to retrieve address from candidate %s",
           candidate);
-      goto fail;
+      goto done;
     }
 
     if (!g_str_has_suffix (address, ".local")) {
       GST_WARNING_OBJECT (ice, "candidate address \'%s\' does not end "
           "with \'.local\'", address);
-      goto fail;
+      goto done;
     }
 
     /* FIXME: async */
     if (!(new_addr = _resolve_host (ice, address))) {
       GST_WARNING_OBJECT (ice, "Failed to resolve %s", address);
-      goto fail;
+      goto done;
     }
 
     new_candv[0] = prefix;
@@ -671,24 +677,22 @@ gst_webrtc_ice_add_candidate (GstWebRTCICE * ice, GstWebRTCICEStream * stream,
     cand =
         nice_agent_parse_remote_candidate_sdp (ice->priv->nice_agent,
         item->nice_stream_id, new_candidate);
-    g_free (new_candidate);
     if (!cand) {
       GST_WARNING_OBJECT (ice, "Could not parse candidate \'%s\'",
           new_candidate);
-      goto fail;
+      goto done;
     }
 
+    failure = FALSE;
+
+  done:
     g_free (prefix);
-    g_free (new_addr);
+    g_free (address);
     g_free (postfix);
-
-    if (0) {
-    fail:
-      g_free (prefix);
-      g_free (address);
-      g_free (postfix);
+    g_free (new_addr);
+    g_free (new_candidate);
+    if (failure)
       return;
-    }
   }
 
   if (cand->component_id == 2) {
@@ -929,12 +933,19 @@ _validate_turn_server (GstWebRTCICE * ice, const gchar * s)
     }
   }
 
-out:
   g_list_free (keys);
   g_free (user);
   g_free (pass);
 
   return uri;
+
+out:
+  g_list_free (keys);
+  g_free (user);
+  g_free (pass);
+  gst_uri_unref (uri);
+
+  return NULL;
 }
 
 void

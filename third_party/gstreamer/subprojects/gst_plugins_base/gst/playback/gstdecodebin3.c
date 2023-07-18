@@ -469,6 +469,7 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src_%u",
 
 
 static void gst_decodebin3_dispose (GObject * object);
+static void gst_decodebin3_finalize (GObject * object);
 static void gst_decodebin3_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec);
 static void gst_decodebin3_get_property (GObject * object, guint prop_id,
@@ -551,6 +552,7 @@ gst_decodebin3_class_init (GstDecodebin3Class * klass)
   GstBinClass *bin_klass = (GstBinClass *) klass;
 
   gobject_klass->dispose = gst_decodebin3_dispose;
+  gobject_klass->finalize = gst_decodebin3_finalize;
   gobject_klass->set_property = gst_decodebin3_set_property;
   gobject_klass->get_property = gst_decodebin3_get_property;
 
@@ -660,7 +662,7 @@ gst_decodebin3_dispose (GObject * object)
   if (dbin->decodable_factories)
     g_list_free (dbin->decodable_factories);
   g_list_free_full (dbin->requested_selection, g_free);
-  g_list_free (dbin->active_selection);
+  g_list_free_full (dbin->active_selection, g_free);
   g_list_free (dbin->to_activate);
   g_list_free (dbin->pending_select_streams);
   g_clear_object (&dbin->collection);
@@ -677,6 +679,18 @@ gst_decodebin3_dispose (GObject * object)
   }
 
   G_OBJECT_CLASS (parent_class)->dispose (object);
+}
+
+static void
+gst_decodebin3_finalize (GObject * object)
+{
+  GstDecodebin3 *dbin = (GstDecodebin3 *) object;
+
+  g_mutex_clear (&dbin->factories_lock);
+  g_mutex_clear (&dbin->selection_lock);
+  g_mutex_clear (&dbin->input_lock);
+
+  G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 
 static void
@@ -930,8 +944,11 @@ gst_decodebin3_input_pad_unlink (GstPad * pad, GstObject * parent)
       SELECTION_UNLOCK (dbin);
       gst_element_post_message (GST_ELEMENT_CAST (dbin), msg);
       update_requested_selection (dbin);
-    } else
+    } else {
+      if (collection)
+        gst_object_unref (collection);
       SELECTION_UNLOCK (dbin);
+    }
 
     gst_bin_remove (GST_BIN (dbin), input->parsebin);
     gst_element_set_state (input->parsebin, GST_STATE_NULL);
@@ -1094,6 +1111,23 @@ stream_in_list (GList * list, const gchar * sid)
   return NULL;
 }
 
+static gboolean
+stream_list_equal (GList * lista, GList * listb)
+{
+  GList *tmp;
+
+  if (g_list_length (lista) != g_list_length (listb))
+    return FALSE;
+
+  for (tmp = lista; tmp; tmp = tmp->next) {
+    gchar *osid = tmp->data;
+    if (!stream_in_list (listb, osid))
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
 static void
 update_requested_selection (GstDecodebin3 * dbin)
 {
@@ -1158,7 +1192,7 @@ update_requested_selection (GstDecodebin3 * dbin)
     for (i = 0; i < nb; i++) {
       GstStream *stream = gst_stream_collection_get_stream (collection, i);
       GstStreamType curtype = gst_stream_get_stream_type (stream);
-      if (!(used_types & curtype)) {
+      if (curtype != GST_STREAM_TYPE_UNKNOWN && !(used_types & curtype)) {
         const gchar *sid = gst_stream_get_stream_id (stream);
         GST_DEBUG_OBJECT (dbin,
             "Automatically selecting stream '%s' of type %s", sid,
@@ -1170,8 +1204,15 @@ update_requested_selection (GstDecodebin3 * dbin)
   }
 
 beach:
-  /* Finally set the requested selection */
+  if (stream_list_equal (tmp, dbin->requested_selection)) {
+    /* If the selection is equal, there is nothign to do */
+    GST_DEBUG_OBJECT (dbin, "Dropping duplicate selection");
+    g_list_free (tmp);
+    tmp = NULL;
+  }
+
   if (tmp) {
+    /* Finally set the requested selection */
     if (dbin->requested_selection) {
       GST_FIXME_OBJECT (dbin,
           "Replacing non-NULL requested_selection, what should we do ??");
@@ -1668,8 +1709,9 @@ get_output_for_slot (MultiQueueSlot * slot)
     output->slot = slot;
     GST_DEBUG ("Linking slot %p to new output %p", slot, output);
     slot->output = output;
+    GST_DEBUG ("Adding '%s' to active_selection", stream_id);
     dbin->active_selection =
-        g_list_append (dbin->active_selection, (gchar *) stream_id);
+        g_list_append (dbin->active_selection, (gchar *) g_strdup (stream_id));
   } else
     GST_DEBUG ("Not creating any output for slot %p", slot);
 
@@ -1725,7 +1767,7 @@ is_selection_done (GstDecodebin3 * dbin)
 
 /* Must be called with SELECTION_LOCK taken */
 static void
-check_all_slot_for_eos (GstDecodebin3 * dbin)
+check_all_slot_for_eos (GstDecodebin3 * dbin, GstEvent * ev)
 {
   gboolean all_drained = TRUE;
   GList *iter;
@@ -1790,6 +1832,7 @@ check_all_slot_for_eos (GstDecodebin3 * dbin)
         }
 
         eos = gst_event_new_eos ();
+        gst_event_set_seqnum (eos, gst_event_get_seqnum (ev));
         gst_mini_object_set_qdata (GST_MINI_OBJECT_CAST (eos),
             CUSTOM_FINAL_EOS_QUARK, (gchar *) CUSTOM_FINAL_EOS_QUARK_DATA,
             NULL);
@@ -1898,8 +1941,11 @@ multiqueue_src_probe (GstPad * pad, GstPadProbeInfo * info,
         if (gst_mini_object_get_qdata (GST_MINI_OBJECT_CAST (ev),
                 CUSTOM_EOS_QUARK)) {
           /* remove custom-eos */
+          ev = gst_event_make_writable (ev);
+          GST_PAD_PROBE_INFO_DATA (info) = ev;
           gst_mini_object_set_qdata (GST_MINI_OBJECT_CAST (ev),
               CUSTOM_EOS_QUARK, NULL, NULL);
+
           GST_LOG_OBJECT (pad, "Received custom EOS");
           ret = GST_PAD_PROBE_HANDLED;
           SELECTION_LOCK (dbin);
@@ -1920,7 +1966,7 @@ multiqueue_src_probe (GstPad * pad, GstPadProbeInfo * info,
             free_multiqueue_slot_async (dbin, slot);
             ret = GST_PAD_PROBE_REMOVE;
           } else if (!was_drained) {
-            check_all_slot_for_eos (dbin);
+            check_all_slot_for_eos (dbin, ev);
           }
           if (ret == GST_PAD_PROBE_HANDLED)
             gst_event_unref (ev);
@@ -1936,10 +1982,8 @@ multiqueue_src_probe (GstPad * pad, GstPadProbeInfo * info,
               "last EOS for input, forwarding and removing slot");
           peer = gst_pad_get_peer (pad);
           if (peer) {
-            gst_pad_send_event (peer, ev);
+            gst_pad_send_event (peer, gst_event_ref (ev));
             gst_object_unref (peer);
-          } else {
-            gst_event_unref (ev);
           }
           SELECTION_LOCK (dbin);
           /* FIXME : Shouldn't we try to re-assign the output instead of just
@@ -1954,6 +1998,10 @@ multiqueue_src_probe (GstPad * pad, GstPadProbeInfo * info,
           dbin->slots = g_list_remove (dbin->slots, slot);
           SELECTION_UNLOCK (dbin);
 
+          /* FIXME: Removing the slot is async, which means actually
+           * unlinking the pad is async. Other things like stream-start
+           * might flow through this (now unprobed) link before it actually
+           * gets released */
           free_multiqueue_slot_async (dbin, slot);
           ret = GST_PAD_PROBE_REMOVE;
         } else if (gst_mini_object_get_qdata (GST_MINI_OBJECT_CAST (ev),
@@ -1965,7 +2013,7 @@ multiqueue_src_probe (GstPad * pad, GstPadProbeInfo * info,
            * when all output streams are also eos */
           ret = GST_PAD_PROBE_DROP;
           SELECTION_LOCK (dbin);
-          check_all_slot_for_eos (dbin);
+          check_all_slot_for_eos (dbin, ev);
           SELECTION_UNLOCK (dbin);
         }
       }
@@ -2508,8 +2556,10 @@ reassign_slot (GstDecodebin3 * dbin, MultiQueueSlot * slot)
   slot->output = NULL;
   output->slot = NULL;
   /* Remove sid from active selection */
+  GST_DEBUG ("Removing '%s' from active_selection", sid);
   for (tmp = dbin->active_selection; tmp; tmp = tmp->next)
     if (!g_strcmp0 (sid, tmp->data)) {
+      g_free (tmp->data);
       dbin->active_selection = g_list_delete_link (dbin->active_selection, tmp);
       break;
     }
@@ -2527,7 +2577,7 @@ reassign_slot (GstDecodebin3 * dbin, MultiQueueSlot * slot)
       /* Pass target stream id to requested selection */
       dbin->requested_selection =
           g_list_append (dbin->requested_selection, g_strdup (tmp->data));
-      dbin->to_activate = g_list_remove (dbin->to_activate, tmp->data);
+      dbin->to_activate = g_list_delete_link (dbin->to_activate, tmp);
       break;
     }
   }
@@ -2537,8 +2587,9 @@ reassign_slot (GstDecodebin3 * dbin, MultiQueueSlot * slot)
         target_slot, tsid);
     target_slot->output = output;
     output->slot = target_slot;
+    GST_DEBUG ("Adding '%s' to active_selection", tsid);
     dbin->active_selection =
-        g_list_append (dbin->active_selection, (gchar *) tsid);
+        g_list_append (dbin->active_selection, (gchar *) g_strdup (tsid));
     SELECTION_UNLOCK (dbin);
 
     /* Wakeup the target slot so that it retries to send events/buffers
@@ -3041,6 +3092,8 @@ gst_decodebin3_change_state (GstElement * element, GstStateChange transition)
       g_object_set (dbin->multiqueue, "min-interleave-time",
           dbin->default_mq_min_interleave, NULL);
       dbin->current_mq_min_interleave = dbin->default_mq_min_interleave;
+      g_list_free_full (dbin->active_selection, g_free);
+      dbin->active_selection = NULL;
     }
       break;
     default:

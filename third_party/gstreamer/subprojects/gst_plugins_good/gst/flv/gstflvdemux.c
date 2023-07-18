@@ -48,6 +48,9 @@
 #include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/video/video.h"
 #include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/tag/tag.h"
 
+GST_DEBUG_CATEGORY_EXTERN (flvdemux_debug);
+#define GST_CAT_DEFAULT flvdemux_debug
+
 /* FIXME: don't rely on own GstIndex */
 #include "third_party/gstreamer/subprojects/gst_plugins_good/gst/flv/gstindex.c"
 #include "third_party/gstreamer/subprojects/gst_plugins_good/gst/flv/gstmemindex.c"

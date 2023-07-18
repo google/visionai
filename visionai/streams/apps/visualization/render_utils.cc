@@ -22,26 +22,12 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
+#include "visionai/streams/apps/visualization/constants.h"
 #include "visionai/util/time_util.h"
 
 namespace visionai {
 namespace renderutils {
 
-constexpr int kRowHeight = 40;
-constexpr int kXInitOffset = 10;
-constexpr int kYInitOffset = 20;
-constexpr int kLineThick1 = 1;
-constexpr int kLineThick2 = 2;
-constexpr int kFirstColumnWidth = 160;
-constexpr int kItemColumnWidth = 90;
-constexpr int kItemColumnWidthLineCrossing = 160;
-constexpr int kStatsTextFontFamily = cv::FONT_HERSHEY_DUPLEX;
-constexpr double kStatsTextFontscale = 1;
-constexpr double kStatsTextLineCrossingFontscale = 0.6;
-constexpr double kTrackTextFontscale = 0.5;
-constexpr double kStatsTextThickness = 1;
-constexpr int kXTextOffset = 20;
-constexpr int kYTextOffset = -10;
 const cv::Scalar kBlackColor = cv::Scalar(0, 0, 0);
 const cv::Scalar kWhiteColor = cv::Scalar(255, 255, 255);
 const cv::Scalar kRedColor = cv::Scalar(0, 0, 255);
@@ -93,7 +79,7 @@ void DrawBoundingBoxes(
       double x = n_box.xmin() * width;
       double y = n_box.ymin() * height + n_box.height() * height;
       cv::putText(img, absl::StrCat("-", track_id), cv::Point(x, y - 5),
-                  kStatsTextFontFamily, kTrackTextFontscale, color,
+                  kTextFontFamily, kTrackTextFontscale, color,
                   kStatsTextThickness);
     } else {
       // If tracking is not enabled(full frame count/active zone count without
@@ -112,7 +98,7 @@ void DrawBoundingBoxes(
       double x = n_box.xmin() * width;
       double y = n_box.ymin() * height + n_box.height() * height;
       cv::putText(img, absl::StrCat(score), cv::Point(x, y + 15),
-                  kStatsTextFontFamily, kTrackTextFontscale, color,
+                  kTextFontFamily, kTrackTextFontscale, color,
                   kStatsTextThickness);
     }
   }
@@ -269,23 +255,23 @@ void DrawFullFrameCount(
   cv::putText(overlay, "Person",
               cv::Point(kXInitOffset + kXTextOffset,
                         kYInitOffset + kRowHeight + kYTextOffset),
-              kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+              kTextFontFamily, kStatsTextFontscale, kWhiteColor,
               kStatsTextThickness);
   cv::putText(overlay, absl::StrCat(person_count),
               cv::Point(kXInitOffset + kFirstColumnWidth + kXTextOffset,
                         kYInitOffset + kRowHeight + kYTextOffset),
-              kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+              kTextFontFamily, kStatsTextFontscale, kWhiteColor,
               kStatsTextThickness);
 
   cv::putText(overlay, "Vehicle",
               cv::Point(kXInitOffset + kXTextOffset,
                         kYInitOffset + 2 * kRowHeight + kYTextOffset),
-              kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+              kTextFontFamily, kStatsTextFontscale, kWhiteColor,
               kStatsTextThickness);
   cv::putText(overlay, absl::StrCat(vehicle_count),
               cv::Point(kXInitOffset + kFirstColumnWidth + kXTextOffset,
                         kYInitOffset + 2 * kRowHeight + kYTextOffset),
-              kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+              kTextFontFamily, kStatsTextFontscale, kWhiteColor,
               kStatsTextThickness);
 
   // Blend the stats with original image
@@ -320,7 +306,7 @@ void DrawActiveZoneCount(
     const auto& contour = contours[zone_id - 1];
     cv::putText(img, absl::StrCat("Zone-", zone_id),
                 cv::Point(contour.front().x, contour.front().y - 10),
-                kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+                kTextFontFamily, kStatsTextFontscale, kWhiteColor,
                 kStatsTextThickness);
   }
 
@@ -371,14 +357,14 @@ void DrawActiveZoneCount(
   cv::putText(overlay, "Zone",
               cv::Point(kXInitOffset + kXTextOffset,
                         kYInitOffset + kRowHeight + kYTextOffset),
-              kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+              kTextFontFamily, kStatsTextFontscale, kWhiteColor,
               kStatsTextThickness);
   for (int zone_id = 1; zone_id <= number_of_zones; ++zone_id) {
     cv::putText(overlay, absl::StrCat(zone_id),
                 cv::Point(kXInitOffset + kFirstColumnWidth +
                               (zone_id - 1) * kItemColumnWidth + kXTextOffset,
                           kYInitOffset + kRowHeight + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+                kTextFontFamily, kStatsTextFontscale, kWhiteColor,
                 kStatsTextThickness);
   }
 
@@ -388,14 +374,14 @@ void DrawActiveZoneCount(
     cv::putText(overlay, "Person",
                 cv::Point(kXInitOffset + kXTextOffset,
                           kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+                kTextFontFamily, kStatsTextFontscale, kWhiteColor,
                 kStatsTextThickness);
     for (int zone_id = 1; zone_id <= number_of_zones; ++zone_id) {
       cv::putText(overlay, absl::StrCat(count_map[zone_id]["Person"]),
                   cv::Point(kXInitOffset + kFirstColumnWidth +
                                 (zone_id - 1) * kItemColumnWidth + kXTextOffset,
                             kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                  kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+                  kTextFontFamily, kStatsTextFontscale, kWhiteColor,
                   kStatsTextThickness);
     }
     ++y_index;
@@ -406,14 +392,14 @@ void DrawActiveZoneCount(
     cv::putText(overlay, "Vehicle",
                 cv::Point(kXInitOffset + kXTextOffset,
                           kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+                kTextFontFamily, kStatsTextFontscale, kWhiteColor,
                 kStatsTextThickness);
     for (int zone_id = 1; zone_id <= number_of_zones; ++zone_id) {
       cv::putText(overlay, absl::StrCat(count_map[zone_id]["Vehicle"]),
                   cv::Point(kXInitOffset + kFirstColumnWidth +
                                 (zone_id - 1) * kItemColumnWidth + kXTextOffset,
                             kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                  kStatsTextFontFamily, kStatsTextFontscale, kWhiteColor,
+                  kTextFontFamily, kStatsTextFontscale, kWhiteColor,
                   kStatsTextThickness);
     }
     ++y_index;
@@ -496,8 +482,8 @@ void DrawLineCrossingCount(
       // Put mark beside the start of this polyline.
       if (i == 0) {
         cv::putText(img, absl::StrCat("Line-", line_id),
-                    cv::Point(start_x + 5, start_y - 5), kStatsTextFontFamily,
-                    1, kWhiteColor, kLineThick1);
+                    cv::Point(start_x + 5, start_y - 5), kTextFontFamily, 1,
+                    kWhiteColor, kLineThick1);
       }
     }
   }
@@ -564,16 +550,16 @@ void DrawLineCrossingCount(
   cv::putText(overlay, "Line",
               cv::Point(kXInitOffset + kXTextOffset,
                         kYInitOffset + kRowHeight + kYTextOffset),
-              kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-              kWhiteColor, kStatsTextThickness);
+              kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+              kStatsTextThickness);
   for (int line_id = 1; line_id <= number_of_lines; ++line_id) {
     cv::putText(overlay, absl::StrCat(line_id),
                 cv::Point(kXInitOffset + kFirstColumnWidth +
                               (line_id - 1) * kItemColumnWidthLineCrossing +
                               kXTextOffset,
                           kYInitOffset + kRowHeight + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                kWhiteColor, kStatsTextThickness);
+                kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                kStatsTextThickness);
   }
 
   // Put person count line
@@ -582,8 +568,8 @@ void DrawLineCrossingCount(
     cv::putText(overlay, "Person Enter",
                 cv::Point(kXInitOffset + kXTextOffset,
                           kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                kWhiteColor, kStatsTextThickness);
+                kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                kStatsTextThickness);
     for (int line_id = 1; line_id <= number_of_lines; ++line_id) {
       cv::putText(overlay,
                   absl::StrCat(count_map[line_id]["Person"].positive_count),
@@ -591,15 +577,15 @@ void DrawLineCrossingCount(
                                 (line_id - 1) * kItemColumnWidthLineCrossing +
                                 kXTextOffset,
                             kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                  kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                  kWhiteColor, kStatsTextThickness);
+                  kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                  kStatsTextThickness);
     }
     y_index++;
     cv::putText(overlay, "Person Exit",
                 cv::Point(kXInitOffset + kXTextOffset,
                           kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                kWhiteColor, kStatsTextThickness);
+                kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                kStatsTextThickness);
     for (int line_id = 1; line_id <= number_of_lines; ++line_id) {
       cv::putText(overlay,
                   absl::StrCat(count_map[line_id]["Person"].negative_count),
@@ -607,8 +593,8 @@ void DrawLineCrossingCount(
                                 (line_id - 1) * kItemColumnWidthLineCrossing +
                                 kXTextOffset,
                             kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                  kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                  kWhiteColor, kStatsTextThickness);
+                  kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                  kStatsTextThickness);
     }
     y_index++;
   }
@@ -618,8 +604,8 @@ void DrawLineCrossingCount(
     cv::putText(overlay, "Vehicle Enter",
                 cv::Point(kXInitOffset + kXTextOffset,
                           kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                kWhiteColor, kStatsTextThickness);
+                kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                kStatsTextThickness);
     for (int line_id = 1; line_id <= number_of_lines; ++line_id) {
       cv::putText(overlay,
                   absl::StrCat(count_map[line_id]["Vehicle"].positive_count),
@@ -627,15 +613,15 @@ void DrawLineCrossingCount(
                                 (line_id - 1) * kItemColumnWidthLineCrossing +
                                 kXTextOffset,
                             kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                  kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                  kWhiteColor, kStatsTextThickness);
+                  kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                  kStatsTextThickness);
     }
     y_index++;
     cv::putText(overlay, "Vehicle Exit",
                 cv::Point(kXInitOffset + kXTextOffset,
                           kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                kWhiteColor, kStatsTextThickness);
+                kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                kStatsTextThickness);
     for (int line_id = 1; line_id <= number_of_lines; ++line_id) {
       cv::putText(overlay,
                   absl::StrCat(count_map[line_id]["Vehicle"].negative_count),
@@ -643,8 +629,8 @@ void DrawLineCrossingCount(
                                 (line_id - 1) * kItemColumnWidthLineCrossing +
                                 kXTextOffset,
                             kYInitOffset + kRowHeight * y_index + kYTextOffset),
-                  kStatsTextFontFamily, kStatsTextLineCrossingFontscale,
-                  kWhiteColor, kStatsTextThickness);
+                  kTextFontFamily, kStatsTextLineCrossingFontscale, kWhiteColor,
+                  kStatsTextThickness);
     }
     y_index++;
   }
@@ -674,7 +660,7 @@ void ShowAnnotationFps(cv::Mat img, double fps, double stats_alpha) {
   cv::putText(overlay, absl::StrCat("Annotation FPS: ", fps_str),
               cv::Point(width - kXInitOffset - rect_width,
                         kYInitOffset + rect_height - 5),
-              kStatsTextFontFamily, kTrackTextFontscale, kWhiteColor);
+              kTextFontFamily, kTrackTextFontscale, kWhiteColor);
 
   // Blend the stats with original image
   cv::addWeighted(overlay, stats_alpha, img, 1 - stats_alpha, 0, img);

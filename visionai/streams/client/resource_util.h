@@ -31,10 +31,40 @@ constexpr char kClustersCollectionId[] = "clusters";
 constexpr char kEventsCollectionId[] = "events";
 constexpr char kStreamsCollectionId[] = "streams";
 constexpr char kChannelsCollectionId[] = "series";
+constexpr char kApplicationsCollectionId[] = "applications";
 
 // ResourceInfoMap is the type mapping from the collection id to the resource
 // id.
 using ResourceInfoMap = absl::flat_hash_map<std::string, std::string>;
+
+namespace resource_ids {
+// Stream struct represents the resource ids of the stream.
+struct Stream {
+  // The GCP Project ID.
+  std::string project_id;
+
+  // The GCP Location ID.
+  std::string location_id;
+
+  // The GCP Vision AI Cluster ID.
+  std::string cluster_id;
+
+  // The GCP Vision AI Stream ID.
+  std::string stream_id;
+};
+
+// Application struct represents the resource ids of the application.
+struct Application {
+  // The GCP Project ID.
+  std::string project_id;
+
+  // The GCP Location ID.
+  std::string location_id;
+
+  // The GCP Vision AI Application ID.
+  std::string application_id;
+};
+}  // namespace resource_ids
 
 // ----------------------------------------------------------------------------
 // Methods for standardizing AIS resource names
@@ -70,12 +100,17 @@ absl::StatusOr<std::string> MakeStreamName(const std::string& cluster_name,
                                            const std::string& stream_id);
 absl::StatusOr<std::string> MakeStreamName(const ClusterSelection& selection,
                                            const std::string& stream_id);
+absl::StatusOr<std::string> MakeStreamName(const resource_ids::Stream& stream);
 
 // Return the resource name of the channel given a cluster name and channel-id.
 absl::StatusOr<std::string> MakeChannelName(const std::string& cluster_name,
                                             const std::string& channel_id);
 absl::StatusOr<std::string> MakeChannelName(const ClusterSelection& selection,
                                             const std::string& channel_id);
+
+// Return the resource name of the application given its resource ids.
+absl::StatusOr<std::string> MakeApplicationName(
+    const resource_ids::Application& application);
 
 // Given a cluster name, return a vector containing its resource-ids, ordered by
 // their rank.
@@ -85,13 +120,23 @@ absl::StatusOr<std::string> MakeChannelName(const ClusterSelection& selection,
 absl::StatusOr<std::vector<std::string>> ParseClusterName(
     const std::string& cluster_name);
 
-// Given a steram name, return a vector containing its resource-ids, ordered by
+// Given a stream name, return a vector containing its resource-ids, ordered by
 // their rank.
 //
 // Example: Given projects/p-1/locations/l-1/clusters/c-1/streams/s-1
 // returns the vector { p-1, l-1, c-1, s-1 }.
 absl::StatusOr<std::vector<std::string>> ParseStreamName(
     const std::string& stream_name);
+
+// Given a stream resource name, return a Stream struct containing its resource
+// ids.
+absl::StatusOr<resource_ids::Stream> ParseStreamNameStructured(
+    const std::string& stream_name);
+
+// Given an application resource name, return an Application struct containing
+// its resource ids.
+absl::StatusOr<resource_ids::Application> ParseApplicationNameStructured(
+    const std::string& application_name);
 
 // Generate a unique event id.
 //

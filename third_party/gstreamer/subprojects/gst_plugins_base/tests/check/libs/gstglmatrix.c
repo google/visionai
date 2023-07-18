@@ -22,7 +22,7 @@
 #  include "third_party/gstreamer/subprojects/gst_plugins_base/config.h"
 #endif
 
-#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/gl/gstglutils.c"
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/gl/gl.h"
 #undef GST_CAT_DEFAULT
 #include "third_party/gstreamer/subprojects/gstreamer/libs/gst/check/gstcheck.h"
 

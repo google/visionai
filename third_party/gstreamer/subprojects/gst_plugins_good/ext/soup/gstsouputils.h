@@ -21,12 +21,16 @@
 #include "third_party/glib/glib/glib.h"
 #include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
 
+#ifdef STATIC_SOUP
+#include <libsoup/soup.h>
+#else
 #include "third_party/gstreamer/subprojects/gst_plugins_good/ext/soup/stub/soup.h"
+#endif
 
 G_BEGIN_DECLS
 
 void gst_soup_util_log_setup (SoupSession * session, SoupLoggerLogLevel level,
-    GstElement * element);
+    GObject * object);
 
 G_END_DECLS
 

@@ -1166,10 +1166,6 @@ gst_bin_add_func (GstBin * bin, GstElement * element)
 
   GST_DEBUG_OBJECT (bin, "element :%s", GST_ELEMENT_NAME (element));
 
-  /* we obviously can't add ourself to ourself */
-  if (G_UNLIKELY (element == GST_ELEMENT_CAST (bin)))
-    goto adding_itself;
-
   /* get the element name to make sure it is unique in this bin. */
   GST_OBJECT_LOCK (element);
   elem_name = g_strdup (GST_ELEMENT_NAME (element));
@@ -1379,20 +1375,11 @@ no_state_recalc:
   return TRUE;
 
   /* ERROR handling here */
-adding_itself:
-  {
-    GST_OBJECT_LOCK (bin);
-    g_warning ("Cannot add bin '%s' to itself", GST_ELEMENT_NAME (bin));
-    GST_OBJECT_UNLOCK (bin);
-    gst_object_ref_sink (element);
-    gst_object_unref (element);
-    return FALSE;
-  }
 duplicate_name:
   {
-    g_warning ("Name '%s' is not unique in bin '%s', not adding",
-        elem_name, GST_ELEMENT_NAME (bin));
     GST_OBJECT_UNLOCK (bin);
+    GST_WARNING_OBJECT (bin, "Name '%s' is not unique in bin, not adding",
+        elem_name);
     g_free (elem_name);
     gst_object_ref_sink (element);
     gst_object_unref (element);
@@ -1400,8 +1387,8 @@ duplicate_name:
   }
 had_parent:
   {
-    g_warning ("Element '%s' already has parent", elem_name);
     GST_OBJECT_UNLOCK (bin);
+    GST_WARNING_OBJECT (bin, "Element '%s' already has parent", elem_name);
     g_free (elem_name);
     return FALSE;
   }
@@ -1548,8 +1535,7 @@ gst_bin_add (GstBin * bin, GstElement * element)
   /* ERROR handling */
 no_function:
   {
-    g_warning ("adding elements to bin '%s' is not supported",
-        GST_ELEMENT_NAME (bin));
+    GST_WARNING_OBJECT (bin, "adding elements to bin is not supported");
     gst_object_ref_sink (element);
     gst_object_unref (element);
     return FALSE;
@@ -1575,10 +1561,6 @@ gst_bin_remove_func (GstBin * bin, GstElement * element)
   GstStateChangeReturn ret;
 
   GST_DEBUG_OBJECT (bin, "element :%s", GST_ELEMENT_NAME (element));
-
-  /* we obviously can't remove ourself from ourself */
-  if (G_UNLIKELY (element == GST_ELEMENT_CAST (bin)))
-    goto removing_itself;
 
   GST_OBJECT_LOCK (bin);
 
@@ -1835,19 +1817,11 @@ no_state_recalc:
   return TRUE;
 
   /* ERROR handling */
-removing_itself:
-  {
-    GST_OBJECT_LOCK (bin);
-    g_warning ("Cannot remove bin '%s' from itself", GST_ELEMENT_NAME (bin));
-    GST_OBJECT_UNLOCK (bin);
-    return FALSE;
-  }
 not_in_bin:
   {
-    g_warning ("Element '%s' is not in bin '%s'", elem_name,
-        GST_ELEMENT_NAME (bin));
     GST_OBJECT_UNLOCK (element);
     GST_OBJECT_UNLOCK (bin);
+    GST_WARNING_OBJECT (bin, "Element '%s' is not in bin", elem_name);
     g_free (elem_name);
     return FALSE;
   }
@@ -1898,8 +1872,7 @@ gst_bin_remove (GstBin * bin, GstElement * element)
   /* ERROR handling */
 no_function:
   {
-    g_warning ("removing elements from bin '%s' is not supported",
-        GST_ELEMENT_NAME (bin));
+    GST_WARNING_OBJECT (bin, "Removing elements from bin is not supported");
     return FALSE;
   }
 }

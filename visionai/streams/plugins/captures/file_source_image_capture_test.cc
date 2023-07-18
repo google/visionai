@@ -13,11 +13,13 @@
 #include "absl/status/status.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "visionai/algorithms/media/util/codec_validator.h"
 #include "visionai/algorithms/media/util/gstreamer_registry.h"
 #include "visionai/algorithms/media/util/gstreamer_runner.h"
 #include "visionai/proto/ingester_config.pb.h"
 #include "visionai/streams/capture_module.h"
 #include "visionai/streams/packet/packet.h"
+#include "visionai/testing/status/status_matchers.h"
 #include "visionai/types/gstreamer_buffer.h"
 #include "visionai/util/file_path.h"
 #include "visionai/util/ring_buffer.h"
@@ -44,8 +46,9 @@ TEST_F(FileSourceImageCaptureTest, RunTestEmptyFilepath) {
   auto output = std::make_shared<RingBuffer<Packet>>(100);
   capture.AttachOutput(output);
   ASSERT_TRUE(capture.Prepare().ok());
-  EXPECT_EQ(capture.Init(), absl::InvalidArgumentError(
-    "Given an empty filepath; while initializing the Capture"));
+  EXPECT_EQ(capture.Init(),
+            absl::InvalidArgumentError(
+                "Given an empty filepath; while initializing the Capture"));
 }
 
 TEST_F(FileSourceImageCaptureTest, RunTestNoSuchFile) {
@@ -58,9 +61,10 @@ TEST_F(FileSourceImageCaptureTest, RunTestNoSuchFile) {
   auto output = std::make_shared<RingBuffer<Packet>>(100);
   capture.AttachOutput(output);
   ASSERT_TRUE(capture.Prepare().ok());
-  EXPECT_EQ(capture.Init(), absl::InvalidArgumentError(
-      absl::StrFormat("No such file \"%s\"; while initializing the Capture",
-      file::JoinPath(kTestFolder, "no_such_file.mp4"))));
+  EXPECT_EQ(capture.Init(),
+            absl::InvalidArgumentError(absl::StrFormat(
+                "No such file \"%s\"; while initializing the Capture",
+                file::JoinPath(kTestFolder, "no_such_file.mp4"))));
 }
 
 TEST_F(FileSourceImageCaptureTest, RunLoopCancelled) {
@@ -86,10 +90,12 @@ TEST_F(FileSourceImageCaptureTest, RunLoopCancelled) {
 }
 
 TEST_F(FileSourceImageCaptureTest, RunH265Input) {
+  if (!IsH265Supported()) {
+    GTEST_SKIP();
+  }
   CaptureConfig config;
   config.mutable_name()->assign("FileSourceImageCapture");
-  config.mutable_source_urls()->Add(
-      file::JoinPath(kTestFolder, "h265.mp4"));
+  config.mutable_source_urls()->Add(file::JoinPath(kTestFolder, "h265.mp4"));
 
   CaptureModule capture(config);
   auto output = std::make_shared<RingBuffer<Packet>>(100);
@@ -97,9 +103,26 @@ TEST_F(FileSourceImageCaptureTest, RunH265Input) {
 
   ASSERT_TRUE(capture.Prepare().ok());
   ASSERT_TRUE(capture.Init().ok());
-  EXPECT_EQ(capture.Run(), absl::FailedPreconditionError(
-    "The input media type - \"video/x-h265\" is not supported. "
-    "Currently the only supported media type is \"video/x-h264\""));
+  EXPECT_EQ(capture.Run(), absl::OkStatus());
+}
+
+TEST_F(FileSourceImageCaptureTest, RunAV1Input) {
+  CaptureConfig config;
+  config.mutable_name()->assign("FileSourceImageCapture");
+  config.mutable_source_urls()->Add(file::JoinPath(kTestFolder, "av1.mp4"));
+
+  CaptureModule capture(config);
+  auto output = std::make_shared<RingBuffer<Packet>>(100);
+  capture.AttachOutput(output);
+
+  ASSERT_TRUE(capture.Prepare().ok());
+  ASSERT_TRUE(capture.Init().ok());
+  EXPECT_THAT(
+      capture.Run(),
+      StatusIs(
+          absl::StatusCode::kFailedPrecondition,
+          testing::HasSubstr(
+              "The input media type - \"video/x-av1\" is not supported.")));
 }
 
 TEST_F(FileSourceImageCaptureTest, RunTest) {

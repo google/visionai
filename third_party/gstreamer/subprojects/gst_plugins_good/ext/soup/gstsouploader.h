@@ -15,7 +15,12 @@
 #ifndef __GST_SOUP_LOADER_H__
 #define __GST_SOUP_LOADER_H__
 
+#ifdef STATIC_SOUP
+#include <libsoup/soup.h>
+#else
 #include "third_party/gstreamer/subprojects/gst_plugins_good/ext/soup/stub/soup.h"
+#endif
+
 #include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
 #include "third_party/glib/gio/gio.h"
 
@@ -36,10 +41,12 @@ void _soup_session_add_feature (SoupSession *session,
 void _soup_session_add_feature_by_type (SoupSession *session, GType feature_type);
 
 typedef struct _GstSoupUri {
-#if GLIB_CHECK_VERSION(2, 66, 0)
+#if (defined(STATIC_SOUP) && STATIC_SOUP == 3) || (!defined(STATIC_SOUP) && GLIB_CHECK_VERSION(2, 66, 0))
   GUri *uri;
 #endif
+#if (defined(STATIC_SOUP) && STATIC_SOUP == 2) || !defined(STATIC_SOUP)
   SoupURI *soup_uri;
+#endif
 } GstSoupUri;
 
 GstSoupUri *gst_soup_uri_new (const char *uri_string);
@@ -93,6 +100,12 @@ void _soup_auth_authenticate (SoupAuth *auth, const char *username,
                               const char *password);
 
 const char *_soup_message_get_method (SoupMessage *msg);
+
+void _soup_session_send_async (SoupSession *session,
+                               SoupMessage *msg,
+                               GCancellable *cancellable,
+                               GAsyncReadyCallback callback,
+                               gpointer user_data);
 
 GInputStream *_soup_session_send_finish (SoupSession *session,
                                          GAsyncResult *result, GError **error);

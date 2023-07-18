@@ -25,6 +25,7 @@
 #include "visionai/streams/client/mock_streams_service.h"
 #include "visionai/streams/client/resource_util.h"
 #include "visionai/testing/grpc/mock_grpc.h"
+#include "visionai/testing/status/status_matchers.h"
 #include "visionai/util/time_util.h"
 #include "visionai/util/status/status_macros.h"
 
@@ -38,7 +39,6 @@ using ::google::cloud::visionai::v1::ReceiveEventsRequest;
 using ::google::cloud::visionai::v1::ReceiveEventsResponse;
 using ::testing::HasSubstr;
 using ::testing::Invoke;
-using ::testing::status::StatusIs;
 
 constexpr char kTestProjectId[] = "some-project-id";
 constexpr char kTestLocationId[] = "some-location-id";
@@ -159,13 +159,15 @@ TEST_F(EventUpdateReceiverTest, GetClusterRejection) {
       .WillRepeatedly(
           Invoke([&](::grpc::ServerContext* context,
                      const GetClusterRequest* request, Cluster* cluster) {
-            return absl::UnknownError("Intentaionl GetCluster fail");
+            return grpc::Status(grpc::StatusCode::UNKNOWN,
+                                "Intentaionl GetCluster fail");
           }));
   EventUpdateReceiver::Options options;
   EXPECT_TRUE(TestEventUpdateReceiverOptions(&options).ok());
   auto event_update_receiver = EventUpdateReceiver::Create(options);
-  EXPECT_THAT(event_update_receiver.status(),
-              StatusIs(util::error::UNKNOWN, HasSubstr("GetCluster fail")));
+  EXPECT_THAT(
+      event_update_receiver.status(),
+      StatusIs(grpc::StatusCode::UNKNOWN, HasSubstr("GetCluster fail")));
 }
 
 TEST_F(EventUpdateReceiverTest, ConstructionSuccess) {
@@ -229,7 +231,8 @@ TEST_F(EventUpdateReceiverTest, SetupRequestRejection) {
             // Expect setup message for handshake.
             ReceiveEventsRequest req;
             EXPECT_TRUE(stream->Read(&req));
-            return absl::UnknownError("Intentional Setup rejection");
+            return grpc::Status(grpc::StatusCode::UNKNOWN,
+                                "Intentional Setup rejection");
           }));
 
   EventUpdateReceiver::Options options;
@@ -358,7 +361,7 @@ TEST_F(EventUpdateReceiverTest, ServerCancelTest) {
             context->TryCancel();
             server_cancelled.Notify();
 
-            return absl::UnknownError("Sentinel return");
+            return grpc::Status(grpc::StatusCode::UNKNOWN, "Sentinel return");
           }));
 
   EventUpdateReceiver::Options options;

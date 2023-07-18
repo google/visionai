@@ -2158,6 +2158,8 @@ iterate_adapter:
     GST_DEBUG_OBJECT (wav, "marking DISCONT");
     GST_BUFFER_FLAG_SET (buf, GST_BUFFER_FLAG_DISCONT);
     wav->discont = FALSE;
+  } else {
+    GST_BUFFER_FLAG_UNSET (buf, GST_BUFFER_FLAG_DISCONT);
   }
 
   GST_BUFFER_TIMESTAMP (buf) = timestamp;
@@ -2287,6 +2289,13 @@ pause:
         if (G_UNLIKELY (wav->first)) {
           wav->first = FALSE;
           gst_wavparse_add_src_pad (wav, NULL);
+        } else {
+          /* If we have a pending start segment, send it now. Can happen if a seek
+           * causes an immediate EOS */
+          if (G_UNLIKELY (wav->start_segment != NULL)) {
+            gst_pad_push_event (wav->srcpad, wav->start_segment);
+            wav->start_segment = NULL;
+          }
         }
 
         /* perform EOS logic */
@@ -2324,6 +2333,11 @@ gst_wavparse_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   GST_LOG_OBJECT (wav, "adapter_push %" G_GSIZE_FORMAT " bytes",
       gst_buffer_get_size (buf));
 
+  /* Hold a reference to the buffer, as we access buffer properties in the
+     `GST_WAVPARSE_DATA` case below and `gst_adapter_push` steals a reference
+     to the buffer. */
+  gst_buffer_ref (buf);
+
   gst_adapter_push (wav->adapter, buf);
 
   switch (wav->state) {
@@ -2355,7 +2369,7 @@ gst_wavparse_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
         goto done;
       break;
     default:
-      g_return_val_if_reached (GST_FLOW_ERROR);
+      g_assert_not_reached ();
   }
 done:
   if (G_UNLIKELY (wav->abort_buffering)) {
@@ -2364,6 +2378,8 @@ done:
     /* sort of demux/parse error */
     GST_ELEMENT_ERROR (wav, STREAM, DEMUX, (NULL), ("unhandled buffer size"));
   }
+
+  gst_buffer_unref (buf);
 
   return ret;
 }
@@ -2489,20 +2505,32 @@ gst_wavparse_sink_event (GstPad * pad, GstObject * parent, GstEvent * event)
       break;
     }
     case GST_EVENT_EOS:
-      if (wav->state == GST_WAVPARSE_START || !wav->caps) {
+      if (!wav->caps) {
         GST_ELEMENT_ERROR (wav, STREAM, WRONG_TYPE, (NULL),
             ("No valid input found before end of stream"));
       } else {
-        /* add pad if needed so EOS is seen downstream */
-        if (G_UNLIKELY (wav->first)) {
-          wav->first = FALSE;
-          gst_wavparse_add_src_pad (wav, NULL);
+        switch (wav->state) {
+          case GST_WAVPARSE_START:
+            GST_ELEMENT_ERROR (wav, STREAM, WRONG_TYPE, (NULL),
+                ("No valid input found before end of stream"));
+            break;
+          case GST_WAVPARSE_HEADER:
+            GST_ELEMENT_ERROR (wav, STREAM, DEMUX, (NULL),
+                ("No audio data chunk found before end of stream"));
+            break;
+          case GST_WAVPARSE_DATA:
+            /* add pad if needed so EOS is seen downstream */
+            if (G_UNLIKELY (wav->first)) {
+              wav->first = FALSE;
+              gst_wavparse_add_src_pad (wav, NULL);
+            }
+            /* stream leftover data in current segment */
+            gst_wavparse_flush_data (wav);
+            break;
+          default:
+            g_assert_not_reached ();
         }
-
-        /* stream leftover data in current segment */
-        gst_wavparse_flush_data (wav);
       }
-
       /* fall-through */
     case GST_EVENT_FLUSH_STOP:
     {
@@ -2657,12 +2685,11 @@ gst_wavparse_pad_query (GstPad * pad, GstObject * parent, GstQuery * query)
   gboolean res = TRUE;
   GstWavParse *wav = GST_WAVPARSE (parent);
 
-  /* only if we know */
-  if (wav->state != GST_WAVPARSE_DATA) {
-    return FALSE;
-  }
-
   GST_LOG_OBJECT (pad, "%s query", GST_QUERY_TYPE_NAME (query));
+
+  if (wav->state != GST_WAVPARSE_DATA) {
+    return gst_pad_query_default (pad, parent, query);
+  }
 
   switch (GST_QUERY_TYPE (query)) {
     case GST_QUERY_POSITION:

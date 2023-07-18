@@ -537,7 +537,6 @@ _get_gl_context (GtkGstGLWidget * gst_widget)
 
     GST_ERROR_OBJECT (gst_widget, "Error creating GdkGLContext : %s",
         error ? error->message : "No error set by Gdk");
-    g_clear_error (&error);
     return;
   }
 
@@ -752,6 +751,8 @@ gtk_gst_gl_widget_set_rotate_method (GtkGstGLWidget * gst_widget,
     priv->current_rotate_method = method;
   }
   GTK_GST_BASE_WIDGET_UNLOCK (gst_widget);
+
+  gtk_gst_base_widget_queue_draw (GTK_GST_BASE_WIDGET (gst_widget));
 }
 
 GstVideoOrientationMethod

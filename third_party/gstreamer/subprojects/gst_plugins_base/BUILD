@@ -2,7 +2,10 @@
 
 load("//third_party/gstreamer:tools.bzl", "gen_config_file", "gnome_mkenums_simple", "specialize_file_template")
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_visibility = ["//visibility:public"],
+    features = ["-layering_check"],
+)
 
 licenses(["restricted"])
 
@@ -205,6 +208,7 @@ gnome_mkenums_simple(
         "gst_libs/gst/video/video-resampler.h",
         "gst_libs/gst/video/video-scaler.h",
         "gst_libs/gst/video/video-tile.h",
+        "gst_libs/gst/video/video.h",
         "gst_libs/gst/video/gstvideometa.h",
         "gst_libs/gst/video/gstvideotimecode.h",
         "gst_libs/gst/video/gstvideoutils.h",

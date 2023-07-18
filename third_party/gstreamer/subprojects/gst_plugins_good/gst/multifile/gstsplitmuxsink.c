@@ -792,11 +792,13 @@ gst_splitmux_sink_set_property (GObject * object, guint prop_id,
           splitmux->threshold_timecode_str = NULL;
         }
       }
-      splitmux->next_fragment_start_tc_time = GST_CLOCK_TIME_NONE;
-      if (splitmux->tc_interval && splitmux->fragment_start_tc) {
-        splitmux->next_fragment_start_tc_time =
-            calculate_next_max_timecode (splitmux, splitmux->fragment_start_tc,
-            splitmux->fragment_start_time, NULL);
+      splitmux->next_fragment_start_tc_time =
+          calculate_next_max_timecode (splitmux, splitmux->fragment_start_tc,
+          splitmux->fragment_start_time, NULL);
+      if (splitmux->tc_interval && splitmux->fragment_start_tc
+          && !GST_CLOCK_TIME_IS_VALID (splitmux->next_fragment_start_tc_time)) {
+        GST_WARNING_OBJECT (splitmux,
+            "Couldn't calculate next fragment start time for timecode mode");
       }
       GST_OBJECT_UNLOCK (splitmux);
       break;
@@ -1540,6 +1542,11 @@ request_next_keyframe (GstSplitMuxSink * splitmux, GstBuffer * buffer,
 
       timecode_based = GST_CLOCK_TIME_IS_VALID (max_tc_time) &&
           GST_CLOCK_TIME_IS_VALID (next_max_tc_time);
+
+      if (!timecode_based) {
+        GST_WARNING_OBJECT (splitmux,
+            "Couldn't calculate maximum fragment time for timecode mode");
+      }
     } else {
       /* This can happen in the presence of GAP events that trigger
        * a new fragment start */
@@ -2541,7 +2548,8 @@ handle_gathered_gop (GstSplitMuxSink * splitmux, const InputGop * gop,
     splitmux->next_fragment_start_tc_time =
         calculate_next_max_timecode (splitmux, splitmux->fragment_start_tc,
         splitmux->fragment_start_time, NULL);
-    if (!GST_CLOCK_TIME_IS_VALID (splitmux->next_fragment_start_tc_time)) {
+    if (splitmux->tc_interval && splitmux->fragment_start_tc
+        && !GST_CLOCK_TIME_IS_VALID (splitmux->next_fragment_start_tc_time)) {
       GST_WARNING_OBJECT (splitmux,
           "Couldn't calculate next fragment start time for timecode mode");
     }
@@ -2797,14 +2805,34 @@ handle_mq_input (GstPad * pad, GstPadProbeInfo * info, MqStreamCtx * ctx)
           splitmux->input_state = SPLITMUX_INPUT_STATE_WAITING_GOP_COLLECT;
           /* Wake up other input pads to collect this GOP */
           GST_SPLITMUX_BROADCAST_INPUT (splitmux);
-          check_completed_gop (splitmux, ctx);
+          if (g_queue_is_empty (&splitmux->pending_input_gops)) {
+            GST_WARNING_OBJECT (splitmux,
+                "EOS with no buffers received on the reference pad");
+
+            /* - child muxer and sink might be still locked state
+             *   (see gst_splitmux_reset_elements()) so should be unlocked
+             *   for state change of splitmuxsink to be applied to child
+             * - would need to post async done message
+             * - location on sink element is still null then it will post
+             *   error message on bus (muxer will produce something, header
+             *   data for example)
+             *
+             * Calls start_next_fragment() here, the method will address
+             * everything the above mentioned one */
+            ret = start_next_fragment (splitmux, ctx);
+            if (ret != GST_FLOW_OK)
+              goto beach;
+          } else {
+            check_completed_gop (splitmux, ctx);
+          }
         } else if (splitmux->input_state ==
             SPLITMUX_INPUT_STATE_WAITING_GOP_COLLECT) {
           /* If we are waiting for a GOP to be completed (ie, for aux
            * pads to catch up), then this pad is complete, so check
            * if the whole GOP is.
            */
-          check_completed_gop (splitmux, ctx);
+          if (!g_queue_is_empty (&splitmux->pending_input_gops))
+            check_completed_gop (splitmux, ctx);
         }
         GST_SPLITMUX_UNLOCK (splitmux);
         break;
@@ -2969,7 +2997,12 @@ handle_mq_input (GstPad * pad, GstPadProbeInfo * info, MqStreamCtx * ctx)
         splitmux->next_fragment_start_tc_time =
             calculate_next_max_timecode (splitmux, &tc_meta->tc,
             running_time, NULL);
-
+        if (splitmux->tc_interval
+            && !GST_CLOCK_TIME_IS_VALID (splitmux->next_fragment_start_tc_time))
+        {
+          GST_WARNING_OBJECT (splitmux,
+              "Couldn't calculate next fragment start time for timecode mode");
+        }
 #ifndef GST_DISABLE_GST_DEBUG
         {
           gchar *tc_str;
@@ -3168,6 +3201,13 @@ handle_mq_input (GstPad * pad, GstPadProbeInfo * info, MqStreamCtx * ctx)
 
         GST_LOG_OBJECT (pad,
             "Collected last packet of GOP. Checking other pads");
+
+        if (g_queue_is_empty (&splitmux->pending_input_gops)) {
+          GST_WARNING_OBJECT (pad,
+              "Reference was closed without GOP, dropping");
+          goto drop;
+        }
+
         check_completed_gop (splitmux, ctx);
         break;
       }
@@ -3216,6 +3256,12 @@ beach:
     mq_stream_buf_free (buf_info);
   GST_PAD_PROBE_INFO_FLOW_RETURN (info) = ret;
   return GST_PAD_PROBE_PASS;
+drop:
+  GST_SPLITMUX_UNLOCK (splitmux);
+  if (buf_info)
+    mq_stream_buf_free (buf_info);
+  GST_PAD_PROBE_INFO_FLOW_RETURN (info) = GST_FLOW_EOS;
+  return GST_PAD_PROBE_DROP;
 }
 
 static void

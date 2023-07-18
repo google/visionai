@@ -48,7 +48,10 @@ proto_library(
     name = "ingester_config_proto",
     srcs = ["ingester_config.proto"],
     visibility = ["//visibility:public"],
-    deps = [":cluster_selection_proto"],
+    deps = [
+        ":cluster_selection_proto",
+        "@com_google_protobuf//:duration_proto",
+    ],
 )
 
 cc_proto_library(

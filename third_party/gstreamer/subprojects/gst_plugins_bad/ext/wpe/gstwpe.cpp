@@ -20,12 +20,12 @@
 
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstwpevideosrc.h"
-#include "gstwpesrcbin.h"
-#include "gstwpe.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpevideosrc.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpesrcbin.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpe.h"
 
 static gchar *extension_path = NULL;
 
@@ -33,7 +33,7 @@ GST_DEBUG_CATEGORY (wpe_video_src_debug);
 GST_DEBUG_CATEGORY (wpe_view_debug);
 GST_DEBUG_CATEGORY (wpe_src_debug);
 
-const gchar *gst_wpe_get_extension_path (void)
+const gchar *gst_wpe_get_devenv_extension_path (void)
 {
   return extension_path;
 }

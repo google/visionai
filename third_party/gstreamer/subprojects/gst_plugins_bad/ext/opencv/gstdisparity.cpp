@@ -115,10 +115,10 @@ gst-launch-1.0    multifilesrc  location=~/im3.png ! pngdec ! videoconvert  ! di
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstdisparity.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstdisparity.h"
 #include <opencv2/imgproc.hpp>
 
 GST_DEBUG_CATEGORY_STATIC (gst_disparity_debug);

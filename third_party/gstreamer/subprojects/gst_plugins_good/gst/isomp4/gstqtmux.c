@@ -631,6 +631,7 @@ gst_qt_mux_class_init (GstQTMuxClass * klass)
   gstagg_class->start = gst_qt_mux_start;
   gstagg_class->stop = gst_qt_mux_stop;
   gstagg_class->create_new_pad = gst_qt_mux_create_new_pad;
+  gstagg_class->negotiate = NULL;
 
   gst_type_mark_as_plugin_api (GST_TYPE_QT_MUX_PAD, 0);
   gst_type_mark_as_plugin_api (GST_TYPE_QT_MUX_DTS_METHOD, 0);
@@ -2694,7 +2695,8 @@ prefill_raw_audio_prepare_buf_func (GstQTMuxPad * qtpad, GstBuffer * buf,
       qtpad->sample_size : gst_adapter_available (qtpad->raw_audio_adapter));
   GST_BUFFER_PTS (buf) = input_timestamp;
   GST_BUFFER_DTS (buf) = GST_CLOCK_TIME_NONE;
-  GST_BUFFER_DURATION (buf) = GST_CLOCK_TIME_NONE;
+  GST_BUFFER_DURATION (buf) = gst_util_uint64_scale (nsamples, GST_SECOND,
+      atom_trak_get_timescale (qtpad->trak));
 
   qtpad->raw_audio_adapter_offset += nsamples;
 
@@ -4045,10 +4047,9 @@ gst_qt_mux_stop_file (GstQTMux * qtmux)
 
         if (qpad->trak->edts
             && g_slist_length (qpad->trak->edts->elst.entries) > 1) {
+          GST_OBJECT_UNLOCK (qtmux);
           GST_ELEMENT_ERROR (qtmux, STREAM, MUX, (NULL),
               ("Can't support gaps in prefill mode"));
-
-          GST_OBJECT_UNLOCK (qtmux);
 
           return GST_FLOW_ERROR;
         }
@@ -5412,7 +5413,10 @@ not_negotiated:
   }
 sample_error:
   {
-    GST_ELEMENT_ERROR (qtmux, STREAM, MUX, (NULL), ("Failed to push sample."));
+    /* Only post an error message for actual errors that are not flushing */
+    if (pad->flow_status < GST_FLOW_OK && pad->flow_status != GST_FLOW_FLUSHING)
+      GST_ELEMENT_ERROR (qtmux, STREAM, MUX, (NULL),
+          ("Failed to push sample."));
     return pad->flow_status;
   }
 }
@@ -5498,6 +5502,7 @@ find_best_pad (GstQTMux * qtmux)
        * to be written at */
       block_idx = current_block_idx = prefill_get_block_index (qtmux, qtpad);
       if (!qtpad->samples || block_idx >= qtpad->samples->len) {
+        GST_OBJECT_UNLOCK (qtmux);
         GST_ELEMENT_ERROR (qtmux, RESOURCE, SETTINGS,
             ("Failed to create samples in prefill mode"), (NULL));
         return NULL;

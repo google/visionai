@@ -35,3 +35,12 @@ func MakeProcessName(projectID, locationID, clusterID, processID string) (string
 	}
 	return fmt.Sprintf("%v/processes/%v", clusterName, processID), nil
 }
+
+// MakeOperatorName assembles the resource name from the given project-id, location-id, operator-id.
+func MakeOperatorName(projectID, locationID, operatorID string) (string, error) {
+	prjName, err := util.MakeProjectLocationName(projectID, locationID)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%v/operators/%v", prjName, operatorID), nil
+}

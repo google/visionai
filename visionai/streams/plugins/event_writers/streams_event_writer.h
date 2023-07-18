@@ -32,6 +32,7 @@
 #include <memory>
 
 #include "absl/status/status.h"
+#include "absl/time/time.h"
 #include "visionai/algorithms/media/util/gstreamer_runner.h"
 #include "visionai/streams/client/packet_sender.h"
 #include "visionai/streams/framework/event_writer.h"
@@ -45,8 +46,7 @@ class StreamsEventWriter : public EventWriter {
   StreamsEventWriter() {}
 
   // Used by tests only to inject the mock.
-  StreamsEventWriter(std::shared_ptr<PacketSender> sender)
-      : sender_(sender) {}
+  StreamsEventWriter(std::shared_ptr<PacketSender> sender) : sender_(sender) {}
 
   ~StreamsEventWriter() override {}
 
@@ -67,6 +67,7 @@ class StreamsEventWriter : public EventWriter {
   std::string stream_id_;
   std::string sender_name_;
   ClusterSelection cluster_selection_;
+  absl::Duration grace_period_;
   std::shared_ptr<PacketSender> sender_;
   // Whether to encode the received packets (RawImages) before sending to the
   // output stream.

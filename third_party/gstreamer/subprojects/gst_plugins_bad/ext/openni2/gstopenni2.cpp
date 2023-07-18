@@ -40,10 +40,10 @@
 
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
-#include <gst/gst.h>
-#include "gstopenni2src.h"
+#include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/openni2/gstopenni2src.h"
 
 static gboolean
 plugin_init (GstPlugin * plugin)

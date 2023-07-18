@@ -20,6 +20,7 @@
 #include "visionai/streams/ingester.h"
 #include "visionai/util/random_string.h"
 #include "visionai/util/status/status_macros.h"
+#include "visionai/streams/client/platform_client.h"
 
 namespace visionai {
 
@@ -72,6 +73,45 @@ absl::Status DeleteStream(const ServiceConnectionOptions& options,
                           absl::string_view stream_id) {
   VAI_ASSIGN_OR_RETURN(auto cluster_selection, ToClusterSelection(options));
   return DeleteStream(cluster_selection, std::string(stream_id));
+}
+
+absl::Status AddStreamToApplication(const ServiceConnectionOptions& options,
+                                    absl::string_view stream_id,
+                                    absl::string_view application_id) {
+  VAI_ASSIGN_OR_RETURN(auto platformClient,
+                   PlatformClient::Create(options.service_endpoint));
+  auto stream = resource_ids::Stream{
+    .project_id = options.project_id,
+    .location_id = options.location_id,
+    .cluster_id = options.cluster_id,
+    .stream_id = std::string(stream_id),
+  };
+  auto application = resource_ids::Application{
+    .project_id = options.project_id,
+    .location_id = options.location_id,
+    .application_id = std::string(application_id),
+  };
+  return platformClient->AddStreamToApplication(stream, application);
+}
+
+absl::Status RemoveStreamFromApplication(
+    const ServiceConnectionOptions& options,
+    absl::string_view stream_id,
+    absl::string_view application_id) {
+  VAI_ASSIGN_OR_RETURN(auto platformClient,
+                   PlatformClient::Create(options.service_endpoint));
+  auto stream = resource_ids::Stream{
+    .project_id = options.project_id,
+    .location_id = options.location_id,
+    .cluster_id = options.cluster_id,
+    .stream_id = std::string(stream_id),
+  };
+  auto application = resource_ids::Application{
+    .project_id = options.project_id,
+    .location_id = options.location_id,
+    .application_id = std::string(application_id),
+  };
+  return platformClient->RemoveStreamFromApplication(stream, application);
 }
 
 // ----------------------------------------------------------------------------
@@ -267,6 +307,44 @@ absl::Status IngestRtsp(const ServiceConnectionOptions& options,
   *event_writer_config->mutable_cluster_selection() = cluster_selection;
   (*event_writer_config->mutable_attr())["stream_id"] = std::string(stream_id);
   VAI_RETURN_IF_ERROR(RunIngester(config));
+  return absl::OkStatus();
+}
+
+absl::Status IngestMotion(const ServiceConnectionOptions& options,
+                          absl::string_view stream_id,
+                          absl::string_view event_id,
+                          absl::string_view file_name,
+                          const MotionFilterOptions& motion_options) {
+  VAI_ASSIGN_OR_RETURN(auto cluster_selection, ToClusterSelection(options));
+  IngesterConfig config;
+
+  CaptureConfig* capture_config = config.mutable_capture_config();
+  capture_config->set_name("FileSourceCapture");
+  capture_config->add_source_urls(std::string(file_name));
+  capture_config->mutable_attr()->insert({"loop", "true"});
+  FilterConfig* filter_config = config.mutable_filter_config();
+
+  filter_config->set_name("EncodedMotionFilter");
+
+  filter_config->mutable_attr()->insert({"min_event_length_in_seconds",
+                                  motion_options.min_event_length});
+  filter_config->mutable_attr()->insert({"lookback_window_in_seconds",
+                                  motion_options.lookback_window});
+  filter_config->mutable_attr()->insert({"cool_down_period_in_seconds",
+                                  motion_options.cool_down_period});
+  filter_config->mutable_attr()->insert({"motion_detection_sensitivity",
+                                  motion_options.motion_detection_sensitivity});
+
+  EventWriterConfig* event_writer_config = config.mutable_event_writer_config();
+  event_writer_config->set_name("StreamsEventWriter");
+  *event_writer_config->mutable_cluster_selection() = cluster_selection;
+  (*event_writer_config->mutable_attr())["stream_id"] = std::string(stream_id);
+
+  config.mutable_ingest_policy()->set_event(event_id);
+  config.mutable_ingest_policy()->set_continuous_mode(true);
+
+  VAI_RETURN_IF_ERROR(RunIngester(config));
+
   return absl::OkStatus();
 }
 

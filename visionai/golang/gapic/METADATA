@@ -1,0 +1,9 @@
+# go/google3metadata
+# proto-file: devtools/metadata/metadata.proto
+# proto-message: MetaData
+
+# GAPIC auto-generated golang files should not apply to GoVet or Golint.
+tricorder: {
+  disable: GoVet
+  disable: Golint
+}

@@ -108,6 +108,8 @@ class MetricsView {
 std::string GetAnalysisName();
 std::string GetAnalyzerName();
 std::string GetAnalysisId();
+std::string GetProcessName();
+std::string GetInputStream();
 
 // Seperation between Opencensus and Prometheus client library
 //
@@ -325,6 +327,16 @@ COUNTER(lva_text_output_packets_total,
 COUNTER(lva_text_output_bytes_total,
         "Total number of bytes successfully sent by lva text detection "
         "operator.",
+        *GlobalRegistry());
+
+COUNTER(lva_text_proxy_server_error_total,
+        "Total number of errors calling proxy server received by lva text "
+        "detection operator",
+        *GlobalRegistry());
+
+COUNTER(lva_text_proxy_server_request_total,
+        "Total number of requests calling proxy server by lva text detection "
+        "operator",
         *GlobalRegistry());
 
 const prometheus::Histogram::BucketBoundaries latency_boundaries_ms{

@@ -20,19 +20,11 @@
 
 namespace visionai {
 
-std::string DecideVideoParseGstPipeline(absl::string_view file_path) {
-  if (absl::EndsWith(file_path, ".mp4")) {
-    return "qtdemux ! h264parse";
-  } else {
-    return "parsebin";
-  }
-}
-
 std::string FileSrcGstPipelineStr(absl::string_view input_file_path) {
   std::vector<std::string> pipeline_elements;
   pipeline_elements.push_back(
       absl::StrFormat("filesrc location=%s", input_file_path));
-  pipeline_elements.push_back(DecideVideoParseGstPipeline(input_file_path));
+  pipeline_elements.push_back("parsebin");
   return absl::StrJoin(pipeline_elements, " ! ");
 }
 
@@ -47,11 +39,10 @@ absl::StatusOr<std::string> Mp4FileSinkH264GstPipelineStr(
 }
 
 absl::StatusOr<std::string> Mp4FileSinkTranscodeGstPipelineStr(
-    std::string caps_string,
-    absl::string_view output_file_path) {
+    std::string caps_string, absl::string_view output_file_path) {
   std::vector<std::string> pipeline_elements;
   VAI_ASSIGN_OR_RETURN(std::string framerate,
-      GetFramerateFractionFromCaps(caps_string));
+                   GetFramerateFractionFromCaps(caps_string));
   pipeline_elements.push_back("decodebin");
   pipeline_elements.push_back("videoconvert");
   pipeline_elements.push_back("video/x-raw");
@@ -66,7 +57,7 @@ absl::StatusOr<std::string> Mp4FileSinkTranscodeGstPipelineStr(
 }
 
 absl::StatusOr<std::string> GetFramerateFractionFromCaps(
-  const std::string& caps_string) {
+    const std::string& caps_string) {
   VAI_RETURN_IF_ERROR(GstInit());
 
   GstCaps* caps = gst_caps_from_string(caps_string.c_str());

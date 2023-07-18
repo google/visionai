@@ -21,6 +21,14 @@ py_library(
 py_library(
     name = "channel",
     srcs = ["channel.py"],
+)
+
+py_test(
+    name = "channel_test",
+    srcs = ["channel_test.py"],
+    srcs_version = "PY3",
     deps = [
+        ":channel",
+        "//visionai/python/testing:test",
     ],
 )

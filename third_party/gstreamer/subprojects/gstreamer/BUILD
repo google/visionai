@@ -821,7 +821,6 @@ GSTREAMER_CHECK_GST_TESTS = [
     "gstobject",
     "gstpoll",
     "gstquery",
-    "gstsystemclock",
     "gsttocsetter",
     "gstbufferlist",
     "gstcapsfeatures",
@@ -866,6 +865,26 @@ cc_test(
     deps = [
         ":check",
         ":gst",
+        "//third_party/glib/glib",
+    ],
+)
+
+cc_test(
+    name = "gst_gstsystemclock",
+    srcs = ["tests/check/gst/gstsystemclock.c"],
+    copts = [
+        "-w",
+        "-Wno-implicit-function-declaration",
+        "-DHAVE_CONFIG_H",
+    ],
+    env = {
+        "CK_DEFAULT_TIMEOUT": "600",
+    },
+    deps = [
+        ":base",
+        ":check",
+        ":gst",
+        ":plugins",
         "//third_party/glib/glib",
     ],
 )

@@ -168,12 +168,7 @@ gst_ffmpegauddec_finalize (GObject * object)
   GstFFMpegAudDec *ffmpegdec = (GstFFMpegAudDec *) object;
 
   av_frame_free (&ffmpegdec->frame);
-
-  if (ffmpegdec->context != NULL) {
-    gst_ffmpeg_avcodec_close (ffmpegdec->context);
-    av_free (ffmpegdec->context);
-    ffmpegdec->context = NULL;
-  }
+  avcodec_free_context (&ffmpegdec->context);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -193,14 +188,12 @@ gst_ffmpegauddec_close (GstFFMpegAudDec * ffmpegdec, gboolean reset)
   gst_ffmpeg_avcodec_close (ffmpegdec->context);
   ffmpegdec->opened = FALSE;
 
-  if (ffmpegdec->context->extradata) {
-    av_free (ffmpegdec->context->extradata);
-    ffmpegdec->context->extradata = NULL;
-  }
+  av_freep (&ffmpegdec->context->extradata);
 
   if (reset) {
-    if (avcodec_get_context_defaults3 (ffmpegdec->context,
-            oclass->in_plugin) < 0) {
+    avcodec_free_context (&ffmpegdec->context);
+    ffmpegdec->context = avcodec_alloc_context3 (oclass->in_plugin);
+    if (ffmpegdec->context == NULL) {
       GST_DEBUG_OBJECT (ffmpegdec, "Failed to set context defaults");
       return FALSE;
     }
@@ -219,13 +212,22 @@ gst_ffmpegauddec_start (GstAudioDecoder * decoder)
   oclass = (GstFFMpegAudDecClass *) (G_OBJECT_GET_CLASS (ffmpegdec));
 
   GST_OBJECT_LOCK (ffmpegdec);
-  gst_ffmpeg_avcodec_close (ffmpegdec->context);
-  if (avcodec_get_context_defaults3 (ffmpegdec->context, oclass->in_plugin) < 0) {
+  avcodec_free_context (&ffmpegdec->context);
+  ffmpegdec->context = avcodec_alloc_context3 (oclass->in_plugin);
+  if (ffmpegdec->context == NULL) {
     GST_DEBUG_OBJECT (ffmpegdec, "Failed to set context defaults");
     GST_OBJECT_UNLOCK (ffmpegdec);
     return FALSE;
   }
   ffmpegdec->context->opaque = ffmpegdec;
+
+  /* FIXME: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/issues/1474 */
+  if ((oclass->in_plugin->capabilities & AV_CODEC_CAP_DELAY) != 0
+      && (oclass->in_plugin->id == AV_CODEC_ID_WMAV1
+          || oclass->in_plugin->id == AV_CODEC_ID_WMAV2)) {
+    ffmpegdec->context->flags2 |= AV_CODEC_FLAG2_SKIP_MANUAL;
+  }
+
   GST_OBJECT_UNLOCK (ffmpegdec);
 
   return TRUE;
@@ -362,6 +364,9 @@ settings_changed (GstFFMpegAudDec * ffmpegdec, AVFrame * frame)
   GstAudioFormat format;
   GstAudioLayout layout;
   gint channels = av_get_channel_layout_nb_channels (frame->channel_layout);
+
+  if (channels == 0)
+    channels = frame->channels;
 
   format = gst_ffmpeg_smpfmt_to_audioformat (frame->format, &layout);
   if (format == GST_AUDIO_FORMAT_UNKNOWN)
@@ -605,11 +610,14 @@ gst_ffmpegauddec_drain (GstFFMpegAudDec * ffmpegdec, gboolean force)
   if (avcodec_send_packet (ffmpegdec->context, NULL))
     goto send_packet_failed;
 
-  do {
-    got_frame = gst_ffmpegauddec_frame (ffmpegdec, &ret);
-    if (got_frame)
-      got_any_frames = TRUE;
-  } while (got_frame);
+  /* FIXME: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/issues/1474 */
+  if (!(ffmpegdec->context->flags2 & AV_CODEC_FLAG2_SKIP_MANUAL)) {
+    do {
+      got_frame = gst_ffmpegauddec_frame (ffmpegdec, &ret);
+      if (got_frame)
+        got_any_frames = TRUE;
+    } while (got_frame);
+  }
   avcodec_flush_buffers (ffmpegdec->context);
 
   /* FFMpeg will return AVERROR_EOF if it's internal was fully drained

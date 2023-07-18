@@ -24,7 +24,7 @@
 #ifndef __TYPES_COMPAT_H__
 #define __TYPES_COMPAT_H__
 
-#define __user
+#define __inline__ inline
 
 #ifdef   __linux__
 #include <linux/types.h>
@@ -40,6 +40,11 @@
 #  endif
 #endif
 
+#if defined(__sun)
+/* for _IOR/_IORW on Illumos distros */
+#include <sys/ioccom.h>
+#endif
+
 #ifndef __bitwise
 #  ifdef __CHECK_ENDIAN__
 #    define __bitwise __bitwise__
@@ -48,7 +53,9 @@
 #  endif
 #endif
 
+typedef gint8   __s8;
 typedef guint8  __u8;
+typedef gint16  __s16;
 typedef guint16 __u16;
 typedef gint32  __s32;
 typedef guint32 __u32;

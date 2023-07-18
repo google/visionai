@@ -19,10 +19,10 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "visionai/proto/cluster_selection.pb.h"
+#include "visionai/proto/ingester_config.pb.h"
 #include "visionai/streams/framework/attr_value.pb.h"
 #include "visionai/streams/framework/attr_value_util.h"
 #include "visionai/streams/framework/registration.h"
-#include "visionai/proto/ingester_config.pb.h"
 #include "visionai/streams/packet/packet.h"
 #include "visionai/util/ring_buffer.h"
 
@@ -50,11 +50,15 @@ class EventWriterInitContext {
   // access (and checks) to the member data.
   absl::StatusOr<ClusterSelection> GetClusterSelection() const;
 
+  // Get the grace period of the event writer.
+  absl::Duration GetGracePeriod() const;
+
   EventWriterInitContext() = default;
 
  private:
   absl::flat_hash_map<std::string, AttrValue> attrs_;
   ClusterSelection cluster_selection_;
+  absl::Duration grace_period_;
 
   absl::Status Initialize(const EventWriterConfig& config);
 };

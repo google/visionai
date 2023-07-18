@@ -29,7 +29,7 @@ namespace {
 
 // Implementation notes:
 //
-// The current AIS resource heirarchy and url looks like this:
+// The current AIS resource hierarchy and url looks like this:
 //
 // projects/{project-id}/locations/{location-id}/clusters/{cluster-id}
 // projects/{project-id}/locations/{location-id}/clusters/{cluster-id}/events/{event-id}
@@ -37,6 +37,9 @@ namespace {
 //
 // TODO(yxyan): This will become channel.
 // projects/{project-id}/locations/{location-id}/clusters/{cluster-id}/series/{series-id}
+using resource_ids::Application;
+using resource_ids::Stream;
+
 constexpr char kResourceIdRegex[] = "^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$";
 constexpr char kChannelIdSeparator[] = "--";
 constexpr char kResourceIdFirstCharAlphabet[] = "abcdefghijklmnopqrstuvwxyz";
@@ -72,6 +75,13 @@ bool IsLeafResource(const ResourceInfoMap& resource_info) {
          (resource_info.contains(kEventsCollectionId) ||
           resource_info.contains(kStreamsCollectionId) ||
           resource_info.contains(kChannelsCollectionId));
+}
+
+bool IsApplication(const ResourceInfoMap& resource_info) {
+  return resource_info.contains(kProjectsCollectionId) &&
+         resource_info.contains(kLocationsCollectionId) &&
+         resource_info.contains(kApplicationsCollectionId) &&
+         resource_info.size() == 3;
 }
 
 }  // namespace
@@ -191,6 +201,13 @@ absl::StatusOr<std::string> MakeStreamName(const ClusterSelection& selection,
   return MakeStreamName(cluster_name, stream_id);
 }
 
+absl::StatusOr<std::string> MakeStreamName(const Stream& stream) {
+  VAI_ASSIGN_OR_RETURN(auto cluster_name,
+                   MakeClusterName(stream.project_id, stream.location_id,
+                                   stream.cluster_id));
+  return MakeStreamName(cluster_name, stream.stream_id);
+}
+
 absl::StatusOr<std::string> MakeChannelName(const std::string& cluster_name,
                                             const std::string& channel_id) {
   VAI_ASSIGN_OR_RETURN(auto resource_info, ParseResourceName(cluster_name),
@@ -215,6 +232,18 @@ absl::StatusOr<std::string> MakeChannelName(const ClusterSelection& selection,
                                             const std::string& channel_id) {
   VAI_ASSIGN_OR_RETURN(auto cluster_name, MakeClusterName(selection));
   return MakeChannelName(cluster_name, channel_id);
+}
+
+absl::StatusOr<std::string> MakeApplicationName(
+    const Application& application) {
+  VAI_ASSIGN_OR_RETURN(
+      auto project_location_name,
+      MakeProjectLocationName(application.project_id, application.location_id));
+  std::vector<std::string> segments;
+  segments.push_back(project_location_name);
+  segments.push_back(kApplicationsCollectionId);
+  segments.push_back(application.application_id);
+  return absl::StrJoin(segments, "/");
 }
 
 absl::StatusOr<std::vector<std::string>> ParseClusterName(
@@ -242,6 +271,34 @@ absl::StatusOr<std::vector<std::string>> ParseStreamName(
                                    resource_info[kLocationsCollectionId],
                                    resource_info[kClustersCollectionId],
                                    resource_info[kStreamsCollectionId]});
+}
+
+absl::StatusOr<Stream> ParseStreamNameStructured(
+    const std::string& stream_name) {
+  VAI_ASSIGN_OR_RETURN(auto resource_info, ParseResourceName(stream_name),
+                   _.LogError() << "Failed to parse the stream name.");
+  if (!IsStreamResource(resource_info)) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("The given stream name is not valid: %s", stream_name));
+  }
+  return Stream{.project_id = resource_info[kProjectsCollectionId],
+                .location_id = resource_info[kLocationsCollectionId],
+                .cluster_id = resource_info[kClustersCollectionId],
+                .stream_id = resource_info[kStreamsCollectionId]};
+}
+
+absl::StatusOr<Application> ParseApplicationNameStructured(
+    const std::string& application_name) {
+  VAI_ASSIGN_OR_RETURN(auto resource_info, ParseResourceName(application_name),
+                   _.LogError() << "Failed to parse the stream name.");
+  if (!IsApplication(resource_info)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "The given application name is not valid: %s", application_name));
+  }
+  return Application{
+      .project_id = resource_info[kProjectsCollectionId],
+      .location_id = resource_info[kLocationsCollectionId],
+      .application_id = resource_info[kApplicationsCollectionId]};
 }
 
 std::string NewEventId() {
@@ -374,8 +431,8 @@ absl::StatusOr<ResourceInfoMap> ParseResourceName(
   }
 
   ResourceInfoMap resource_info;
-  std::vector<std::string> collection_ids = {
-      kProjectsCollectionId, kLocationsCollectionId, kClustersCollectionId};
+  std::vector<std::string> collection_ids = {kProjectsCollectionId,
+                                             kLocationsCollectionId};
   for (size_t i = 0; i < segments.size() / 2; ++i) {
     std::string collection_id = std::string(segments[2 * i]);
     std::string resource_id = std::string(segments[2 * i + 1]);
@@ -386,11 +443,19 @@ absl::StatusOr<ResourceInfoMap> ParseResourceName(
           collection_id, resource_id));
     }
 
-    if (i < 3) {
+    if (i < 2) {
       if (collection_id != collection_ids[i]) {
         return absl::InvalidArgumentError(absl::StrFormat(
             "The collection-id at level %d must be %s but is given: %s", i,
             collection_ids[i], collection_id));
+      }
+    } else if (i == 2) {
+      if (collection_id != kClustersCollectionId &&
+          collection_id != kApplicationsCollectionId) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "The third collection-id must be either \"clusters\" "
+            "or \"applications\", but was given \"%s\"",
+            collection_id));
       }
     } else {
       if (collection_id != kEventsCollectionId &&

@@ -143,7 +143,9 @@ func buildAsgFrom(opRegistry *operators.OperatorRegistry, analysisDef *lvapb.Ana
 
 		analyzerResources := &asg.ResourceInfo{
 			Cpu:             analyzerOpInfo.Resources.Cpu,
+			CpuLimits:       analyzerOpInfo.Resources.CpuLimits,
 			Memory:          analyzerOpInfo.Resources.Memory,
+			MemoryLimits:    analyzerOpInfo.Resources.MemoryLimits,
 			Gpus:            analyzerOpInfo.Resources.Gpus,
 			Envvars:         map[string]string{},
 			LatencyBudgetMs: analyzerOpInfo.Resources.LatencyBudgetMs,

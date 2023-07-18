@@ -70,7 +70,7 @@
  *   my_method (void)
  *   {
  *     GstPad *pad;
- *     pad = gst_pad_new_from_static_template (&amp;my_template, "sink");
+ *     pad = gst_pad_new_from_static_template (&my_template, "sink");
  *     ...
  *   }
  * ]|
@@ -83,7 +83,7 @@
  *   {
  *     GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
  *
- *     gst_element_class_add_static_pad_template (gstelement_class, &amp;my_template);
+ *     gst_element_class_add_static_pad_template (gstelement_class, &my_template);
  *   }
  * ]|
  */
@@ -483,7 +483,7 @@ gst_pad_template_get_caps (GstPadTemplate * templ)
 /**
  * gst_pad_template_set_documentation_caps:
  * @templ: the pad template to set documented capabilities on
- * @caps: (transfer full): the documented capabilities
+ * @caps: (transfer none): the documented capabilities
  *
  * Certain elements will dynamically construct the caps of their
  * pad templates. In order not to let environment-specific information
@@ -510,7 +510,7 @@ gst_pad_template_set_documentation_caps (GstPadTemplate * templ, GstCaps * caps)
  *
  * See gst_pad_template_set_documentation_caps().
  *
- * Returns: The caps to document. For convenience, this will return
+ * Returns: (transfer full): The caps to document. For convenience, this will return
  *   gst_pad_template_get_caps() when no documentation caps were set.
  * Since: 1.18
  */

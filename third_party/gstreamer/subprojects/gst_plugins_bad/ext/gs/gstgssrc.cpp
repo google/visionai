@@ -44,11 +44,11 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstgscommon.h"
-#include "gstgssrc.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/gs/gstgscommon.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/gs/gstgssrc.h"
 
 static GstStaticPadTemplate srctemplate =
     GST_STATIC_PAD_TEMPLATE("src",

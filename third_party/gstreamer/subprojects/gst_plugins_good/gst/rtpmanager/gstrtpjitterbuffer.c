@@ -3159,6 +3159,16 @@ gst_rtp_jitter_buffer_chain (GstPad * pad, GstObject * parent,
       } else {
         GST_DEBUG_OBJECT (jitterbuffer, "old packet received");
         do_next_seqnum = FALSE;
+
+        /* If an out of order packet arrives before its lost timer has expired
+         * remove it to avoid false positive statistics. If this is an RTX
+         * packet then the timer will be updated later as part of update_rtx_timers() */
+        if (!is_rtx && timer && timer->type == RTP_TIMER_LOST) {
+          rtp_timer_queue_unschedule (priv->timers, timer);
+          GST_DEBUG_OBJECT (jitterbuffer,
+              "removing lost timer for late seqnum #%u", seqnum);
+          rtp_timer_free (g_steal_pointer (&timer));
+        }
       }
 
       /* reset spacing estimation when gap */
@@ -3172,8 +3182,12 @@ gst_rtp_jitter_buffer_chain (GstPad * pad, GstObject * parent,
     priv->next_in_seqnum = (seqnum + 1) & 0xffff;
   }
 
-  if (is_rtx)
+  if (is_rtx) {
+    /* For RTX there must be a corresponding timer or it would be an
+     * unsolicited RTX packet that would be dropped */
+    g_assert (timer != NULL);
     timer->num_rtx_received++;
+  }
 
   /* At 2^15, we would detect a seqnum rollover too early, therefore
    * limit the queue size. But let's not limit it to a number that is
@@ -3181,12 +3195,12 @@ gst_rtp_jitter_buffer_chain (GstPad * pad, GstObject * parent,
    * sequence number, let's allow at least 10k packets in any case. */
   while (rtp_jitter_buffer_is_full (priv->jbuf) &&
       priv->srcresult == GST_FLOW_OK) {
-    RtpTimer *timer = rtp_timer_queue_peek_earliest (priv->timers);
-    while (timer) {
-      timer->timeout = -1;
-      if (timer->type == RTP_TIMER_DEADLINE)
+    RtpTimer *earliest_timer = rtp_timer_queue_peek_earliest (priv->timers);
+    while (earliest_timer) {
+      earliest_timer->timeout = -1;
+      if (earliest_timer->type == RTP_TIMER_DEADLINE)
         break;
-      timer = rtp_timer_get_next (timer);
+      earliest_timer = rtp_timer_get_next (earliest_timer);
     }
 
     update_current_timer (jitterbuffer);
@@ -3205,7 +3219,11 @@ gst_rtp_jitter_buffer_chain (GstPad * pad, GstObject * parent,
     /* priv->last_popped_seqnum >= seqnum, we're too late. */
     if (G_UNLIKELY (gap <= 0)) {
       if (priv->do_retransmission) {
-        if (is_rtx && timer) {
+        if (is_rtx) {
+          /* For RTX there must be a corresponding timer or it would be an
+           * unsolicited RTX packet that would be dropped */
+          g_assert (timer != NULL);
+
           update_rtx_stats (jitterbuffer, timer, dts, FALSE);
           /* Only count the retranmitted packet too late if it has been
            * considered lost. If the original packet arrived before the
@@ -3261,8 +3279,12 @@ gst_rtp_jitter_buffer_chain (GstPad * pad, GstObject * parent,
    * FALSE if a packet with the same seqnum was already in the queue, meaning we
    * have a duplicate. */
   if (G_UNLIKELY (duplicate)) {
-    if (is_rtx && timer)
+    if (is_rtx) {
+      /* For RTX there must be a corresponding timer or it would be an
+       * unsolicited RTX packet that would be dropped */
+      g_assert (timer != NULL);
       update_rtx_stats (jitterbuffer, timer, dts, FALSE);
+    }
     goto duplicate;
   }
 
@@ -3273,7 +3295,7 @@ gst_rtp_jitter_buffer_chain (GstPad * pad, GstObject * parent,
   /* update rtx timers */
   if (priv->do_retransmission)
     update_rtx_timers (jitterbuffer, seqnum, dts, pts, do_next_seqnum, is_rtx,
-        timer);
+        g_steal_pointer (&timer));
 
   /* we had an unhandled SR, handle it now */
   if (priv->last_sr)

@@ -152,6 +152,12 @@ ConnectionOptions DefaultConnectionOptions() {
   return options;
 }
 
+ConnectionOptions DefaultConnectionOptionsForTest() {
+  ConnectionOptions options = DefaultConnectionOptions();
+  options.mutable_ssl_options()->set_use_insecure_channel(true);
+  return options;
+}
+
 std::shared_ptr<grpc::Channel> CreateChannel(absl::string_view target_address,
                                              const ConnectionOptions& options) {
   grpc::ChannelArguments channel_arguments = ConstructChannelArguments(options);
@@ -181,17 +187,22 @@ std::shared_ptr<grpc::Channel> CreateChannel(absl::string_view target_address,
 
 std::unique_ptr<grpc::ClientContext> CreateClientContext(
     const ConnectionOptions& options) {
+  return CreateClientContext(options.client_context_options());
+}
+
+std::unique_ptr<::grpc::ClientContext> CreateClientContext(
+    const ::visionai::ConnectionOptions::ClientContextOptions&
+        client_context_options) {
   auto ctx = std::make_unique<grpc::ClientContext>();
 
-  ctx->set_wait_for_ready(options.client_context_options().wait_for_ready());
+  ctx->set_wait_for_ready(client_context_options.wait_for_ready());
 
-  for (const auto& p : options.client_context_options().metadata()) {
+  for (const auto& p : client_context_options.metadata()) {
     ctx->AddMetadata(p.first, p.second);
   }
 
-  if (options.client_context_options().has_timeout()) {
-    absl::Duration timeout =
-        ToAbseilDuration(options.client_context_options().timeout());
+  if (client_context_options.has_timeout()) {
+    absl::Duration timeout = ToAbseilDuration(client_context_options.timeout());
     ctx->set_deadline(absl::ToChronoTime(absl::Now() + timeout));
   }
 

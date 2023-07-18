@@ -65,11 +65,11 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstwebrtcdsp.h"
-#include "gstwebrtcechoprobe.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/webrtcdsp/gstwebrtcdsp.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/webrtcdsp/gstwebrtcechoprobe.h"
 
 #include <webrtc/modules/audio_processing/include/audio_processing.h>
 #include <webrtc/modules/interface/module_common_types.h>

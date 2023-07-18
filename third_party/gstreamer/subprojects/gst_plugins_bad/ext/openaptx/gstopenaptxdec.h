@@ -24,7 +24,11 @@
 #include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
 #include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/audio/audio.h"
 
+#ifdef USE_FREEAPTX
+#include <freeaptx.h>
+#else
 #include <openaptx.h>
+#endif
 
 G_BEGIN_DECLS
 

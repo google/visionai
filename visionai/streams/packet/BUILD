@@ -25,3 +25,21 @@ cc_library(
         "@com_google_absl//absl/time",
     ],
 )
+
+cc_test(
+    name = "packet_test",
+    srcs = ["packet_test.cc"],
+    deps = [
+        ":packet",
+        "//visionai/types:gstreamer_buffer",
+        "//visionai/types:raw_image",
+        "//visionai/types:signal",
+        "@com_github_google_glog//:glog",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_protobuf//:protobuf",
+    ],
+)

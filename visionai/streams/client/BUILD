@@ -503,3 +503,151 @@ cc_library(
     ],
     deps = ["@com_google_absl//absl/time"],
 )
+
+cc_test(
+    name = "streaming_send_packets_grpc_client_test",
+    srcs = ["streaming_send_packets_grpc_client_test.cc"],
+    deps = [
+        ":mock_streaming_service",
+        ":resource_util",
+        ":streaming_send_packets_grpc_client",
+        "//visionai/streams/packet",
+        "//visionai/util/net/grpc:client_connect",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "streaming_receive_packets_grpc_v1_client_test",
+    srcs = ["streaming_receive_packets_grpc_v1_client_test.cc"],
+    deps = [
+        ":mock_streaming_service",
+        ":resource_util",
+        ":streaming_receive_packets_grpc_v1_client",
+        "//visionai/streams/packet",
+        "//visionai/testing/status:status_matchers",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "streaming_receive_events_grpc_client_test",
+    srcs = ["streaming_receive_events_grpc_client_test.cc"],
+    deps = [
+        ":event_update",
+        ":mock_streaming_service",
+        ":resource_util",
+        ":streaming_receive_events_grpc_client",
+        "//visionai/streams/packet",
+        "//visionai/testing/status:status_matchers",
+        "//visionai/util/net/grpc:client_connect",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "packet_sender_test",
+    srcs = ["packet_sender_test.cc"],
+    deps = [
+        ":descriptors",
+        ":mock_streaming_service",
+        ":mock_streams_service",
+        ":packet_sender",
+        ":resource_util",
+        "//visionai/proto:cluster_selection_cc_proto",
+        "//visionai/streams/packet",
+        "//visionai/testing/grpc:mock_grpc",
+        "//visionai/testing/status:status_matchers",
+        "//visionai/util:time_util",
+        "//visionai/util/status:status_macros",
+        "@com_github_google_glog//:glog",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "event_update_receiver_test",
+    srcs = ["event_update_receiver_test.cc"],
+    deps = [
+        ":event_update",
+        ":event_update_receiver",
+        ":mock_streaming_service",
+        ":mock_streams_service",
+        ":resource_util",
+        "//visionai/proto:cluster_selection_cc_proto",
+        "//visionai/testing/grpc:mock_grpc",
+        "//visionai/testing/status:status_matchers",
+        "//visionai/util:time_util",
+        "//visionai/util/status:status_macros",
+        "@com_github_google_glog//:glog",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "platform_client",
+    srcs = [
+        "platform_client.cc",
+    ],
+    hdrs = [
+        "platform_client.h",
+    ],
+    deps = [
+        ":constants",
+        ":resource_util",
+        "//visionai/proto/util/net/grpc:connection_options_cc_proto",
+        "//visionai/util/lro:operations_client",
+        "//visionai/util/net:exponential_backoff",
+        "//visionai/util/net/grpc:client_connect",
+        "//visionai/util/net/grpc:status_util",
+        "//visionai/util/status:status_macros",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_grpc",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_github_googleapis_googleapis//google/longrunning:longrunning_cc_grpc",
+        "@com_github_googleapis_googleapis//google/longrunning:longrunning_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/time",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "platform_client_test",
+    srcs = [
+        "platform_client_test.cc",
+    ],
+    deps = [
+        ":constants",
+        ":platform_client",
+        ":resource_util",
+        "//visionai/testing/grpc:mock_grpc",
+        "//visionai/testing/status:status_matchers",
+        "//visionai/util/lro:mock_operations_client",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_grpc",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_github_googleapis_googleapis//google/longrunning:longrunning_cc_proto",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

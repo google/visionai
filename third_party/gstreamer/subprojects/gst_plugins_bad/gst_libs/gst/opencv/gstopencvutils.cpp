@@ -21,10 +21,10 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstopencvutils.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/opencv/gstopencvutils.h"
 #include <opencv2/core.hpp>
 
 /*

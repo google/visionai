@@ -39,12 +39,12 @@
  *
  * ## Using an element factory
  * |[<!-- language="C" -->
- *   #include &lt;gst/gst.h&gt;
+ *   #include <gst/gst.h>
  *
  *   GstElement *src;
  *   GstElementFactory *srcfactory;
  *
- *   gst_init (&amp;argc, &amp;argv);
+ *   gst_init (&argc, &argv);
  *
  *   srcfactory = gst_element_factory_find ("filesrc");
  *   g_return_if_fail (srcfactory != NULL);
@@ -77,6 +77,7 @@ static void gst_element_factory_cleanup (GstElementFactory * factory);
 
 /* this is defined in gstelement.c */
 extern GQuark __gst_elementclass_factory;
+extern GQuark __gst_elementclass_skip_doc;
 
 #define _do_init \
 { \
@@ -327,6 +328,60 @@ detailserror:
   }
 }
 
+/**
+ * gst_element_type_set_skip_documentation:
+ * @type: a #GType of element
+ *
+ * Marks @type as "documentation should be skipped".
+ * Can be useful for dynamically registered element to be excluded from
+ * plugin documentation system.
+ *
+ * Example:
+ * ```c
+ * GType my_type;
+ * GTypeInfo my_type_info;
+ *
+ * // Fill "my_type_info"
+ * ...
+ *
+ * my_type = g_type_register_static (GST_TYPE_MY_ELEMENT, "my-type-name",
+ *    &my_type_info, 0);
+ * gst_element_type_set_skip_documentation (my_type);
+ * gst_element_register (plugin, "my-plugin-feature-name", rank, my_type);
+ * ```
+ *
+ * Since: 1.20
+ */
+void
+gst_element_type_set_skip_documentation (GType type)
+{
+  g_return_if_fail (g_type_is_a (type, GST_TYPE_ELEMENT));
+
+  g_type_set_qdata (type, __gst_elementclass_skip_doc, GINT_TO_POINTER (1));
+}
+
+/**
+ * gst_element_factory_get_skip_documentation:
+ * @factory: a #GstElementFactory to query documentation skip
+ *
+ * Queries whether registered element managed by @factory needs to
+ * be excluded from documentation system or not.
+ *
+ * Returns: %TRUE if documentation should be skipped
+ *
+ * Since: 1.20
+ */
+gboolean
+gst_element_factory_get_skip_documentation (GstElementFactory * factory)
+{
+  g_return_val_if_fail (GST_IS_ELEMENT_FACTORY (factory), TRUE);
+
+  if (g_type_get_qdata (factory->type, __gst_elementclass_skip_doc))
+    return TRUE;
+
+  return FALSE;
+}
+
 static gboolean
 gst_element_factory_property_valist_to_array (const gchar * first,
     va_list properties, GType object_type, guint * n, const gchar ** names[],
@@ -401,8 +456,8 @@ cleanup:
  * gst_element_factory_create_with_properties:
  * @factory: factory to instantiate
  * @n: count of properties
- * @names: (nullable): array of properties names
- * @values: (nullable): array of associated properties values
+ * @names: (nullable) (array length=n): array of properties names
+ * @values: (nullable) (array length=n): array of associated properties values
  *
  * Create a new element of the type defined by the given elementfactory.
  * The supplied list of properties, will be passed at object construction.
@@ -603,8 +658,8 @@ gst_element_factory_create (GstElementFactory * factory, const gchar * name)
  * gst_element_factory_make_with_properties:
  * @factoryname: a named factory to instantiate
  * @n: count of properties
- * @names: (nullable): array of properties names
- * @values: (nullable): array of associated properties values
+ * @names: (nullable) (array length=n): array of properties names
+ * @values: (nullable) (array length=n): array of associated properties values
  *
  * Create a new element of the type defined by the given elementfactory.
  * The supplied list of properties, will be passed at object construction.

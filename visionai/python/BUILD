@@ -14,11 +14,13 @@ py_library(
     ],
     srcs_version = "PY3",
     deps = [
+        "//visionai/python/gapic:visionai_v1",
         "//visionai/python/lva",
         "//visionai/python/net",
         "//visionai/python/ops",
         "//visionai/python/prediction",
-        "//visionai/python/protos/googleapis/v1",
         "//visionai/python/recipes",
+        "//visionai/python/streams",
+        "//visionai/python/warehouse",
     ],
 )

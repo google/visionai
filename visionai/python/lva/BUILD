@@ -25,10 +25,8 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":graph",
+        "//visionai/python/gapic:visionai_v1",
         "//visionai/python/net:channel",
-        "//visionai/python/protos/googleapis/v1:lva_py_pb2",
-        "//visionai/python/protos/googleapis/v1:lva_py_pb2_grpc",
-        "@com_github_grpc_grpc//src/python/grpcio/grpc:grpcio",
     ],
 )
 
@@ -38,11 +36,9 @@ py_test(
     deps = [
         ":client",
         ":graph",
+        "//visionai/python/gapic:visionai_v1",
         "//visionai/python/net:channel",
-        "//visionai/python/protos/googleapis/v1:lva_py_pb2",
         "//visionai/python/testing:test",
-        "@com_github_grpc_grpc//src/python/grpcio/grpc:grpcio",
-        "@com_google_protobuf//:protobuf_python",
     ],
 )
 
@@ -51,7 +47,7 @@ py_library(
     srcs = ["graph.py"],
     srcs_version = "PY3",
     deps = [
-        "//visionai/python/protos/googleapis/v1:lva_py_pb2",
+        "//visionai/python/gapic:visionai_v1",
     ],
 )
 
@@ -61,7 +57,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":graph",
-        "//visionai/python/protos/googleapis/v1:lva_py_pb2",
+        "//visionai/python/gapic:visionai_v1",
         "//visionai/python/testing:test",
         "@com_google_protobuf//:protobuf_python",
     ],

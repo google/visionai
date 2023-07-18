@@ -15,7 +15,16 @@ namespace visionai {
 
 // Validates whether the media type of input video is "video/x-h264".
 // The source_uri is the file path of the input video.
+ABSL_DEPRECATED(
+    "Use IsSupportedMediaType() instead. Both h264 and h265 are supported.")
 absl::Status IsVideoH264Input(const std::string& source_uri);
+
+// Validates whether the media type of the input video is supported.
+// The source_uri is the file path of the input video.
+absl::Status IsSupportedMediaType(const std::string& source_uri);
+
+// Check if h265 is supported.
+bool IsH265Supported();
 
 }  // namespace visionai
 

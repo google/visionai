@@ -24,7 +24,7 @@
 #include "third_party/gstreamer/subprojects/gstreamer/libs/gst/base/gstadapter.h"
 #include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/video/video.h"
 
-#include <cairo/cairo.h>
+#include <cairo.h>
 
 #include <librsvg/rsvg.h>
 

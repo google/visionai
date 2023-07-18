@@ -23,6 +23,7 @@ cc_library(
         "//visionai/streams/client:event_update_receiver",
         "//visionai/streams/client:packet_receiver",
         "//visionai/streams/client:packet_sender",
+        "//visionai/streams/client:platform_client",
         "//visionai/streams/client:resource_util",
         "//visionai/streams/packet",
         "//visionai/streams/plugins/captures:file_source_capture",

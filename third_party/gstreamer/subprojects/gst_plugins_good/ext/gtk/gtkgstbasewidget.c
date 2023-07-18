@@ -30,8 +30,10 @@ GST_DEBUG_CATEGORY (gst_debug_gtk_base_widget);
 #define GST_CAT_DEFAULT gst_debug_gtk_base_widget
 
 #define DEFAULT_FORCE_ASPECT_RATIO  TRUE
-#define DEFAULT_PAR_N               0
-#define DEFAULT_PAR_D               1
+#define DEFAULT_DISPLAY_PAR_N       0
+#define DEFAULT_DISPLAY_PAR_D       1
+#define DEFAULT_VIDEO_PAR_N         0
+#define DEFAULT_VIDEO_PAR_D         1
 #define DEFAULT_IGNORE_ALPHA        TRUE
 
 enum
@@ -40,84 +42,8 @@ enum
   PROP_FORCE_ASPECT_RATIO,
   PROP_PIXEL_ASPECT_RATIO,
   PROP_IGNORE_ALPHA,
+  PROP_VIDEO_ASPECT_RATIO_OVERRIDE,
 };
-
-static void
-gtk_gst_base_widget_get_preferred_width (GtkWidget * widget, gint * min,
-    gint * natural)
-{
-  GtkGstBaseWidget *gst_widget = (GtkGstBaseWidget *) widget;
-  gint video_width = gst_widget->display_width;
-
-  if (!gst_widget->negotiated)
-    video_width = 10;
-
-  if (min)
-    *min = 1;
-  if (natural)
-    *natural = video_width;
-}
-
-static void
-gtk_gst_base_widget_get_preferred_height (GtkWidget * widget, gint * min,
-    gint * natural)
-{
-  GtkGstBaseWidget *gst_widget = (GtkGstBaseWidget *) widget;
-  gint video_height = gst_widget->display_height;
-
-  if (!gst_widget->negotiated)
-    video_height = 10;
-
-  if (min)
-    *min = 1;
-  if (natural)
-    *natural = video_height;
-}
-
-static void
-gtk_gst_base_widget_set_property (GObject * object, guint prop_id,
-    const GValue * value, GParamSpec * pspec)
-{
-  GtkGstBaseWidget *gtk_widget = GTK_GST_BASE_WIDGET (object);
-
-  switch (prop_id) {
-    case PROP_FORCE_ASPECT_RATIO:
-      gtk_widget->force_aspect_ratio = g_value_get_boolean (value);
-      break;
-    case PROP_PIXEL_ASPECT_RATIO:
-      gtk_widget->par_n = gst_value_get_fraction_numerator (value);
-      gtk_widget->par_d = gst_value_get_fraction_denominator (value);
-      break;
-    case PROP_IGNORE_ALPHA:
-      gtk_widget->ignore_alpha = g_value_get_boolean (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
-}
-
-static void
-gtk_gst_base_widget_get_property (GObject * object, guint prop_id,
-    GValue * value, GParamSpec * pspec)
-{
-  GtkGstBaseWidget *gtk_widget = GTK_GST_BASE_WIDGET (object);
-
-  switch (prop_id) {
-    case PROP_FORCE_ASPECT_RATIO:
-      g_value_set_boolean (value, gtk_widget->force_aspect_ratio);
-      break;
-    case PROP_PIXEL_ASPECT_RATIO:
-      gst_value_set_fraction (value, gtk_widget->par_n, gtk_widget->par_d);
-      break;
-    case PROP_IGNORE_ALPHA:
-      g_value_set_boolean (value, gtk_widget->ignore_alpha);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
-}
 
 static gboolean
 _calculate_par (GtkGstBaseWidget * widget, GstVideoInfo * info)
@@ -129,9 +55,17 @@ _calculate_par (GtkGstBaseWidget * widget, GstVideoInfo * info)
 
   width = GST_VIDEO_INFO_WIDTH (info);
   height = GST_VIDEO_INFO_HEIGHT (info);
+  if (width == 0 || height == 0)
+    return FALSE;
 
-  par_n = GST_VIDEO_INFO_PAR_N (info);
-  par_d = GST_VIDEO_INFO_PAR_D (info);
+  /* get video's PAR */
+  if (widget->video_par_n != 0 && widget->video_par_d != 0) {
+    par_n = widget->video_par_n;
+    par_d = widget->video_par_d;
+  } else {
+    par_n = GST_VIDEO_INFO_PAR_N (info);
+    par_d = GST_VIDEO_INFO_PAR_D (info);
+  }
 
   if (!par_n)
     par_n = 1;
@@ -167,6 +101,9 @@ _apply_par (GtkGstBaseWidget * widget)
 
   width = GST_VIDEO_INFO_WIDTH (&widget->v_info);
   height = GST_VIDEO_INFO_HEIGHT (&widget->v_info);
+
+  if (!width || !height)
+    return;
 
   display_ratio_num = widget->display_ratio_num;
   display_ratio_den = widget->display_ratio_den;
@@ -215,6 +152,115 @@ _queue_draw (GtkGstBaseWidget * widget)
   GTK_GST_BASE_WIDGET_UNLOCK (widget);
 
   return G_SOURCE_REMOVE;
+}
+
+static void
+_update_par (GtkGstBaseWidget * widget)
+{
+  GTK_GST_BASE_WIDGET_LOCK (widget);
+  if (widget->pending_resize) {
+    GTK_GST_BASE_WIDGET_UNLOCK (widget);
+    return;
+  }
+
+  if (!_calculate_par (widget, &widget->v_info)) {
+    GTK_GST_BASE_WIDGET_UNLOCK (widget);
+    return;
+  }
+
+  widget->pending_resize = TRUE;
+  if (!widget->draw_id) {
+    widget->draw_id = g_idle_add_full (G_PRIORITY_HIGH_IDLE + 10,
+        (GSourceFunc) _queue_draw, widget, NULL);
+  }
+  GTK_GST_BASE_WIDGET_UNLOCK (widget);
+}
+
+static void
+gtk_gst_base_widget_get_preferred_width (GtkWidget * widget, gint * min,
+    gint * natural)
+{
+  GtkGstBaseWidget *gst_widget = (GtkGstBaseWidget *) widget;
+  gint video_width = gst_widget->display_width;
+
+  if (!gst_widget->negotiated)
+    video_width = 10;
+
+  if (min)
+    *min = 1;
+  if (natural)
+    *natural = video_width;
+}
+
+static void
+gtk_gst_base_widget_get_preferred_height (GtkWidget * widget, gint * min,
+    gint * natural)
+{
+  GtkGstBaseWidget *gst_widget = (GtkGstBaseWidget *) widget;
+  gint video_height = gst_widget->display_height;
+
+  if (!gst_widget->negotiated)
+    video_height = 10;
+
+  if (min)
+    *min = 1;
+  if (natural)
+    *natural = video_height;
+}
+
+static void
+gtk_gst_base_widget_set_property (GObject * object, guint prop_id,
+    const GValue * value, GParamSpec * pspec)
+{
+  GtkGstBaseWidget *gtk_widget = GTK_GST_BASE_WIDGET (object);
+
+  switch (prop_id) {
+    case PROP_FORCE_ASPECT_RATIO:
+      gtk_widget->force_aspect_ratio = g_value_get_boolean (value);
+      break;
+    case PROP_PIXEL_ASPECT_RATIO:
+      gtk_widget->par_n = gst_value_get_fraction_numerator (value);
+      gtk_widget->par_d = gst_value_get_fraction_denominator (value);
+      _update_par (gtk_widget);
+      break;
+    case PROP_VIDEO_ASPECT_RATIO_OVERRIDE:
+      gtk_widget->video_par_n = gst_value_get_fraction_numerator (value);
+      gtk_widget->video_par_d = gst_value_get_fraction_denominator (value);
+      _update_par (gtk_widget);
+      break;
+    case PROP_IGNORE_ALPHA:
+      gtk_widget->ignore_alpha = g_value_get_boolean (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
+static void
+gtk_gst_base_widget_get_property (GObject * object, guint prop_id,
+    GValue * value, GParamSpec * pspec)
+{
+  GtkGstBaseWidget *gtk_widget = GTK_GST_BASE_WIDGET (object);
+
+  switch (prop_id) {
+    case PROP_FORCE_ASPECT_RATIO:
+      g_value_set_boolean (value, gtk_widget->force_aspect_ratio);
+      break;
+    case PROP_PIXEL_ASPECT_RATIO:
+      gst_value_set_fraction (value, gtk_widget->par_n, gtk_widget->par_d);
+      break;
+    case PROP_VIDEO_ASPECT_RATIO_OVERRIDE:
+      gst_value_set_fraction (value, gtk_widget->video_par_n,
+          gtk_widget->video_par_d);
+      break;
+    case PROP_IGNORE_ALPHA:
+      g_value_set_boolean (value, gtk_widget->ignore_alpha);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static const gchar *
@@ -420,12 +466,24 @@ gtk_gst_base_widget_class_init (GtkGstBaseWidgetClass * klass)
           "Force aspect ratio",
           "When enabled, scaling will respect original aspect ratio",
           DEFAULT_FORCE_ASPECT_RATIO,
-          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS |
+          GST_PARAM_MUTABLE_PLAYING));
 
   g_object_class_install_property (gobject_klass, PROP_PIXEL_ASPECT_RATIO,
       gst_param_spec_fraction ("pixel-aspect-ratio", "Pixel Aspect Ratio",
-          "The pixel aspect ratio of the device", DEFAULT_PAR_N, DEFAULT_PAR_D,
-          G_MAXINT, 1, 1, 1, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          "The pixel aspect ratio of the device",
+          0, 1, G_MAXINT, G_MAXINT, DEFAULT_DISPLAY_PAR_N,
+          DEFAULT_DISPLAY_PAR_D, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS |
+          GST_PARAM_MUTABLE_PLAYING));
+
+  g_object_class_install_property (gobject_klass,
+      PROP_VIDEO_ASPECT_RATIO_OVERRIDE,
+      gst_param_spec_fraction ("video-aspect-ratio-override",
+          "Video Pixel Aspect Ratio",
+          "The pixel aspect ratio of the video (0/1 = follow stream)", 0,
+          G_MAXINT, G_MAXINT, 1, DEFAULT_VIDEO_PAR_N, DEFAULT_VIDEO_PAR_D,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS |
+          GST_PARAM_MUTABLE_PLAYING));
 
   g_object_class_install_property (gobject_klass, PROP_IGNORE_ALPHA,
       g_param_spec_boolean ("ignore-alpha", "Ignore Alpha",
@@ -451,8 +509,10 @@ gtk_gst_base_widget_init (GtkGstBaseWidget * widget)
   int event_mask;
 
   widget->force_aspect_ratio = DEFAULT_FORCE_ASPECT_RATIO;
-  widget->par_n = DEFAULT_PAR_N;
-  widget->par_d = DEFAULT_PAR_D;
+  widget->par_n = DEFAULT_DISPLAY_PAR_N;
+  widget->par_d = DEFAULT_DISPLAY_PAR_D;
+  widget->video_par_n = DEFAULT_VIDEO_PAR_N;
+  widget->video_par_d = DEFAULT_VIDEO_PAR_D;
   widget->ignore_alpha = DEFAULT_IGNORE_ALPHA;
 
   gst_video_info_init (&widget->v_info);
@@ -525,6 +585,22 @@ gtk_gst_base_widget_set_buffer (GtkGstBaseWidget * widget, GstBuffer * buffer)
   GTK_GST_BASE_WIDGET_LOCK (widget);
 
   gst_buffer_replace (&widget->pending_buffer, buffer);
+
+  if (!widget->draw_id) {
+    widget->draw_id = g_idle_add_full (G_PRIORITY_DEFAULT,
+        (GSourceFunc) _queue_draw, widget, NULL);
+  }
+
+  GTK_GST_BASE_WIDGET_UNLOCK (widget);
+}
+
+void
+gtk_gst_base_widget_queue_draw (GtkGstBaseWidget * widget)
+{
+  /* As we have no type, this is better then no check */
+  g_return_if_fail (GTK_IS_WIDGET (widget));
+
+  GTK_GST_BASE_WIDGET_LOCK (widget);
 
   if (!widget->draw_id) {
     widget->draw_id = g_idle_add_full (G_PRIORITY_DEFAULT,

@@ -21,6 +21,7 @@ import (
 // into the given ResourceRequirements.
 func genAnalyzerCpuAndMemory(reqs *v1.ResourceRequirements, info *asg.AnalyzerInfo) error {
 	requests := reqs.Requests
+	limits := reqs.Limits
 	if info.Resources.Cpu != "" {
 		resourceName := v1.ResourceName("cpu")
 		_, ok := requests[resourceName]
@@ -33,6 +34,18 @@ func genAnalyzerCpuAndMemory(reqs *v1.ResourceRequirements, info *asg.AnalyzerIn
 		}
 		requests[resourceName] = q
 	}
+	if info.Resources.CpuLimits != "" {
+		resourceName := v1.ResourceName("cpu")
+		_, ok := limits[resourceName]
+		if ok {
+			return fmt.Errorf("internal error: cpu limits already present")
+		}
+		q, err := resource.ParseQuantity(info.Resources.CpuLimits)
+		if err != nil {
+			return fmt.Errorf("cannot parse cpu value %q", info.Resources.CpuLimits)
+		}
+		limits[resourceName] = q
+	}
 	if info.Resources.Memory != "" {
 		resourceName := v1.ResourceName("memory")
 		_, ok := requests[resourceName]
@@ -44,6 +57,18 @@ func genAnalyzerCpuAndMemory(reqs *v1.ResourceRequirements, info *asg.AnalyzerIn
 			return fmt.Errorf("cannot parse memory value %q", info.Resources.Memory)
 		}
 		requests[resourceName] = q
+	}
+	if info.Resources.MemoryLimits != "" {
+		resourceName := v1.ResourceName("memory")
+		_, ok := limits[resourceName]
+		if ok {
+			return fmt.Errorf("internal error: memory limits already present")
+		}
+		q, err := resource.ParseQuantity(info.Resources.MemoryLimits)
+		if err != nil {
+			return fmt.Errorf("cannot parse memory value %q", info.Resources.MemoryLimits)
+		}
+		limits[resourceName] = q
 	}
 	return nil
 }

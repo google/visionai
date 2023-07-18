@@ -6,8 +6,8 @@
 
 from google.protobuf import text_format
 
-from visionai.python.protos.googleapis.v1 import lva_pb2
 from visionai.python.testing import googletest
+from visionai.python.gapic.visionai import visionai_v1
 from visionai.python.lva import graph
 
 
@@ -36,10 +36,32 @@ class GraphTest(googletest.TestCase):
     g.add_node(graph.Node("dst", "DST"))
     g.add_edge(graph.Port("src", "src-out"), graph.Port("dst", "dst-in"))
 
+  def test_unsupported_attributes(self):
+    self.assertRaises(
+        ValueError,
+        graph.Node,
+        "a2",
+        "MyOp",
+        input_ports=["input"],
+        attributes={
+            "key1": {},
+        },
+    )
+
   def test_simple_graph(self):
     g = graph.Graph()
     a1 = graph.Node("a1", "MyOp", output_ports=["output"])
-    a2 = graph.Node("a2", "MyOp", input_ports=["input"])
+    a2 = graph.Node(
+        "a2",
+        "MyOp",
+        input_ports=["input"],
+        attributes={
+            "key1": "string value",
+            "key2": 1,
+            "key3": 3.14,
+            "key4": True,
+        },
+    )
     g.add_node(a1)
     g.add_node(a2)
     g.add_edge(a1.outputs()[0], a2.inputs()[0])
@@ -53,12 +75,36 @@ class GraphTest(googletest.TestCase):
   inputs {
     input: "a1:output"
   }
+  attrs: {
+      key: "key1",
+      value: {
+        s: "string value"
+      }
+  }
+  attrs: {
+      key: "key2",
+      value: {
+        i: 1
+      }
+  }
+  attrs: {
+      key: "key3",
+      value: {
+        f: 3.14
+      }
+  }
+  attrs: {
+      key: "key4",
+      value: {
+        b: True
+      }
+  }
 }
 analyzers {
   analyzer: "a1"
   operator: "MyOp"
 }""",
-            lva_pb2.AnalysisDefinition(),
+            visionai_v1.AnalysisDefinition().__dict__["_pb"],
         ),
     )
 

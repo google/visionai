@@ -61,7 +61,9 @@ type AttributeValueInfo struct {
 // ResourceInfo contains information about resources.
 type ResourceInfo struct {
 	Cpu             string
+	CpuLimits       string
 	Memory          string
+	MemoryLimits    string
 	Gpus            int
 	Envvars         map[string]string
 	LatencyBudgetMs int

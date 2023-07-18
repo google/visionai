@@ -19,13 +19,13 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include <gst/gst.h>
-#include <gst/video/video.h>
+#include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/video/video.h"
 
-#include "d3d11device.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/tests/examples/d3d11/d3d11device.h"
 #include <wrl.h>
 #include <mutex>
 #include <d3d9.h>

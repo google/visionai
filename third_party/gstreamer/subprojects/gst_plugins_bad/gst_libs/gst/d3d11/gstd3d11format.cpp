@@ -18,13 +18,13 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstd3d11format.h"
-#include "gstd3d11utils.h"
-#include "gstd3d11device.h"
-#include "gstd3d11memory.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/d3d11/gstd3d11format.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/d3d11/gstd3d11utils.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/d3d11/gstd3d11device.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/d3d11/gstd3d11memory.h"
 
 #include <string.h>
 

@@ -2,7 +2,16 @@
 #   Perl-compatible regular expressions library.
 #
 #-*- mode: python; -*-
+# Libraries in this low-level package may not depend on libraries in packages
+# that are not low level.   For more information, including how to submit
+# changes to this file, see    http://www/eng/howto/build-monitors.html
+
+# PCRE is deprecated in google3; use RE2 instead.
+# If you must use PCRE, use the RE wrapper (util/regexp/regexp.h), not PCRE directly.
+# New references must be allowlisted; most code should use RE2 instead of being listed here.
+# To be granted visibility, mail a CL to OWNERS with a compelling reason why RE2 is not good enough.
 package(
+    default_deprecation = "PCRE is deprecated in google3; use RE2 instead. If you must use PCRE, use the RE wrapper (util/regexp/regexp.h), not PCRE directly",
     default_visibility = ["//visibility:public"],
 )
 
@@ -80,7 +89,6 @@ cc_library(
     name = "internal_hdrs",
     hdrs = PCRE_INTERNAL_HDRS + PCRE_HDRS,
     copts = PCRE8_DEFS,
-    visibility = ["//visibility:private"],
 )
 
 cc_library(
@@ -96,7 +104,6 @@ cc_library(
     name = "pcre16_hdrs",
     hdrs = PCRE_INTERNAL_HDRS + PCRE_HDRS + PCRE8_SRCS,
     copts = PCRE16_DEFS,
-    visibility = ["//visibility:private"],
 )
 
 cc_library(
@@ -112,7 +119,6 @@ cc_library(
     name = "pcre32_hdrs",
     hdrs = PCRE_INTERNAL_HDRS + PCRE_HDRS + PCRE8_SRCS,
     copts = PCRE32_DEFS,
-    visibility = ["//visibility:private"],
 )
 
 cc_library(
@@ -144,7 +150,7 @@ cc_library(
         "pcrecpp_internal.h",
         "pcrecpparg.h",
     ],
-    copts = PCRE_COMMON_DEFS,
+    copts = PCRE_COMMON_DEFS + ["-Wno-unused-variable"],
     deps = [
         ":internal_hdrs",
         ":pcre",
@@ -168,7 +174,6 @@ cc_library(
         "pcre_ucd.c",
     ],
     copts = PCRETEST_DEFS,
-    visibility = ["//visibility:private"],
 )
 
 cc_binary(
@@ -182,7 +187,6 @@ cc_binary(
         "pcretest.c",
     ],
     copts = PCRETEST_DEFS,
-    visibility = ["//visibility:private"],
     deps = [
         ":pcre",
         ":pcre16",
@@ -195,7 +199,6 @@ cc_binary(
     name = "pcregrep",
     srcs = ["pcregrep.c"],
     copts = PCRE8_DEFS,
-    visibility = ["//visibility:private"],
     deps = [
         ":internal_hdrs",
         ":pcre",
@@ -205,10 +208,9 @@ cc_binary(
 filegroup(
     name = "testdata",
     srcs = [
-        "RunTest",
         "RunGrepTest",
+        "RunTest",
     ] + glob(["testdata/*"]),
-    visibility = ["//visibility:private"],
 )
 
 sh_test(
@@ -234,5 +236,4 @@ sh_test(
         ":pcretest",
         ":testdata",
     ],
-    visibility = ["//visibility:private"],
 )

@@ -5,8 +5,8 @@
 """Library for working with LVA graphs."""
 
 import queue
-from typing import Any
-from visionai.python.protos.googleapis.v1 import lva_pb2
+from typing import Any, Dict, List, Tuple
+from visionai.python.gapic.visionai import visionai_v1
 
 
 class Port:
@@ -28,9 +28,9 @@ class Node:
       self,
       name: str,
       operator: str,
-      input_ports: list[str] = None,
-      output_ports: list[str] = None,
-      attributes: dict[str, Any] = None,
+      input_ports: List[str] = None,
+      output_ports: List[str] = None,
+      attributes: Dict[str, Any] = None,
   ):
     """Initializes a node.
 
@@ -45,12 +45,15 @@ class Node:
     self.operator = operator
     self.input_ports = input_ports
     self.output_ports = output_ports
-    self.attributes = attributes
+    self.attributes = {}
+    if attributes is not None:
+      for k, v in attributes.items():
+        self.attributes[k] = _get_attribute_value(v)
 
-  def inputs(self) -> tuple[Port, ...]:
+  def inputs(self) -> Tuple[Port, ...]:
     return tuple(map(lambda x: Port(self.name, x), self.input_ports))
 
-  def outputs(self) -> tuple[Port, ...]:
+  def outputs(self) -> Tuple[Port, ...]:
     return tuple(map(lambda x: Port(self.name, x), self.output_ports))
 
 
@@ -92,10 +95,10 @@ class Graph:
 
   def __init__(self):
     """Initializes a graph."""
-    self._nodes: dict[str, Node] = {}
-    self._edges_in: dict[str, list[Edge]] = {}
-    self._edges_out: dict[str, list[Edge]] = {}
-    self._out_degrees: dict[str, int] = {}
+    self._nodes: Dict[str, Node] = {}
+    self._edges_in: Dict[str, List[Edge]] = {}
+    self._edges_out: Dict[str, List[Edge]] = {}
+    self._out_degrees: Dict[str, int] = {}
     return
 
   def add_node(self, node: Node) -> Node:
@@ -163,9 +166,9 @@ class Graph:
     )
     self._out_degrees[src_node] += 1
 
-  def get_analysis_definition(self) -> lva_pb2.AnalysisDefinition:
+  def get_analysis_definition(self) -> visionai_v1.AnalysisDefinition:
     """Get the analysis definition from the graph."""
-    analyzers: list[lva_pb2.AnalyzerDefinition] = []
+    analyzers: List[visionai_v1.AnalyzerDefinition] = []
     q: queue.Queue[Node] = queue.Queue()
     out_degrees = self._out_degrees
     for node in self._nodes.values():
@@ -173,14 +176,15 @@ class Graph:
         q.put(node)
     while not q.empty():
       node = q.get()
-      analyzer = lva_pb2.AnalyzerDefinition(
+      analyzer = visionai_v1.AnalyzerDefinition(
           analyzer=node.name,
           operator=node.operator,
+          attrs=node.attributes,
       )
       if node.name in self._edges_in:
         for edge in self._edges_in[node.name]:
           analyzer.inputs.append(
-              lva_pb2.AnalyzerDefinition.StreamInput(
+              visionai_v1.AnalyzerDefinition.StreamInput(
                   input=f'{edge.src_node}:{edge.src_out}'
               )
           )
@@ -188,4 +192,27 @@ class Graph:
           if out_degrees[edge.src_node] == 0:
             q.put(self._nodes[edge.src_node])
       analyzers.append(analyzer)
-    return lva_pb2.AnalysisDefinition(analyzers=analyzers)
+    return visionai_v1.AnalysisDefinition(analyzers=analyzers)
+
+
+def _get_attribute_value(val: Any) -> visionai_v1.AttributeValue:
+  """Converts the value with python Any type to the AttributeValue.
+
+  Args:
+    val: The value with any type.
+
+  Returns:
+    The attribute value.
+  """
+  attr = visionai_v1.AttributeValue()
+  if isinstance(val, str):
+    attr.s = str(val).encode('utf-8')
+  elif isinstance(val, bool):
+    attr.b = val
+  elif isinstance(val, float):
+    attr.f = val
+  elif isinstance(val, int):
+    attr.i = val
+  else:
+    raise ValueError('type {} is not supported'.format(type(val)))
+  return attr

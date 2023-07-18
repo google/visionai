@@ -6,6 +6,7 @@
 
 #include "visionai/streams/apps/visualization/receive_cat_visual_tool.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -15,15 +16,22 @@
 #include <utility>
 
 #include "google/cloud/visionai/v1/annotations.pb.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "visionai/algorithms/media/gstreamer_async_decoder.h"
 #include "visionai/proto/cluster_selection.pb.h"
+#include "visionai/streams/apps/visualization/drawable.h"
+#include "visionai/streams/apps/visualization/object_detection_drawable.h"
+#include "visionai/streams/apps/visualization/oc_drawable.h"
+#include "visionai/streams/apps/visualization/ppe_result_drawable.h"
 #include "visionai/streams/client/descriptors.h"
 #include "visionai/streams/client/packet_receiver.h"
+#include "visionai/streams/packet/packet.h"
 #include "visionai/types/gstreamer_buffer.h"
 #include "visionai/util/thread/sync_queue.h"
 #include "visionai/util/time_util.h"
@@ -82,13 +90,9 @@ void ReceiveCatVisualTool::Run() {
       absl::Time time = visionai::ToAbseilTimestamp(p.header().capture_time());
       if (options_.try_decode_protobuf &&
           p.header().type().type_class() == "protobuf") {
-        if (p.header().type().type_descriptor().type() ==
-            "google.cloud.visionai.v1."
-            "OccupancyCountingPredictionResult") {
-          google::cloud::visionai::v1::OccupancyCountingPredictionResult
-              oc_result;
-          oc_result.ParseFromString(p.payload());
-          options_.a_queue->Push(std::make_tuple(time, oc_result));
+        std::unique_ptr<renderutils::Drawable> result = Parser(p);
+        if (result) {
+          options_.a_queue->Push(std::make_tuple(time, std::move(result)));
         }
       } else {
         auto packetas = PacketAs<GstreamerBuffer>(std::move(p));
@@ -110,4 +114,59 @@ void ReceiveCatVisualTool::Cancel() {
   }
 }
 
+template <class ResultType, class DrawableType,
+          class... AddditionalConstructorArgs>
+std::unique_ptr<renderutils::Drawable> ReceiveCatVisualTool::CreateDrawable(
+    Packet p, AddditionalConstructorArgs... extra_vals) {
+  // Parse the result type from the packet payload and return a pointer to the
+  // drawable type
+  ResultType result;
+  result.ParseFromString(p.payload());
+  return std::unique_ptr<renderutils::Drawable>{
+      new DrawableType{result, extra_vals...}};
+}
+
+absl::flat_hash_map<absl::string_view, ReceiveCatVisualTool::ModelType>
+ReceiveCatVisualTool::GetDetectionTypeMap() {
+  static const auto* const map =
+      new absl::flat_hash_map<absl::string_view, ModelType>{
+          {"google.cloud.visionai.v1.ObjectDetectionPredictionResult",
+           ReceiveCatVisualTool::ObjectDetector},
+          {"google.cloud.visionai.v1."
+           "PersonalProtectiveEquipmentDetectionOutput",
+           ReceiveCatVisualTool::PPEDetector},
+          {"google.cloud.visionai.v1.OccupancyCountingPredictionResult",
+           ReceiveCatVisualTool::OccupancyAnalysis},
+      };
+  return *map;
+}
+
+// Implementation for the parser function
+// Parser will take in the type descriptor from the packet and determine
+// which drawable objects to create at the moment only PPE and General Object
+std::unique_ptr<renderutils::Drawable> ReceiveCatVisualTool::Parser(
+    const Packet& p) {
+  // Check if the packet is coming from a valid model. It will be in a valid
+  // model if it exists in our type mapping
+  absl::string_view descriptor = p.header().type().type_descriptor().type();
+  // If this model type is not supported, return a null Drawable
+  if (GetDetectionTypeMap().find(descriptor) == GetDetectionTypeMap().end()) {
+    return std::unique_ptr<renderutils::Drawable>();
+  }
+  // Based off the mapping, return a pointer to the model's Drawable
+  switch (GetDetectionTypeMap().at(descriptor)) {
+    case OccupancyAnalysis:
+      return CreateDrawable<
+          google::cloud::visionai::v1::OccupancyCountingPredictionResult,
+          renderutils::OccupancyAnalysisDrawable>(p);
+    case PPEDetector:
+      return CreateDrawable<google::cloud::visionai::v1::
+                                PersonalProtectiveEquipmentDetectionOutput,
+                            renderutils::PPEResultDrawable>(p);
+    case ObjectDetector:
+      return CreateDrawable<google::cloud::visionai::v1::
+                            ObjectDetectionPredictionResult,
+                           renderutils::ObjectDetectionDrawable>(p);
+  }
+}
 }  // namespace visionai

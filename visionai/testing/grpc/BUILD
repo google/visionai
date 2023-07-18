@@ -47,3 +47,18 @@ cc_library(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "mock_grpc_test",
+    srcs = ["mock_grpc_test.cc"],
+    deps = [
+        ":echo_cc_grpc_proto",
+        ":echo_cc_proto",
+        ":mock_echo_service",
+        ":mock_grpc",
+        "//visionai/testing/status:status_matchers",
+        "//visionai/util/net/grpc:status_util",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

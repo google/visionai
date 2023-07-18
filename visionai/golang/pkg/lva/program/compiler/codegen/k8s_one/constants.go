@@ -40,9 +40,12 @@ const (
 
 	processManagerImageName = "process-manager"
 
-	internalGrpcOutputPort = 16000
-	defaultLatencyBudgetMs = 10000
-	defaultStateServerPort = 17000
+	internalGrpcOutputPort       = 16000
+	defaultLatencyBudgetMs       = 10000
+	defaultStateServerPort       = 17000
+	
+	defaultAdminServerPort       = 18000
+	defaultAdminServerNumThreads = 1
 
 	defaultHealthCheckMaxAttempts      = 3
 	defaultHealthCheckTimeout          = 60 * time.Second

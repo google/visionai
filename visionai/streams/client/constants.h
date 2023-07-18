@@ -49,6 +49,9 @@ constexpr absl::Duration kDefaultHeartbeatGracePeriod = absl::Seconds(20);
 // Err Message Prefix for PacketReceiver.
 constexpr char kPacketReceiverErrMsgPrefix[] = "[PacketReceiver]";
 
+// GRPC Metadata key.
+constexpr char kGrpcMetadata[] = "x-goog-request-params";
+
 }  // namespace visionai
 
 #endif  // VISIONAI_STREAMS_CLIENT_CONSTANTS_H_

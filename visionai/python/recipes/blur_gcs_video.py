@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-"""Library that supplies ready-made LVA graph for blurring Cloud Storage videos."""
+"""Recipe for an LVA graph for blurring Cloud Storage videos."""
 
 from typing import Dict
 
@@ -11,11 +11,12 @@ from visionai.python.ops import gen_ops
 
 
 class BlurGcsVideo:
-  """BlurGcsVideo objects abstract blurring Cloud Storage videos recipe in the service."""
+  """BlurGcsVideo objects is a recipe for blurring Cloud Storage videos."""
 
   _DEFAULT_BLUR_GCS_VIDEO_ANALYSIS_ID = "default-blur-gcs-video"
   _INPUT_VIDEO_GCS_PATH_ATTRIBUTE = "input_video_gcs_path"
   _OUTPUT_VIDEO_GCS_PATH_ATTRIBUTE = "output_video_gcs_path"
+  _FRAME_RATE_ATTRIBUTE = "frame_rate"
   _SOURCE_ANALYZER = "gcs_video_source"
   _SINK_ANALYZER = "gcs_video_sink"
   _TRANSFORMER_ANALYZER = "person_blur"
@@ -30,6 +31,7 @@ class BlurGcsVideo:
       self,
       gcs_infile: str,
       gcs_outfile: str,
+      fps: int,
   ) -> Dict[str, str]:
     """Produces the attribute overrides for blur gcs video."""
     # TODO(b/278571197): May do some more comprehensive checks here. Can open
@@ -53,17 +55,18 @@ class BlurGcsVideo:
         self._SINK_ANALYZER
         + ":"
         + self._OUTPUT_VIDEO_GCS_PATH_ATTRIBUTE: gcs_outfile,
+        self._TRANSFORMER_ANALYZER + ":" + self._FRAME_RATE_ATTRIBUTE: str(fps),
     }
 
   def create_graph(self) -> graph.Graph:
-    """Creates a pre-made graph used for blurring GCS videos.
+    """Creates a pre-made graph used for blurring Cloud Storage videos.
 
     Returns:
-      A `Graph` that blurs GCS videos.
+      A `Graph` that blurs Cloud Storage videos.
     """
     g = graph.Graph()
     gcs_video_source_output = gen_ops.gcs_video_source(
-        None, self._SOURCE_ANALYZER, g
+        "", self._SOURCE_ANALYZER, g
     )
     de_id_output = gen_ops.de_id(
         gcs_video_source_output,
@@ -73,5 +76,5 @@ class BlurGcsVideo:
         self._TRANSFORMER_ANALYZER,
         g,
     )
-    gen_ops.gcs_video_sink(de_id_output, None, self._SINK_ANALYZER, g)
+    gen_ops.gcs_video_sink(de_id_output, "", self._SINK_ANALYZER, g)
     return g

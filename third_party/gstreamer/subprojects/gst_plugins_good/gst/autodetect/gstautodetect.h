@@ -21,6 +21,7 @@
 #define __GST_AUTO_DETECT_H__
 
 #include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_good/gst/autodetect/gstautodetectelements.h"
 
 G_BEGIN_DECLS
 

@@ -1,0 +1,34 @@
+analyzers: {
+  analyzer: "input_0"
+  operator: "GcsVideoSource"
+  attrs: {
+    key: "input_video_gcs_path"
+    value: {
+      s: "gs://lva-batch-testing/test-parking.mp4",
+    }
+  }
+}
+analyzers: {
+  analyzer: "generic_object_detection_0"
+  operator_option: {
+    tag: "litianma-0605",
+    registry: "PRIVATE",
+  }
+  operator: "GenericObjectDetection"
+  inputs: {
+    input: "input_0:output_stream"
+  }
+}
+analyzers: {
+  analyzer: "output_0"
+  operator: "GcsProtoSink"
+  attrs: {
+    key: "output_file_gcs_path"
+    value: {
+      s: "gs://lva-batch-testing/test-parking.json"
+    }
+  }
+  inputs: {
+    input: "generic_object_detection_0:output_stream"
+  }
+}

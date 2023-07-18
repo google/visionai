@@ -46,7 +46,7 @@ absl::Status FileSourceImageCapture::Init(CaptureInitContext* ctx) {
     return absl::InvalidArgumentError("Given an empty filepath");
   } else if (!FileExists(source_uri_).ok()) {
     return absl::InvalidArgumentError(
-      absl::StrFormat("No such file \"%s\"", source_uri_));
+        absl::StrFormat("No such file \"%s\"", source_uri_));
   }
 
   VAI_RETURN_IF_ERROR(ctx->GetAttr<std::string>("frame_rate", &frame_rate_))
@@ -57,7 +57,7 @@ absl::Status FileSourceImageCapture::Init(CaptureInitContext* ctx) {
 }
 
 absl::Status FileSourceImageCapture::Run(CaptureRunContext* ctx) {
-  VAI_RETURN_IF_ERROR(IsVideoH264Input(source_uri_));
+  VAI_RETURN_IF_ERROR(IsSupportedMediaType(source_uri_));
   do {
     GstreamerRunner::Options pipeline_opts;
     pipeline_opts.processing_pipeline_string = GstPipelineStr();

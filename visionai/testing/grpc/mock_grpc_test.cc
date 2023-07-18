@@ -16,6 +16,8 @@
 #include "visionai/testing/grpc/echo.grpc.pb.h"
 #include "visionai/testing/grpc/echo.pb.h"
 #include "visionai/testing/grpc/mock_echo_service.h"
+#include "visionai/testing/status/status_matchers.h"
+#include "visionai/util/net/grpc/status_util.h"
 
 namespace visionai {
 namespace testing {
@@ -193,8 +195,9 @@ TEST_F(GrpcMockerTest, NewStub) {
 
   // The server has now been destroyed.
   ::grpc::ClientContext context_echo;
-  EXPECT_THAT(echo_stub->Echo(&context_echo, request, &response),
-              ::testing::Not(::testing::status::IsOk()));
+  EXPECT_THAT(
+      ToAbseilStatus(echo_stub->Echo(&context_echo, request, &response)),
+      ::testing::Not(IsOk()));
 }
 
 class GrpcMockerMultipleServicesTest : public ::testing::Test {
@@ -264,8 +267,9 @@ TEST_F(GrpcMockerMultipleServicesTest, NewStub) {
 
   // The server has now been destroyed.
   ::grpc::ClientContext context_echo;
-  EXPECT_THAT(echo_stub->Echo(&context_echo, request_echo, &response_echo),
-              ::testing::Not(::testing::status::IsOk()));
+  EXPECT_THAT(ToAbseilStatus(
+                  echo_stub->Echo(&context_echo, request_echo, &response_echo)),
+              ::testing::Not(IsOk()));
 }
 
 }  // namespace

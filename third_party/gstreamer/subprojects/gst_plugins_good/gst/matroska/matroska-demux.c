@@ -328,7 +328,7 @@ gst_matroska_demux_reset (GstElement * element)
   demux->tracks_parsed = FALSE;
 
   if (demux->clusters) {
-    g_array_free (demux->clusters, TRUE);
+    g_array_unref (demux->clusters);
     demux->clusters = NULL;
   }
 
@@ -3512,6 +3512,12 @@ gst_matroska_demux_update_tracks (GstMatroskaDemux * demux, GstEbmlRead * ebml)
         new_track->pad = old_track->pad;
         new_track->index = old_track->index;
         new_track->pos = old_track->pos;
+
+        /* If index table is empty, do not ref it, we will try to fallback
+         * to the generic one from read-common in such case */
+        if (old_track->index_table && old_track->index_table->len > 0)
+          new_track->index_table = g_array_ref (old_track->index_table);
+
         g_ptr_array_index (demux->common.src, old_track_index) = new_track;
         gst_pad_set_element_private (new_track->pad, new_track);
 
@@ -3926,7 +3932,8 @@ gst_matroska_demux_add_wvpk_header (GstElement * element,
   } else {
     guint8 *outdata = NULL;
     gsize buf_size, size;
-    guint32 block_samples, flags, crc, blocksize;
+    guint32 block_samples, flags, crc;
+    gsize blocksize;
     GstAdapter *adapter;
 
     adapter = gst_adapter_new ();
@@ -3962,6 +3969,13 @@ gst_matroska_demux_add_wvpk_header (GstElement * element,
 
       if (blocksize == 0 || size < blocksize) {
         GST_ERROR_OBJECT (element, "Too small wavpack buffer");
+        gst_buffer_unmap (*buf, &map);
+        g_object_unref (adapter);
+        return GST_FLOW_ERROR;
+      }
+
+      if (blocksize > G_MAXSIZE - WAVPACK4_HEADER_SIZE) {
+        GST_ERROR_OBJECT (element, "Too big wavpack buffer");
         gst_buffer_unmap (*buf, &map);
         g_object_unref (adapter);
         return GST_FLOW_ERROR;
@@ -6637,16 +6651,16 @@ gst_matroska_demux_video_caps (GstMatroskaTrackVideoContext *
     }
     *codec_name = g_strdup_printf ("FFMpeg v1");
   } else if (!strcmp (codec_id, GST_MATROSKA_CODEC_ID_VIDEO_PRORES)) {
-    guint32 fourcc;
+    guint32 fourcc = 0;
     const gchar *variant, *variant_descr = "";
 
     /* Expect a fourcc in the codec private data */
-    if (!data || size < 4) {
-      GST_WARNING ("No or too small PRORESS fourcc (%d bytes)", size);
-      return NULL;
+    if (data && size >= 4) {
+      fourcc = GST_STR_FOURCC (data);
+    } else {
+      GST_WARNING ("No ProRes codec data found, picking 'standard 422 SD'");
     }
 
-    fourcc = GST_STR_FOURCC (data);
     switch (fourcc) {
       case GST_MAKE_FOURCC ('a', 'p', 'c', 's'):
         variant_descr = " 4:2:2 LT";

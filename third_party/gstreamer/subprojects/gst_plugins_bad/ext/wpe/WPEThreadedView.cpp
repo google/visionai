@@ -18,16 +18,16 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "WPEThreadedView.h"
-#include "gstwpe.h"
-#include "gstwpesrcbin.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/WPEThreadedView.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpe.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpesrcbin.h"
 
-#include <gst/gl/gl.h>
-#include <gst/gl/egl/gsteglimage.h>
-#include <gst/gl/egl/gstgldisplay_egl.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/gl/gl.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/gl/egl/gsteglimage.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/gl/egl/gstgldisplay_egl.h"
 #include <wayland-server.h>
 
 #include <cstdio>
@@ -183,7 +183,10 @@ gpointer WPEContextThread::s_viewThread(gpointer data)
 static void
 initialize_web_extensions (WebKitWebContext *context)
 {
-    webkit_web_context_set_web_extensions_directory (context, gst_wpe_get_extension_path ());
+    const gchar *local_path = gst_wpe_get_devenv_extension_path ();
+    const gchar *path = g_file_test (local_path, G_FILE_TEST_IS_DIR) ? local_path : G_STRINGIFY (WPE_EXTENSION_INSTALL_DIR);
+    GST_INFO ("Loading WebExtension from %s", path);
+    webkit_web_context_set_web_extensions_directory (context, path);
 }
 
 static void
@@ -343,11 +346,13 @@ WPEView* WPEContextThread::createWPEView(GstWpeVideoSrc* src, GstGLContext* cont
 
     WPEView* view = nullptr;
     dispatch([&]() mutable {
-        auto* manager = webkit_website_data_manager_new_ephemeral();
-        auto web_context = webkit_web_context_new_with_website_data_manager(manager);
-        g_object_unref(manager);
-
-        view = new WPEView(web_context, src, context, display, width, height);
+        if (!glib.web_context) {
+            auto *manager = webkit_website_data_manager_new_ephemeral();
+            glib.web_context =
+                webkit_web_context_new_with_website_data_manager(manager);
+            g_object_unref(manager);
+        }
+        view = new WPEView(glib.web_context, src, context, display, width, height);
     });
 
     if (view && view->hasUri()) {

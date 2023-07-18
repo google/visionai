@@ -1,6 +1,8 @@
-# Copyright (c) 2023 Google LLC All rights reserved.
+# Copyright 2023 Google LLC
+#
 # Use of this source code is governed by a BSD-style
-# license that can be found in the LICENSE file.
+# license that can be found in the LICENSE file or at
+# https://developers.google.com/open-source/licenses/bs
 
 # Python wrappers around operators
 # Generated - do not directly modify.
@@ -378,39 +380,6 @@ def concat(string_0, string_1, lowercase=False, name="", g=None):
     return n.outputs()
 
 
-def gcs_source(input_video_gcs_path="", name="", g=None):
-  """TODO Fill short description for "GcsSource".
-
-  TODO Fill long description for "GcsSource".
-
-  Args:
-    input_video_gcs_path: An attribute of type `string`. Defaults to ''.
-    name: A parameter of type `string`. Defaults to "". A unique name to assign
-      for this `Node`. A random unique name will be generated if left empty
-    g: A parameter of type `Graph`. Defaults to None. The `Graph` into which
-      this `Node` is inserted. The default `Graph` will be used if left as None.
-
-  Returns:
-    A `Port` that produce packets of type "gst/video".
-  """
-  n = graph.Node(
-      name=name,
-      operator="GcsSource",
-      input_ports=[],
-      output_ports=["output_stream"],
-      attributes={"input_video_gcs_path": input_video_gcs_path},
-  )
-  g.add_node(n)
-
-  num_outputs = len(n.outputs())
-  if num_outputs == 0:
-    return None
-  elif num_outputs == 1:
-    return n.outputs()[0]
-  else:
-    return n.outputs()
-
-
 def gcs_video_source(input_video_gcs_path="", name="", g=None):
   """TODO Fill short description for "GcsVideoSource".
 
@@ -684,9 +653,10 @@ def occupancy_counting(
 
 
 def string_split(input_string, delimiter="/", name="", g=None):
-  """TODO Fill short description for "StringSplit".
+  """Operator for splitting the string.
 
-  TODO Fill long description for "StringSplit".
+  The operator takes an input string and splits the input string into two with
+  specified delimiter (default: "/").
 
   Args:
     input_string: A `Port` that produce packets of type "string".
@@ -2544,6 +2514,54 @@ def personal_protective_equipment_detection(
     return n.outputs()
 
 
+def text_detection(
+    input_stream,
+    is_live_video=False,
+    ocr_service_address="",
+    language_hints="",
+    name="",
+    g=None,
+):
+  """TODO Fill short description for "TextDetection".
+
+  TODO Fill long description for "TextDetection".
+
+  Args:
+    input_stream: A `Port` that produce packets of type "gst/video".
+    is_live_video: An attribute of type `bool`. Defaults to False.
+    ocr_service_address: An attribute of type `string`. Defaults to ''.
+    language_hints: An attribute of type `string`. Defaults to ''.
+    name: A parameter of type `string`. Defaults to "". A unique name to assign
+      for this `Node`. A random unique name will be generated if left empty
+    g: A parameter of type `Graph`. Defaults to None. The `Graph` into which
+      this `Node` is inserted. The default `Graph` will be used if left as None.
+
+  Returns:
+    A `Port` that produce packets of type "protobuf/visionai.TextAnnotations".
+  """
+  n = graph.Node(
+      name=name,
+      operator="TextDetection",
+      input_ports=["input_stream"],
+      output_ports=["output_stream"],
+      attributes={
+          "is_live_video": is_live_video,
+          "ocr_service_address": ocr_service_address,
+          "language_hints": language_hints,
+      },
+  )
+  g.add_node(n)
+  g.add_edge(input_stream, n.inputs()[0])
+
+  num_outputs = len(n.outputs())
+  if num_outputs == 0:
+    return None
+  elif num_outputs == 1:
+    return n.outputs()[0]
+  else:
+    return n.outputs()
+
+
 def svai_product_recognizer(
     input_stream,
     retail_service_endpoint="",
@@ -2797,32 +2815,91 @@ def pub_sub_event(
     return n.outputs()
 
 
-def warehouse_video_source(warehouse_asset_name="", name="", g=None):
+def warehouse_video_source(
+    warehouse_endpoint="", asset_name="", name="", g=None
+):
   """TODO Fill short description for "WarehouseVideoSource".
 
   TODO Fill long description for "WarehouseVideoSource".
 
   Args:
-    warehouse_asset_name: An attribute of type `string`. Defaults to ''.
+    warehouse_endpoint: An attribute of type `string`. Defaults to ''.
+    asset_name: An attribute of type `string`. Defaults to ''.
     name: A parameter of type `string`. Defaults to "". A unique name to assign
       for this `Node`. A random unique name will be generated if left empty
     g: A parameter of type `Graph`. Defaults to None. The `Graph` into which
       this `Node` is inserted. The default `Graph` will be used if left as None.
 
   Returns:
-    A tuple of `Port` objects (output_video_stream, output_audio_stream).
-
-    output_video_stream: A `Port` that produce packets of type "gst/video".
-    output_audio_stream: A `Port` that produce packets of type "gst/audio".
+    A `Port` that produce packets of type "gst/video".
   """
   n = graph.Node(
       name=name,
       operator="WarehouseVideoSource",
       input_ports=[],
-      output_ports=["output_video_stream", "output_audio_stream"],
-      attributes={"warehouse_asset_name": warehouse_asset_name},
+      output_ports=["output_video_stream"],
+      attributes={
+          "warehouse_endpoint": warehouse_endpoint,
+          "asset_name": asset_name,
+      },
   )
   g.add_node(n)
+
+  num_outputs = len(n.outputs())
+  if num_outputs == 0:
+    return None
+  elif num_outputs == 1:
+    return n.outputs()[0]
+  else:
+    return n.outputs()
+
+
+def text_detection_warehouse_sink(
+    annotation,
+    use_insecure_channel=False,
+    warehouse_endpoint="",
+    asset_name="",
+    text_detection_data_schema_id="",
+    is_live_video=False,
+    name="",
+    g=None,
+):
+  """TODO Fill short description for "TextDetectionWarehouseSink".
+
+  TODO Fill long description for "TextDetectionWarehouseSink".
+
+  Args:
+    annotation: A `Port` that produce packets of type
+      "protobuf/visionai.TextAnnotations".
+    use_insecure_channel: An attribute of type `bool`. Defaults to False.
+    warehouse_endpoint: An attribute of type `string`. Defaults to ''.
+    asset_name: An attribute of type `string`. Defaults to ''.
+    text_detection_data_schema_id: An attribute of type `string`. Defaults to
+      ''.
+    is_live_video: An attribute of type `bool`. Defaults to False.
+    name: A parameter of type `string`. Defaults to "". A unique name to assign
+      for this `Node`. A random unique name will be generated if left empty
+    g: A parameter of type `Graph`. Defaults to None. The `Graph` into which
+      this `Node` is inserted. The default `Graph` will be used if left as None.
+
+  Returns:
+    None.
+  """
+  n = graph.Node(
+      name=name,
+      operator="TextDetectionWarehouseSink",
+      input_ports=["annotation"],
+      output_ports=[],
+      attributes={
+          "use_insecure_channel": use_insecure_channel,
+          "warehouse_endpoint": warehouse_endpoint,
+          "asset_name": asset_name,
+          "text_detection_data_schema_id": text_detection_data_schema_id,
+          "is_live_video": is_live_video,
+      },
+  )
+  g.add_node(n)
+  g.add_edge(annotation, n.inputs()[0])
 
   num_outputs = len(n.outputs())
   if num_outputs == 0:

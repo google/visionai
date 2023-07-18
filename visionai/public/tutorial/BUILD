@@ -76,3 +76,18 @@ cc_binary(
         "@com_google_absl//absl/time",
     ],
 )
+
+cc_binary(
+    name = "ingest_motion",
+    srcs = ["ingest_motion.cc"],
+    deps = [
+        "//visionai/public:streams",
+        "//visionai/streams/plugins/filters:all_filters",
+        "//visionai/util/status:status_macros",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+    ],
+)

@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	lvapb "google3/google/cloud/visionai/v1alpha1_lva_go_proto"
+	lvapb "google3/google/cloud/visionai/v1_lva_go_proto"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google3/third_party/visionai/golang/pkg/gcs/client/gcsclient"

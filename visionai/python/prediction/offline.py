@@ -13,11 +13,12 @@ def blur_gcs_video_sync(
     connection_options: channel.ConnectionOptions,
     gcs_infile: str,
     gcs_outfile: str,
+    fps: int = 6,
 ) -> client.Process:
-  """Blurs an MP4 file stored in GCS.
+  """Blurs an MP4 file stored in Cloud Storage.
 
-  Given an MP4 file on GCS, apply person blurring to it, and save the result
-  into another GCS file.
+  Given an MP4 file on Cloud Storage, apply person blurring to it, and save the
+  result into another Cloud Storage file.
 
   Args:
     connection_options: A `ConnectionOptions` targeting a specific Vertex AI
@@ -39,7 +40,7 @@ def blur_gcs_video_sync(
       connection_options,
       analysis.analysis_id,
       blur_gcs_video_recipe.get_blur_gcs_video_overrides(
-          gcs_infile, gcs_outfile
+          gcs_infile, gcs_outfile, fps
       ),
   )
   return process

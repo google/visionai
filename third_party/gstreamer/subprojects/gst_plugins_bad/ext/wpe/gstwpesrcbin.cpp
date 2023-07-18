@@ -85,13 +85,13 @@
  * Note: This feature will be disabled if you disable the tracer subsystem.
  */
 
-#include "gstwpesrcbin.h"
-#include "gstwpevideosrc.h"
-#include "gstwpe.h"
-#include "WPEThreadedView.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpesrcbin.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpevideosrc.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/gstwpe.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/wpe/WPEThreadedView.h"
 
-#include <gst/allocators/allocators.h>
-#include <gst/base/gstflowcombiner.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/allocators/allocators.h"
+#include "third_party/gstreamer/subprojects/gstreamer/libs/gst/base/gstflowcombiner.h"
 #include <wpe/extensions/audio.h>
 
 #include <sys/mman.h>

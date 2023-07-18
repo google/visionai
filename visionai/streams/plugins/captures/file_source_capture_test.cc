@@ -13,11 +13,13 @@
 #include "absl/status/status.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "visionai/algorithms/media/util/codec_validator.h"
 #include "visionai/algorithms/media/util/gstreamer_registry.h"
 #include "visionai/algorithms/media/util/gstreamer_runner.h"
 #include "visionai/proto/ingester_config.pb.h"
 #include "visionai/streams/capture_module.h"
 #include "visionai/streams/packet/packet.h"
+#include "visionai/testing/status/status_matchers.h"
 #include "visionai/types/gstreamer_buffer.h"
 #include "visionai/util/file_path.h"
 #include "visionai/util/ring_buffer.h"
@@ -32,30 +34,56 @@ class FileSourceCaptureTest : public ::testing::Test {
  protected:
   static void SetUpTestSuite() { ASSERT_TRUE(GstRegisterPlugins().ok()); }
 
-  void ExpectGstBufferPacket(
-      const Packet& packet, int64_t expected_pts_seconds,
-      int64_t expected_pts_nanos, int64_t expected_dts_seconds,
-      int64_t expected_dts_nanos, int64_t expected_duration_seconds,
-      int64_t expected_duration_nanos, int64_t expected_payload_size) {
+  void ExpectGstBufferPacket(const Packet& packet, int64_t expected_pts_seconds,
+                             int64_t expected_pts_nanos,
+                             int64_t expected_dts_seconds,
+                             int64_t expected_dts_nanos,
+                             int64_t expected_duration_seconds,
+                             int64_t expected_duration_nanos,
+                             int64_t expected_payload_size) {
     EXPECT_EQ(packet.header().type().type_class(), "gst");
     EXPECT_EQ(packet.header().type().type_descriptor().type(), "video/x-h264");
-    EXPECT_EQ(packet.header().type().type_descriptor()
-              .gstreamer_buffer_descriptor().pts_time().seconds(),
+    EXPECT_EQ(packet.header()
+                  .type()
+                  .type_descriptor()
+                  .gstreamer_buffer_descriptor()
+                  .pts_time()
+                  .seconds(),
               expected_pts_seconds);
-    EXPECT_EQ(packet.header().type().type_descriptor()
-              .gstreamer_buffer_descriptor().pts_time().nanos(),
+    EXPECT_EQ(packet.header()
+                  .type()
+                  .type_descriptor()
+                  .gstreamer_buffer_descriptor()
+                  .pts_time()
+                  .nanos(),
               expected_pts_nanos);
-    EXPECT_EQ(packet.header().type().type_descriptor()
-              .gstreamer_buffer_descriptor().dts_time().seconds(),
+    EXPECT_EQ(packet.header()
+                  .type()
+                  .type_descriptor()
+                  .gstreamer_buffer_descriptor()
+                  .dts_time()
+                  .seconds(),
               expected_dts_seconds);
-    EXPECT_EQ(packet.header().type().type_descriptor()
-              .gstreamer_buffer_descriptor().dts_time().nanos(),
+    EXPECT_EQ(packet.header()
+                  .type()
+                  .type_descriptor()
+                  .gstreamer_buffer_descriptor()
+                  .dts_time()
+                  .nanos(),
               expected_dts_nanos);
-    EXPECT_EQ(packet.header().type().type_descriptor()
-              .gstreamer_buffer_descriptor().duration().seconds(),
+    EXPECT_EQ(packet.header()
+                  .type()
+                  .type_descriptor()
+                  .gstreamer_buffer_descriptor()
+                  .duration()
+                  .seconds(),
               expected_duration_seconds);
-    EXPECT_EQ(packet.header().type().type_descriptor()
-              .gstreamer_buffer_descriptor().duration().nanos(),
+    EXPECT_EQ(packet.header()
+                  .type()
+                  .type_descriptor()
+                  .gstreamer_buffer_descriptor()
+                  .duration()
+                  .nanos(),
               expected_duration_nanos);
     EXPECT_EQ(packet.payload().size(), expected_payload_size);
   }
@@ -74,8 +102,9 @@ TEST_F(FileSourceCaptureTest, RunTestEmptyFilepath) {
   auto output = std::make_shared<RingBuffer<Packet>>(100);
   capture.AttachOutput(output);
   ASSERT_TRUE(capture.Prepare().ok());
-  EXPECT_EQ(capture.Init(), absl::InvalidArgumentError(
-    "Given an empty filepath; while initializing the Capture"));
+  EXPECT_EQ(capture.Init(),
+            absl::InvalidArgumentError(
+                "Given an empty filepath; while initializing the Capture"));
 }
 
 TEST_F(FileSourceCaptureTest, RunTestNoSuchFile) {
@@ -90,9 +119,10 @@ TEST_F(FileSourceCaptureTest, RunTestNoSuchFile) {
   auto output = std::make_shared<RingBuffer<Packet>>(100);
   capture.AttachOutput(output);
   ASSERT_TRUE(capture.Prepare().ok());
-  EXPECT_EQ(capture.Init(), absl::InvalidArgumentError(
-      absl::StrFormat("No such file \"%s\"; while initializing the Capture",
-      file::JoinPath(kTestFolder, "no_such_file.mp4"))));
+  EXPECT_EQ(capture.Init(),
+            absl::InvalidArgumentError(absl::StrFormat(
+                "No such file \"%s\"; while initializing the Capture",
+                file::JoinPath(kTestFolder, "no_such_file.mp4"))));
 }
 
 TEST_F(FileSourceCaptureTest, RunTest) {
@@ -113,7 +143,7 @@ TEST_F(FileSourceCaptureTest, RunTest) {
   ASSERT_EQ(output->count(), expected_frames);
   Packet packet;
   ASSERT_TRUE(output->TryPopBack(packet));
-  ExpectGstBufferPacket(packet, 0, 0, 0, 0, 0, 500000000, 17884);
+  ExpectGstBufferPacket(packet, 0, 0, 0, 0, 0, 500000000, 17929);
   ASSERT_TRUE(output->TryPopBack(packet));
   ExpectGstBufferPacket(packet, 0, 500000000, 0, 500000000, 0, 500000000,
                         17884);
@@ -145,7 +175,7 @@ TEST_F(FileSourceCaptureTest, RunTestLoopOnce) {
   ASSERT_EQ(output->count(), expected_frames);
   Packet packet;
   ASSERT_TRUE(output->TryPopBack(packet));
-  ExpectGstBufferPacket(packet, 0, 0, 0, 0, 0, 500000000, 17884);
+  ExpectGstBufferPacket(packet, 0, 0, 0, 0, 0, 500000000, 17929);
   ASSERT_TRUE(output->TryPopBack(packet));
   ExpectGstBufferPacket(packet, 0, 500000000, 0, 500000000, 0, 500000000,
                         17884);
@@ -178,7 +208,7 @@ TEST_F(FileSourceCaptureTest, RunTestLoopMultipleTimes) {
   Packet packet;
   // First iteration.
   ASSERT_TRUE(output->TryPopBack(packet));
-  ExpectGstBufferPacket(packet, 0, 0, 0, 0, 0, 500000000, 17884);
+  ExpectGstBufferPacket(packet, 0, 0, 0, 0, 0, 500000000, 17929);
   ASSERT_TRUE(output->TryPopBack(packet));
   ExpectGstBufferPacket(packet, 0, 500000000, 0, 500000000, 0, 500000000,
                         17884);
@@ -189,7 +219,7 @@ TEST_F(FileSourceCaptureTest, RunTestLoopMultipleTimes) {
                         17884);
   // Second iteration. The timestamps still accumulates.
   ASSERT_TRUE(output->TryPopBack(packet));
-  ExpectGstBufferPacket(packet, 2, 0, 2, 0, 0, 500000000, 17884);
+  ExpectGstBufferPacket(packet, 2, 0, 2, 0, 0, 500000000, 17929);
   ASSERT_TRUE(output->TryPopBack(packet));
   ExpectGstBufferPacket(packet, 2, 500000000, 2, 500000000, 0, 500000000,
                         17884);
@@ -200,7 +230,7 @@ TEST_F(FileSourceCaptureTest, RunTestLoopMultipleTimes) {
                         17884);
   // Third iteration. The timestamps still accumulates.
   ASSERT_TRUE(output->TryPopBack(packet));
-  ExpectGstBufferPacket(packet, 4, 0, 4, 0, 0, 500000000, 17884);
+  ExpectGstBufferPacket(packet, 4, 0, 4, 0, 0, 500000000, 17929);
   ASSERT_TRUE(output->TryPopBack(packet));
   ExpectGstBufferPacket(packet, 4, 500000000, 4, 500000000, 0, 500000000,
                         17884);
@@ -289,10 +319,12 @@ TEST_F(FileSourceCaptureTest, RunLoopCancelled) {
 }
 
 TEST_F(FileSourceCaptureTest, RunH265Input) {
+  if (!IsH265Supported()) {
+    GTEST_SKIP();
+  }
   CaptureConfig config;
   config.mutable_name()->assign("FileSourceCapture");
-  config.mutable_source_urls()->Add(
-      file::JoinPath(kTestFolder, "h265.mp4"));
+  config.mutable_source_urls()->Add(file::JoinPath(kTestFolder, "h265.mp4"));
   (*config.mutable_attr())["loop"] = "true";
   (*config.mutable_attr())["loop_count"] = "0";
 
@@ -302,8 +334,28 @@ TEST_F(FileSourceCaptureTest, RunH265Input) {
 
   ASSERT_TRUE(capture.Prepare().ok());
   ASSERT_TRUE(capture.Init().ok());
-  EXPECT_EQ(capture.Run(), absl::FailedPreconditionError(
-    "The input media type - \"video/x-h265\" is not supported. "
-    "Currently the only supported media type is \"video/x-h264\""));
+  EXPECT_EQ(capture.Run(), absl::OkStatus());
 }
+
+TEST_F(FileSourceCaptureTest, RunAV1Input) {
+  CaptureConfig config;
+  config.mutable_name()->assign("FileSourceCapture");
+  config.mutable_source_urls()->Add(file::JoinPath(kTestFolder, "av1.mp4"));
+  (*config.mutable_attr())["loop"] = "true";
+  (*config.mutable_attr())["loop_count"] = "0";
+
+  CaptureModule capture(config);
+  auto output = std::make_shared<RingBuffer<Packet>>(100);
+  capture.AttachOutput(output);
+
+  ASSERT_TRUE(capture.Prepare().ok());
+  ASSERT_TRUE(capture.Init().ok());
+  EXPECT_THAT(
+      capture.Run(),
+      StatusIs(
+          absl::StatusCode::kFailedPrecondition,
+          testing::HasSubstr(
+              "The input media type - \"video/x-av1\" is not supported.")));
+}
+
 }  // namespace visionai

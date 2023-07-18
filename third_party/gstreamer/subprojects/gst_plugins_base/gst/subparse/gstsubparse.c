@@ -785,9 +785,11 @@ subrip_fix_up_markup (gchar ** p_txt, gconstpointer allowed_tags_ptr)
           last = g_ptr_array_index (open_tags, num_open_tags - 1);
         if (num_open_tags == 0
             || g_ascii_strncasecmp (end_tag - 1, last, strlen (last))) {
-          GST_LOG ("broken input, closing tag '%s' is not open", end_tag - 1);
-          memmove (next_tag, end_tag + 1, strlen (end_tag) + 1);
-          next_tag -= strlen (end_tag);
+          GST_LOG ("broken input, closing tag '%s' is not open", next_tag);
+          /* Move everything after the tag end, including closing \0 */
+          memmove (next_tag, end_tag + 1, strlen (end_tag));
+          cur = next_tag;
+          continue;
         } else {
           --num_open_tags;
           g_ptr_array_remove_index (open_tags, num_open_tags);
@@ -1599,25 +1601,9 @@ done:
 }
 
 static GstFlowReturn
-handle_buffer (GstSubParse * self, GstBuffer * buf)
+check_initial_events (GstSubParse * self)
 {
-  GstFlowReturn ret = GST_FLOW_OK;
-  gchar *line, *subtitle;
   gboolean need_tags = FALSE;
-
-  if (self->first_buffer) {
-    GstMapInfo map;
-
-    gst_buffer_map (buf, &map, GST_MAP_READ);
-    self->detected_encoding =
-        gst_sub_parse_detect_encoding ((gchar *) map.data, map.size);
-    gst_buffer_unmap (buf, &map);
-    self->first_buffer = FALSE;
-    self->state.fps_n = self->fps_n;
-    self->state.fps_d = self->fps_d;
-  }
-
-  feed_textbuf (self, buf);
 
   /* make sure we know the format */
   if (G_UNLIKELY (self->parser_type == GST_SUB_PARSE_FORMAT_UNKNOWN)) {
@@ -1656,6 +1642,35 @@ handle_buffer (GstSubParse * self, GstBuffer * buf)
       gst_pad_push_event (self->srcpad, gst_event_new_tag (tags));
     }
   }
+
+  return GST_FLOW_OK;
+}
+
+static GstFlowReturn
+handle_buffer (GstSubParse * self, GstBuffer * buf)
+{
+  GstFlowReturn ret = GST_FLOW_OK;
+  gchar *line, *subtitle;
+
+  GST_DEBUG_OBJECT (self, "%" GST_PTR_FORMAT, buf);
+
+  if (self->first_buffer) {
+    GstMapInfo map;
+
+    gst_buffer_map (buf, &map, GST_MAP_READ);
+    self->detected_encoding =
+        gst_sub_parse_detect_encoding ((gchar *) map.data, map.size);
+    gst_buffer_unmap (buf, &map);
+    self->first_buffer = FALSE;
+    self->state.fps_n = self->fps_n;
+    self->state.fps_d = self->fps_d;
+  }
+
+  feed_textbuf (self, buf);
+
+  ret = check_initial_events (self);
+  if (ret != GST_FLOW_OK)
+    return ret;
 
   while (!self->flushing && (line = get_next_line (self))) {
     guint offset = 0;
@@ -1805,6 +1820,16 @@ gst_sub_parse_sink_event (GstPad * pad, GstObject * parent, GstEvent * event)
        * trigger sending of the saved requested seek segment
        * or the one taken here from upstream */
       self->need_segment = TRUE;
+      break;
+    }
+    case GST_EVENT_GAP:
+    {
+      ret = check_initial_events (self);
+      if (ret == GST_FLOW_OK) {
+        ret = gst_pad_event_default (pad, parent, event);
+      } else {
+        gst_event_unref (event);
+      }
       break;
     }
     case GST_EVENT_FLUSH_START:

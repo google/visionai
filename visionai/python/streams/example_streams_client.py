@@ -5,15 +5,18 @@
 """Example client binary to list streams in Vertex AI Vision."""
 
 from typing import Sequence
+
 from absl import app
 from absl import flags
 
+from visionai.python.net import channel
 from visionai.python.streams import client
 
-_SERVICE_ENDPOINT = flags.DEFINE_string(
-    name="service_endpoint",
-    default="visionai.googleapis.com",
-    help="The endpoint to Vertex AI Vsion.",
+_ENV = flags.DEFINE_enum(
+    "env",
+    "PROD",
+    ["AUTOPUSH", "STAGING", "PROD"],
+    "The environment.",
 )
 
 _PROJECT_ID = flags.DEFINE_string(
@@ -39,10 +42,10 @@ def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
   connection_options = client.ConnectionOptions(
-      _SERVICE_ENDPOINT.value,
       _PROJECT_ID.value,
       _LOCATION_ID.value,
       _CLUSTER_ID.value,
+      channel.Environment[_ENV.value],
   )
   response = client.list_streams(connection_options)
   print("{}", response)

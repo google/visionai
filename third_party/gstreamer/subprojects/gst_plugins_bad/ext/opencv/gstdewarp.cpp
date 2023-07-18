@@ -56,10 +56,10 @@
 
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstdewarp.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstdewarp.h"
 #include <math.h>
 
 GST_DEBUG_CATEGORY_STATIC (gst_dewarp_debug);

@@ -375,7 +375,7 @@ _priv_gst_value_serialize_any_list (const GValue * value, const gchar * begin,
         g_string_append_len (s, ", ", 2);
       }
     } else {
-      GST_WARNING ("Could not serialize list/array value of type '%s'",
+      g_critical ("Could not serialize list/array value of type '%s'",
           G_VALUE_TYPE_NAME (v));
     }
   }
@@ -442,7 +442,7 @@ _gst_value_serialize_g_value_array (const GValue * value, const gchar * begin,
         g_string_append_len (s, ", ", 2);
       }
     } else {
-      GST_WARNING ("Could not serialize list/array value of type '%s'",
+      g_critical ("Could not serialize list/array value of type '%s'",
           G_VALUE_TYPE_NAME (v));
     }
   }
@@ -4178,15 +4178,23 @@ gst_value_serialize_gflags (const GValue * value)
   result = g_strdup ("");
   while (flags) {
     fl = g_flags_get_first_value (klass, flags);
-    if (fl != NULL) {
-      tmp = g_strconcat (result, (first ? "" : "+"), fl->value_name, NULL);
-      g_free (result);
-      result = tmp;
-      first = FALSE;
-
-      /* clear flag */
-      flags &= ~fl->value;
+    if (fl == NULL) {
+      if (flags) {
+        g_critical ("Could not serialize invalid flags 0x%x of type %s",
+            flags, G_VALUE_TYPE_NAME (value));
+        g_free (result);
+        result = g_strdup ("0");
+      }
+      break;
     }
+
+    tmp = g_strconcat (result, (first ? "" : "+"), fl->value_name, NULL);
+    g_free (result);
+    result = tmp;
+    first = FALSE;
+
+    /* clear flag */
+    flags &= ~fl->value;
   }
   g_type_class_unref (klass);
 

@@ -58,7 +58,7 @@ void DumpStackTrace(int skip_count, DebugWriter *writerfn, void *arg,
                     bool short_format) {
   // Print stack trace
   void *stack[kDefaultStackTraceDepth];
-  int depth = absl::GetStackTrace(stack, ABSL_ARRAYSIZE(stack), skip_count + 1);
+  int depth = absl::GetStackTrace(stack, ABSL_ARRAYSIZE(stack), skip_count);
   for (int i = 0; i < depth; i++) {
     DumpPCAndSymbol(writerfn, arg, stack[i],
                     short_format ? "" : kStackTracePrefix, short_format);
@@ -70,7 +70,7 @@ std::string CurrentStackTrace(bool short_format) {
   if (!short_format) {
     result += "\n";
   }
-  DumpStackTrace(1, DebugWriteToString, &result, short_format);
+  DumpStackTrace(0, DebugWriteToString, &result, short_format);
   return result;
 }
 

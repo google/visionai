@@ -2417,6 +2417,20 @@ gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
       if (colorspace == req_cspace) {
         if (gst_v4l2_object_get_colorspace (v4l2object, &fmt, &cinfo))
           gst_v4l2_object_fill_colorimetry_list (&list, &cinfo);
+        if (colorspace == V4L2_COLORSPACE_REC709) {
+          /* support for full-range variants of colorspaces V4L2_COLORSPACE_REC709
+           * (such as Apple's full-range bt709 variant 1:3:5:1) */
+          struct v4l2_format alt_fmt;
+          memcpy (&alt_fmt, &fmt, sizeof (alt_fmt));
+
+          if (V4L2_TYPE_IS_MULTIPLANAR (v4l2object->type))
+            alt_fmt.fmt.pix_mp.quantization = V4L2_QUANTIZATION_FULL_RANGE;
+          else
+            alt_fmt.fmt.pix.quantization = V4L2_QUANTIZATION_FULL_RANGE;
+
+          if (gst_v4l2_object_get_colorspace (v4l2object, &alt_fmt, &cinfo))
+            gst_v4l2_object_fill_colorimetry_list (&list, &cinfo);
+        }
       }
     }
   }
@@ -2933,6 +2947,10 @@ default_frame_sizes:
           "Could not probe maximum capture size for pixelformat %"
           GST_FOURCC_FORMAT, GST_FOURCC_ARGS (pixelformat));
     }
+    if (min_w == 0 || min_h == 0)
+      min_w = min_h = 1;
+    if (max_w == 0 || max_h == 0)
+      max_w = max_h = GST_V4L2_MAX_SIZE;
 
     /* Since we can't get framerate directly, try to use the current norm */
     if (v4l2object->tv_norm && v4l2object->norms) {
@@ -3065,7 +3083,8 @@ gst_v4l2_object_is_dmabuf_supported (GstV4l2Object * v4l2object)
     .flags = O_CLOEXEC | O_RDWR,
   };
 
-  if (v4l2object->fmtdesc->flags & V4L2_FMT_FLAG_EMULATED) {
+  if (v4l2object->fmtdesc &&
+      v4l2object->fmtdesc->flags & V4L2_FMT_FLAG_EMULATED) {
     GST_WARNING_OBJECT (v4l2object->dbg_obj,
         "libv4l2 converter detected, disabling DMABuf");
     ret = FALSE;
@@ -3127,8 +3146,14 @@ gst_v4l2_object_setup_pool (GstV4l2Object * v4l2object, GstCaps * caps)
   /* Map the buffers */
   GST_LOG_OBJECT (v4l2object->dbg_obj, "initiating buffer pool");
 
-  if (!(v4l2object->pool = gst_v4l2_buffer_pool_new (v4l2object, caps)))
-    goto buffer_pool_new_failed;
+  {
+    GstBufferPool *pool = gst_v4l2_buffer_pool_new (v4l2object, caps);
+    GST_OBJECT_LOCK (v4l2object->element);
+    v4l2object->pool = pool;
+    GST_OBJECT_UNLOCK (v4l2object->element);
+    if (!pool)
+      goto buffer_pool_new_failed;
+  }
 
   GST_V4L2_SET_ACTIVE (v4l2object);
 
@@ -4172,6 +4197,7 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object, GstVideoInfo * info)
 
   gst_video_info_init (info);
   gst_video_alignment_reset (&align);
+  v4l2object->transfer = GST_VIDEO_TRANSFER_UNKNOWN;
 
   memset (&fmt, 0x00, sizeof (struct v4l2_format));
   fmt.type = v4l2object->type;
@@ -4286,28 +4312,38 @@ unsupported_format:
   }
 }
 
+/**
+ * gst_v4l2_object_set_crop:
+ * @obj: the object
+ * @crop_rect: the region to crop
+ *
+ * Crop the video data to the regions specified in the @crop_rect.
+ *
+ * For capture devices, this crop the image sensor / video stream provided by
+ * the V4L2 device.
+ * For output devices, this crops the memory buffer that GStreamer passed to
+ * the V4L2 device.
+ *
+ * The crop_rect may be modified by the V4L2 device to a region that
+ * fulfills H/W requirements.
+ *
+ * Returns: %TRUE on success, %FALSE on failure.
+ */
 gboolean
-gst_v4l2_object_set_crop (GstV4l2Object * obj)
+gst_v4l2_object_set_crop (GstV4l2Object * obj, struct v4l2_rect * crop_rect)
 {
   struct v4l2_selection sel = { 0 };
   struct v4l2_crop crop = { 0 };
 
+  GST_V4L2_CHECK_OPEN (obj);
+
   sel.type = obj->type;
   sel.target = V4L2_SEL_TGT_CROP;
   sel.flags = 0;
-  sel.r.left = obj->align.padding_left;
-  sel.r.top = obj->align.padding_top;
-  sel.r.width = obj->info.width;
-  sel.r.height = GST_VIDEO_INFO_FIELD_HEIGHT (&obj->info);
+  sel.r = *crop_rect;
 
   crop.type = obj->type;
   crop.c = sel.r;
-
-  if (obj->align.padding_left + obj->align.padding_top +
-      obj->align.padding_right + obj->align.padding_bottom == 0) {
-    GST_DEBUG_OBJECT (obj->dbg_obj, "no cropping needed");
-    return TRUE;
-  }
 
   GST_DEBUG_OBJECT (obj->dbg_obj,
       "Desired cropping left %u, top %u, size %ux%u", crop.c.left, crop.c.top,
@@ -4341,23 +4377,59 @@ gst_v4l2_object_set_crop (GstV4l2Object * obj)
   return TRUE;
 }
 
+/**
+ * gst_v4l2_object_setup_padding:
+ * @obj: v4l2 object
+ *
+ * Crop away the padding around the video data as specified
+ * in GstVideoAlignement data stored in @obj.
+ *
+ * For capture devices, this crop the image sensor / video stream provided by
+ * the V4L2 device.
+ * For output devices, this crops the memory buffer that GStreamer passed to
+ * the V4L2 device.
+ *
+ * Returns: %TRUE on success, %FALSE on failure.
+ */
+gboolean
+gst_v4l2_object_setup_padding (GstV4l2Object * obj)
+{
+  GstVideoAlignment *align = &obj->align;
+  struct v4l2_rect crop;
+
+  if (align->padding_left + align->padding_top
+      + align->padding_right + align->padding_bottom == 0) {
+    GST_DEBUG_OBJECT (obj->dbg_obj, "no cropping needed");
+    return TRUE;
+  }
+
+  crop.left = align->padding_left;
+  crop.top = align->padding_top;
+  crop.width = obj->info.width;
+  crop.height = GST_VIDEO_INFO_FIELD_HEIGHT (&obj->info);
+
+  return gst_v4l2_object_set_crop (obj, &crop);
+}
+
 gboolean
 gst_v4l2_object_caps_equal (GstV4l2Object * v4l2object, GstCaps * caps)
 {
   GstStructure *config;
   GstCaps *oldcaps;
   gboolean ret;
+  GstBufferPool *pool = gst_v4l2_object_get_buffer_pool (v4l2object);
 
-  if (!v4l2object->pool)
+  if (!pool)
     return FALSE;
 
-  config = gst_buffer_pool_get_config (v4l2object->pool);
+  config = gst_buffer_pool_get_config (pool);
   gst_buffer_pool_config_get_params (config, &oldcaps, NULL, NULL, NULL);
 
   ret = oldcaps && gst_caps_is_equal (caps, oldcaps);
 
   gst_structure_free (config);
 
+  gst_object_unref (pool);
   return ret;
 }
 
@@ -4367,17 +4439,19 @@ gst_v4l2_object_caps_is_subset (GstV4l2Object * v4l2object, GstCaps * caps)
   GstStructure *config;
   GstCaps *oldcaps;
   gboolean ret;
+  GstBufferPool *pool = gst_v4l2_object_get_buffer_pool (v4l2object);
 
-  if (!v4l2object->pool)
+  if (!pool)
     return FALSE;
 
-  config = gst_buffer_pool_get_config (v4l2object->pool);
+  config = gst_buffer_pool_get_config (pool);
   gst_buffer_pool_config_get_params (config, &oldcaps, NULL, NULL, NULL);
 
   ret = oldcaps && gst_caps_is_subset (oldcaps, caps);
 
   gst_structure_free (config);
 
+  gst_object_unref (pool);
   return ret;
 }
 
@@ -4386,11 +4460,12 @@ gst_v4l2_object_get_current_caps (GstV4l2Object * v4l2object)
 {
   GstStructure *config;
   GstCaps *oldcaps;
+  GstBufferPool *pool = gst_v4l2_object_get_buffer_pool (v4l2object);
 
-  if (!v4l2object->pool)
+  if (!pool)
     return NULL;
 
-  config = gst_buffer_pool_get_config (v4l2object->pool);
+  config = gst_buffer_pool_get_config (pool);
   gst_buffer_pool_config_get_params (config, &oldcaps, NULL, NULL, NULL);
 
   if (oldcaps)
@@ -4398,6 +4473,7 @@ gst_v4l2_object_get_current_caps (GstV4l2Object * v4l2object)
 
   gst_structure_free (config);
 
+  gst_object_unref (pool);
   return oldcaps;
 }
 
@@ -4405,12 +4481,17 @@ gboolean
 gst_v4l2_object_unlock (GstV4l2Object * v4l2object)
 {
   gboolean ret = TRUE;
+  GstBufferPool *pool = gst_v4l2_object_get_buffer_pool (v4l2object);
 
   GST_LOG_OBJECT (v4l2object->dbg_obj, "start flushing");
 
-  if (v4l2object->pool && gst_buffer_pool_is_active (v4l2object->pool))
-    gst_buffer_pool_set_flushing (v4l2object->pool, TRUE);
+  if (!pool)
+    return ret;
 
+  if (gst_buffer_pool_is_active (pool))
+    gst_buffer_pool_set_flushing (pool, TRUE);
+
+  gst_object_unref (pool);
   return ret;
 }
 
@@ -4418,18 +4499,24 @@ gboolean
 gst_v4l2_object_unlock_stop (GstV4l2Object * v4l2object)
 {
   gboolean ret = TRUE;
+  GstBufferPool *pool = gst_v4l2_object_get_buffer_pool (v4l2object);
 
   GST_LOG_OBJECT (v4l2object->dbg_obj, "stop flushing");
 
-  if (v4l2object->pool && gst_buffer_pool_is_active (v4l2object->pool))
-    gst_buffer_pool_set_flushing (v4l2object->pool, FALSE);
+  if (!pool)
+    return ret;
 
+  if (gst_buffer_pool_is_active (pool))
+    gst_buffer_pool_set_flushing (pool, FALSE);
+
+  gst_object_unref (pool);
   return ret;
 }
 
 gboolean
 gst_v4l2_object_stop (GstV4l2Object * v4l2object)
 {
+  GstBufferPool *pool;
   GST_DEBUG_OBJECT (v4l2object->dbg_obj, "stopping");
 
   if (!GST_V4L2_IS_OPEN (v4l2object))
@@ -4437,13 +4524,23 @@ gst_v4l2_object_stop (GstV4l2Object * v4l2object)
   if (!GST_V4L2_IS_ACTIVE (v4l2object))
     goto done;
 
-  if (v4l2object->pool) {
-    if (!gst_v4l2_buffer_pool_orphan (&v4l2object->pool)) {
+  pool = gst_v4l2_object_get_buffer_pool (v4l2object);
+  if (pool) {
+    if (!gst_v4l2_buffer_pool_orphan (v4l2object)) {
       GST_DEBUG_OBJECT (v4l2object->dbg_obj, "deactivating pool");
-      gst_buffer_pool_set_active (v4l2object->pool, FALSE);
-      gst_object_unref (v4l2object->pool);
+      gst_buffer_pool_set_active (pool, FALSE);
+
+      {
+        GstBufferPool *old_pool;
+        GST_OBJECT_LOCK (v4l2object->element);
+        old_pool = v4l2object->pool;
+        v4l2object->pool = NULL;
+        GST_OBJECT_UNLOCK (v4l2object->element);
+        if (old_pool)
+          gst_object_unref (old_pool);
+      }
+      gst_object_unref (pool);
     }
-    v4l2object->pool = NULL;
   }
 
   GST_V4L2_SET_INACTIVE (v4l2object);
@@ -4597,6 +4694,18 @@ gst_v4l2_object_match_buffer_layout (GstV4l2Object * obj, guint n_planes,
           offset[p], obj->info.offset[p], p);
       need_fmt_update = TRUE;
     }
+
+    if (padded_height) {
+      guint fmt_height;
+
+      if (V4L2_TYPE_IS_MULTIPLANAR (obj->type))
+        fmt_height = obj->format.fmt.pix_mp.height;
+      else
+        fmt_height = obj->format.fmt.pix.height;
+
+      if (padded_height > fmt_height)
+        need_fmt_update = TRUE;
+    }
   }
 
   if (need_fmt_update) {
@@ -4695,7 +4804,7 @@ gst_v4l2_object_match_buffer_layout (GstV4l2Object * obj, guint n_planes,
     /* Crop because of vertical padding */
     GST_DEBUG_OBJECT (obj->dbg_obj, "crop because of bottom padding of %d",
         obj->align.padding_bottom);
-    gst_v4l2_object_set_crop (obj);
+    gst_v4l2_object_setup_padding (obj);
   }
 
   return TRUE;
@@ -4778,7 +4887,7 @@ gboolean
 gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
 {
   GstCaps *caps;
-  GstBufferPool *pool = NULL, *other_pool = NULL;
+  GstBufferPool *pool = NULL, *other_pool = NULL, *obj_pool = NULL;
   GstStructure *config;
   guint size, min, max, own_min = 0;
   gboolean update;
@@ -4795,8 +4904,12 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
 
   gst_query_parse_allocation (query, &caps, NULL);
 
-  if (obj->pool == NULL) {
+  obj_pool = gst_v4l2_object_get_buffer_pool (obj);
+  if (obj_pool == NULL) {
     if (!gst_v4l2_object_setup_pool (obj, caps))
+      goto pool_failed;
+    obj_pool = gst_v4l2_object_get_buffer_pool (obj);
+    if (obj_pool == NULL)
       goto pool_failed;
   }
 
@@ -4851,7 +4964,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
         /* no downstream pool, use our own then */
         GST_DEBUG_OBJECT (obj->dbg_obj,
             "read/write mode: no downstream pool, using our own");
-        pool = gst_object_ref (obj->pool);
+        pool = gst_object_ref (obj_pool);
         size = obj->info.size;
         pushing_from_our_pool = TRUE;
       }
@@ -4863,11 +4976,11 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
        * our own, so it can serve itself */
       if (pool == NULL)
         goto no_downstream_pool;
-      gst_v4l2_buffer_pool_set_other_pool (GST_V4L2_BUFFER_POOL (obj->pool),
+      gst_v4l2_buffer_pool_set_other_pool (GST_V4L2_BUFFER_POOL (obj_pool),
           pool);
       other_pool = pool;
       gst_object_unref (pool);
-      pool = gst_object_ref (obj->pool);
+      pool = gst_object_ref (obj_pool);
       size = obj->info.size;
       break;
 
@@ -4878,7 +4991,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
       if (can_share_own_pool) {
         if (pool)
           gst_object_unref (pool);
-        pool = gst_object_ref (obj->pool);
+        pool = gst_object_ref (obj_pool);
         size = obj->info.size;
         GST_DEBUG_OBJECT (obj->dbg_obj,
             "streaming mode: using our own pool %" GST_PTR_FORMAT, pool);
@@ -4936,7 +5049,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
     min = MAX (min, GST_V4L2_MIN_BUFFERS (obj));
 
     /* To import we need the other pool to hold at least own_min */
-    if (obj->pool == pool)
+    if (obj_pool == pool)
       min += own_min;
   }
 
@@ -4945,7 +5058,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
     max = MAX (min, max);
 
   /* First step, configure our own pool */
-  config = gst_buffer_pool_get_config (obj->pool);
+  config = gst_buffer_pool_get_config (obj_pool);
 
   if (obj->need_video_meta || has_video_meta) {
     GST_DEBUG_OBJECT (obj->dbg_obj, "activate Video Meta");
@@ -4960,19 +5073,19 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
       GST_PTR_FORMAT, config);
 
   /* Our pool often need to adjust the value */
-  if (!gst_buffer_pool_set_config (obj->pool, config)) {
-    config = gst_buffer_pool_get_config (obj->pool);
+  if (!gst_buffer_pool_set_config (obj_pool, config)) {
+    config = gst_buffer_pool_get_config (obj_pool);
 
     GST_DEBUG_OBJECT (obj->dbg_obj, "own pool config changed to %"
         GST_PTR_FORMAT, config);
 
     /* our pool will adjust the maximum buffer, which we are fine with */
-    if (!gst_buffer_pool_set_config (obj->pool, config))
+    if (!gst_buffer_pool_set_config (obj_pool, config))
       goto config_failed;
   }
 
   /* Now configure the other pool if different */
-  if (obj->pool != pool)
+  if (obj_pool != pool)
     other_pool = pool;
 
   if (other_pool) {
@@ -5023,6 +5136,9 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
   if (pool)
     gst_object_unref (pool);
 
+  if (obj_pool)
+    gst_object_unref (obj_pool);
+
   return TRUE;
 
 pool_failed:
@@ -5042,6 +5158,13 @@ no_size:
         (_("Video device did not suggest any buffer size.")), (NULL));
     goto cleanup;
   }
+no_downstream_pool:
+  {
+    GST_ELEMENT_ERROR (obj->element, RESOURCE, SETTINGS,
+        (_("No downstream pool to import from.")),
+        ("When importing DMABUF or USERPTR, we need a pool to import from"));
+    goto cleanup;
+  }
 cleanup:
   {
     if (allocator)
@@ -5049,13 +5172,9 @@ cleanup:
 
     if (pool)
       gst_object_unref (pool);
-    return FALSE;
-  }
-no_downstream_pool:
-  {
-    GST_ELEMENT_ERROR (obj->element, RESOURCE, SETTINGS,
-        (_("No downstream pool to import from.")),
-        ("When importing DMABUF or USERPTR, we need a pool to import from"));
+
+    if (obj_pool)
+      gst_object_unref (obj_pool);
     return FALSE;
   }
 }
@@ -5082,9 +5201,14 @@ gst_v4l2_object_propose_allocation (GstV4l2Object * obj, GstQuery * query)
   switch (obj->mode) {
     case GST_V4L2_IO_MMAP:
     case GST_V4L2_IO_DMABUF:
-      if (need_pool && obj->pool) {
-        if (!gst_buffer_pool_is_active (obj->pool))
-          pool = gst_object_ref (obj->pool);
+      if (need_pool) {
+        GstBufferPool *obj_pool = gst_v4l2_object_get_buffer_pool (obj);
+        if (obj_pool) {
+          if (!gst_buffer_pool_is_active (obj_pool))
+            pool = gst_object_ref (obj_pool);
+
+          gst_object_unref (obj_pool);
+        }
       }
       break;
     default:
@@ -5196,4 +5320,26 @@ gst_v4l2_object_try_import (GstV4l2Object * obj, GstBuffer * buffer)
 
   /* for the remaining, only the kernel driver can tell */
   return TRUE;
+}
+
+/**
+ * gst_v4l2_object_get_buffer_pool:
+ * @src: a #GstV4l2Object
+ *
+ * Returns: (nullable) (transfer full): the instance of the #GstBufferPool used
+ * by the v4l2object; unref it after usage.
+ */
+GstBufferPool *
+gst_v4l2_object_get_buffer_pool (GstV4l2Object * v4l2object)
+{
+  GstBufferPool *ret = NULL;
+
+  g_return_val_if_fail (v4l2object != NULL, NULL);
+
+  GST_OBJECT_LOCK (v4l2object->element);
+  if (v4l2object->pool)
+    ret = gst_object_ref (v4l2object->pool);
+  GST_OBJECT_UNLOCK (v4l2object->element);
+
+  return ret;
 }

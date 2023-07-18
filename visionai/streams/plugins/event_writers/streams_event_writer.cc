@@ -32,7 +32,8 @@ constexpr int kRandomSenderNameLength = 8;
 
 absl::Status StreamsEventWriter::Init(EventWriterInitContext* ctx) {
   VAI_ASSIGN_OR_RETURN(cluster_selection_, ctx->GetClusterSelection(),
-                    _ << "while getting the ClusterSelection");
+                   _ << "while getting the ClusterSelection");
+  grace_period_ = ctx->GetGracePeriod();
   VAI_RETURN_IF_ERROR(ctx->GetAttr<std::string>("stream_id", &stream_id_))
       << "while getting the stream id";
   if (stream_id_.empty()) {
@@ -64,15 +65,15 @@ absl::Status StreamsEventWriter::Open(absl::string_view event_id) {
   // Currently, we just initialize the packet sender one time, upfront.
   // Might consider moving this to `Write` so that a retry is possible.
   //
-  // TODO(b/247933460): Make the lease term configurable.
   PacketSender::Options options;
   options.cluster_selection = cluster_selection_;
   options.channel.event_id = event_id_;
   options.channel.stream_id = stream_id_;
   options.sender = sender_name_;
+  options.grace_period = grace_period_;
 
   VAI_ASSIGN_OR_RETURN(sender_, PacketSender::Create(options),
-                    _ << "while creating a packet sender");
+                   _ << "while creating a packet sender");
   LOG(INFO) << absl::StrFormat(
       "Sending data into event \"%s\" through stream \"%s\".", event_id_,
       stream_id_);
@@ -94,19 +95,19 @@ absl::Status StreamsEventWriter::Write(Packet p) {
       gstreamer_runner_options.processing_pipeline_string =
           AssembleGstreamerPipeline();
       LOG(ERROR) << "Launching the gstreamer pipeline: "
-                << gstreamer_runner_options.processing_pipeline_string;
+                 << gstreamer_runner_options.processing_pipeline_string;
       LOG(ERROR) << "Accepting the caps string: "
-                << gstreamer_runner_options.appsrc_caps_string;
+                 << gstreamer_runner_options.appsrc_caps_string;
       gstreamer_runner_options.receiver_callback =
           [this](GstreamerBuffer encoded_gstreamer_buffer) -> absl::Status {
-        LOG(ERROR) <<encoded_gstreamer_buffer.caps_string();
+        LOG(ERROR) << encoded_gstreamer_buffer.caps_string();
         VAI_ASSIGN_OR_RETURN(auto p,
-                          MakePacket(std::move(encoded_gstreamer_buffer)));
+                         MakePacket(std::move(encoded_gstreamer_buffer)));
         return sender_->Send(std::move(p));
       };
 
       VAI_ASSIGN_OR_RETURN(gstreamer_runner_,
-                        GstreamerRunner::Create(gstreamer_runner_options));
+                       GstreamerRunner::Create(gstreamer_runner_options));
     }
     VAI_RETURN_IF_ERROR(gstreamer_runner_->Feed(*gstreamer_buffer));
 

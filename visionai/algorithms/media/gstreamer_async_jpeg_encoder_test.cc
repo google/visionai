@@ -142,11 +142,11 @@ TEST_F(GstreamerAsyncJpegEncoderTest, H264FrameSequenceTest) {
   decoder.SignalEOS();
 
   // Give time for the callback to return.
-  absl::SleepFor(absl::Seconds(2));
+  decoder.WaitUntilCompleted(absl::Seconds(2));
 
   encoder.SignalEOS();
 
-  absl::SleepFor(absl::Seconds(2));
+  encoder.WaitUntilCompleted(absl::Seconds(2));
 
   for (int i = 0; i < 4; i++) {
     // Test if the output is valid JPEG.
@@ -198,11 +198,11 @@ TEST_F(GstreamerAsyncJpegEncoderTest, JPEGSequenceInputTest) {
   decoder.SignalEOS();
 
   // Give time for the callback to return.
-  absl::SleepFor(absl::Seconds(2));
+  decoder.WaitUntilCompleted(absl::Seconds(2));
 
   encoder.SignalEOS();
 
-  absl::SleepFor(absl::Seconds(2));
+  encoder.WaitUntilCompleted(absl::Seconds(2));
   EXPECT_EQ(results.size(), 1);
   EXPECT_TRUE(IsValidJpeg(results[0].first->data(), results[0].first->size()));
   EXPECT_EQ(results[0].second, 0);
@@ -238,11 +238,11 @@ TEST_F(GstreamerAsyncJpegEncoderTest, JPEGSequenceInputWithNoResizeTest) {
   decoder.SignalEOS();
 
   // Give time for the callback to return.
-  absl::SleepFor(absl::Seconds(2));
+  decoder.WaitUntilCompleted(absl::Seconds(2));
 
   encoder.SignalEOS();
 
-  absl::SleepFor(absl::Seconds(2));
+  encoder.WaitUntilCompleted(absl::Seconds(2));
   EXPECT_EQ(results.size(), 1);
   EXPECT_TRUE(IsValidJpeg(results[0].first->data(), results[0].first->size()));
   EXPECT_EQ(results[0].second, 0);

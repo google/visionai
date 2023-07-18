@@ -3490,6 +3490,19 @@ offer_set_produced_error (struct test_webrtc *t, GstElement * element,
   test_webrtc_signal_state_unlocked (t, STATE_CUSTOM);
 }
 
+static void
+offer_created_produced_error (struct test_webrtc *t, GstElement * element,
+    GstPromise * promise, gpointer user_data)
+{
+  const GstStructure *reply;
+  GError *error = NULL;
+
+  reply = gst_promise_get_reply (promise);
+  fail_unless (gst_structure_get (reply, "error", G_TYPE_ERROR, &error, NULL));
+  GST_INFO ("error produced: %s", error->message);
+  g_clear_error (&error);
+}
+
 GST_START_TEST (test_renego_lose_media_fails)
 {
   struct test_webrtc *t = create_audio_video_test ();
@@ -3567,6 +3580,130 @@ GST_START_TEST (test_bundle_codec_preferences_rtx_no_duplicate_payloads)
   add_fake_video_src_harness (h, 96);
   t->harnesses = g_list_prepend (t->harnesses, h);
   test_validate_sdp (t, &offer, &answer);
+
+  test_webrtc_free (t);
+}
+
+GST_END_TEST;
+
+static void
+on_sdp_media_no_duplicate_extmaps (struct test_webrtc *t, GstElement * element,
+    GstWebRTCSessionDescription * desc, gpointer user_data)
+{
+  const GstSDPMedia *media = gst_sdp_message_get_media (desc->sdp, 0);
+
+  fail_unless (media != NULL);
+
+  fail_unless_equals_string (gst_sdp_media_get_attribute_val_n (media, "extmap",
+          0), "1 foobar");
+
+  fail_unless (gst_sdp_media_get_attribute_val_n (media, "extmap", 1) == NULL);
+}
+
+/* In this test, we validate that identical extmaps for multiple formats
+ * in the caps of a single transceiver are deduplicated. This is necessary
+ * because Firefox will complain about duplicate extmap ids and fail negotiation
+ * otherwise. */
+GST_START_TEST (test_codec_preferences_no_duplicate_extmaps)
+{
+  struct test_webrtc *t = test_webrtc_new ();
+  GstWebRTCRTPTransceiver *trans;
+  GstWebRTCRTPTransceiverDirection direction;
+  VAL_SDP_INIT (extmaps, on_sdp_media_no_duplicate_extmaps, NULL, NULL);
+  GstCaps *caps;
+  GstStructure *s;
+
+  caps = gst_caps_new_empty ();
+
+  s = gst_structure_from_string (VP8_RTP_CAPS (96), NULL);
+  gst_structure_set (s, "extmap-1", G_TYPE_STRING, "foobar", NULL);
+  gst_caps_append_structure (caps, s);
+  s = gst_structure_from_string (H264_RTP_CAPS (97), NULL);
+  gst_structure_set (s, "extmap-1", G_TYPE_STRING, "foobar", NULL);
+  gst_caps_append_structure (caps, s);
+
+  direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+  g_signal_emit_by_name (t->webrtc1, "add-transceiver", direction, caps,
+      &trans);
+  gst_caps_unref (caps);
+  fail_unless (trans != NULL);
+
+  t->on_negotiation_needed = NULL;
+  t->on_pad_added = NULL;
+  t->on_ice_candidate = NULL;
+
+  test_validate_sdp (t, &extmaps, NULL);
+
+  test_webrtc_free (t);
+}
+
+GST_END_TEST;
+
+/* In this test, we validate that trying to use different values
+ * for the same extmap id in multiple formats in the caps of a
+ * single transceiver errors out when creating the offer. */
+GST_START_TEST (test_codec_preferences_incompatible_extmaps)
+{
+  struct test_webrtc *t = test_webrtc_new ();
+  GstWebRTCRTPTransceiver *trans;
+  GstWebRTCRTPTransceiverDirection direction;
+  GstCaps *caps;
+  GstStructure *s;
+
+  caps = gst_caps_new_empty ();
+
+  s = gst_structure_from_string (VP8_RTP_CAPS (96), NULL);
+  gst_structure_set (s, "extmap-1", G_TYPE_STRING, "foobar", NULL);
+  gst_caps_append_structure (caps, s);
+  s = gst_structure_from_string (H264_RTP_CAPS (97), NULL);
+  gst_structure_set (s, "extmap-1", G_TYPE_STRING, "foobaz", NULL);
+  gst_caps_append_structure (caps, s);
+
+  direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+  g_signal_emit_by_name (t->webrtc1, "add-transceiver", direction, caps,
+      &trans);
+  gst_caps_unref (caps);
+  fail_unless (trans != NULL);
+
+  t->on_negotiation_needed = NULL;
+  t->on_pad_added = NULL;
+  t->on_ice_candidate = NULL;
+  t->on_offer_created = offer_created_produced_error;
+
+  test_validate_sdp_full (t, NULL, NULL, STATE_OFFER_CREATED, TRUE);
+
+  test_webrtc_free (t);
+}
+
+GST_END_TEST;
+
+/* In this test, we validate that extmap values must be of the correct type */
+GST_START_TEST (test_codec_preferences_invalid_extmap)
+{
+  struct test_webrtc *t = test_webrtc_new ();
+  GstWebRTCRTPTransceiver *trans;
+  GstWebRTCRTPTransceiverDirection direction;
+  GstCaps *caps;
+  GstStructure *s;
+
+  caps = gst_caps_new_empty ();
+
+  s = gst_structure_from_string (VP8_RTP_CAPS (96), NULL);
+  gst_structure_set (s, "extmap-1", G_TYPE_INT, 42, NULL);
+  gst_caps_append_structure (caps, s);
+
+  direction = GST_WEBRTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+  g_signal_emit_by_name (t->webrtc1, "add-transceiver", direction, caps,
+      &trans);
+  gst_caps_unref (caps);
+  fail_unless (trans != NULL);
+
+  t->on_negotiation_needed = NULL;
+  t->on_pad_added = NULL;
+  t->on_ice_candidate = NULL;
+  t->on_offer_created = offer_created_produced_error;
+
+  test_validate_sdp_full (t, NULL, NULL, STATE_OFFER_CREATED, TRUE);
 
   test_webrtc_free (t);
 }
@@ -3725,8 +3862,11 @@ GST_START_TEST (test_reject_create_offer)
   s = gst_promise_get_reply (promise);
   fail_unless (s != NULL);
   gst_structure_get (s, "error", G_TYPE_ERROR, &error, NULL);
-  fail_unless (g_error_matches (error, GST_WEBRTC_BIN_ERROR,
-          GST_WEBRTC_BIN_ERROR_IMPOSSIBLE_MLINE_RESTRICTION));
+  fail_unless (g_error_matches (error, GST_WEBRTC_ERROR,
+          GST_WEBRTC_ERROR_INTERNAL_FAILURE));
+  fail_unless (g_str_match_string
+      ("has locked mline 1 but the whole offer only has 0 sections",
+          error->message, FALSE));
   g_clear_error (&error);
   gst_promise_unref (promise);
 
@@ -3796,8 +3936,12 @@ GST_START_TEST (test_reject_set_description)
   fail_unless_equals_int (res, GST_PROMISE_RESULT_REPLIED);
   s = gst_promise_get_reply (promise);
   gst_structure_get (s, "error", G_TYPE_ERROR, &error, NULL);
-  fail_unless (g_error_matches (error, GST_WEBRTC_BIN_ERROR,
-          GST_WEBRTC_BIN_ERROR_IMPOSSIBLE_MLINE_RESTRICTION));
+  fail_unless (g_error_matches (error, GST_WEBRTC_ERROR,
+          GST_WEBRTC_ERROR_INTERNAL_FAILURE));
+  fail_unless (g_str_match_string
+      ("m-line 0 was locked to audio, but SDP has audio media", error->message,
+          FALSE));
+
   g_clear_error (&error);
   fail_unless (s != NULL);
   gst_promise_unref (promise);
@@ -3992,8 +4136,11 @@ GST_START_TEST (test_codec_preferences_negotiation_sinkpad)
   s = gst_promise_get_reply (promise);
   fail_unless (s != NULL);
   gst_structure_get (s, "error", G_TYPE_ERROR, &error, NULL);
-  fail_unless (g_error_matches (error, GST_WEBRTC_BIN_ERROR,
-          GST_WEBRTC_BIN_ERROR_CAPS_NEGOTIATION_FAILED));
+  fail_unless (g_error_matches (error, GST_WEBRTC_ERROR,
+          GST_WEBRTC_ERROR_INTERNAL_FAILURE));
+  fail_unless (g_str_match_string
+      ("Caps negotiation on pad sink_0 failed against codec preferences",
+          error->message, FALSE));
   g_clear_error (&error);
   gst_promise_unref (promise);
 
@@ -4224,6 +4371,74 @@ GST_START_TEST (test_codec_preferences_in_on_new_transceiver)
 
 GST_END_TEST;
 
+static void
+add_media_line (struct test_webrtc *t, GstElement * element,
+    GstWebRTCSessionDescription * desc, gpointer user_data)
+{
+  GstSDPMedia *media = NULL;
+  const GstSDPMedia *existing_media;
+  GstSDPResult res;
+
+  existing_media = gst_sdp_message_get_media (desc->sdp, 0);
+
+  res = gst_sdp_media_copy (existing_media, &media);
+  fail_unless (res == GST_SDP_OK);
+  res = gst_sdp_message_add_media (desc->sdp, media);
+  fail_unless (res == GST_SDP_OK);
+  gst_sdp_media_free (media);
+}
+
+static void
+on_answer_set_rejected (struct test_webrtc *t, GstElement * element,
+    GstPromise * promise, gpointer user_data)
+{
+  const GstStructure *s;
+  GError *error = NULL;
+  GError *compare_error = user_data;
+
+  s = gst_promise_get_reply (promise);
+  fail_unless (s != NULL);
+  gst_structure_get (s, "error", G_TYPE_ERROR, &error, NULL);
+  fail_unless (g_error_matches (error, compare_error->domain,
+          compare_error->code));
+  fail_unless_equals_string (compare_error->message, error->message);
+  g_clear_error (&error);
+}
+
+GST_START_TEST (test_invalid_add_media_in_answer)
+{
+  struct test_webrtc *t = create_audio_test ();
+  VAL_SDP_INIT (no_duplicate_payloads, on_sdp_media_no_duplicate_payloads,
+      NULL, NULL);
+  guint media_format_count[] = { 1 };
+  VAL_SDP_INIT (media_formats, on_sdp_media_count_formats,
+      media_format_count, &no_duplicate_payloads);
+  VAL_SDP_INIT (count, _count_num_sdp_media, GUINT_TO_POINTER (1),
+      &media_formats);
+  const gchar *expected_offer_setup[] = { "actpass", };
+  VAL_SDP_INIT (offer_setup, on_sdp_media_setup, expected_offer_setup, &count);
+  const gchar *expected_offer_direction[] = { "sendrecv", };
+  VAL_SDP_INIT (offer, on_sdp_media_direction, expected_offer_direction,
+      &offer_setup);
+  VAL_SDP_INIT (answer, add_media_line, NULL, NULL);
+  GError answer_set_error = { GST_WEBRTC_ERROR,
+    GST_WEBRTC_ERROR_SDP_SYNTAX_ERROR,
+    (gchar *) "Answer doesn't have the same number of m-lines as the offer."
+  };
+
+  /* Ensure that if the answer has more m-lines than the offer, it gets
+   * rejected.
+   */
+
+  t->on_answer_set = on_answer_set_rejected;
+  t->answer_set_data = &answer_set_error;
+
+  test_validate_sdp (t, &offer, &answer);
+  test_webrtc_free (t);
+}
+
+GST_END_TEST;
+
 static Suite *
 webrtcbin_suite (void)
 {
@@ -4275,6 +4490,10 @@ webrtcbin_suite (void)
     tcase_add_test (tc, test_codec_preferences_negotiation_sinkpad);
     tcase_add_test (tc, test_codec_preferences_negotiation_srcpad);
     tcase_add_test (tc, test_codec_preferences_in_on_new_transceiver);
+    tcase_add_test (tc, test_codec_preferences_no_duplicate_extmaps);
+    tcase_add_test (tc, test_codec_preferences_incompatible_extmaps);
+    tcase_add_test (tc, test_codec_preferences_invalid_extmap);
+    tcase_add_test (tc, test_invalid_add_media_in_answer);
     if (sctpenc && sctpdec) {
       tcase_add_test (tc, test_data_channel_create);
       tcase_add_test (tc, test_data_channel_remote_notify);

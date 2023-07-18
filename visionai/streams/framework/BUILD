@@ -300,6 +300,7 @@ cc_library(
         "//visionai/proto:ingester_config_cc_proto",
         "//visionai/streams/packet",
         "//visionai/util:ring_buffer",
+        "//visionai/util:time_util",
         "//visionai/util/status:status_macros",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",

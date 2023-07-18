@@ -16,6 +16,7 @@ cc_library(
         "gstjpegplugin.c",
     ],
     copts = DEFAULT_COPTS,
+    features = ["-layering_check"],
     textual_hdrs = [
         "gstjpeg.h",
         "gstjpegenc.h",

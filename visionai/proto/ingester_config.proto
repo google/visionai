@@ -8,6 +8,7 @@ syntax = "proto3";
 
 package visionai;
 
+import "google/protobuf/duration.proto";
 import "visionai/proto/cluster_selection.proto";
 
 option java_multiple_files = true;
@@ -50,6 +51,12 @@ message EventWriterConfig {
   // This specifies service connection information;
   // i.e. GCP project id, location id, Anaheim cluster id, etc.
   ClusterSelection cluster_selection = 3;
+
+  // The grace period specifies how long the server will keep the event before
+  // it's closed. During this period, the client can re-ingest to the same
+  // event. If it's not set, zero duration is used which means the server will
+  // close the event when the client disconnects from the server.
+  google.protobuf.Duration grace_period = 4;
 }
 
 // The DepositorConfig is the top level message for configuring the

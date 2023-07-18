@@ -47,6 +47,9 @@
 #include "third_party/gstreamer/subprojects/gst_plugins_good/gst_libs/gst/gst-i18n-plugin.h"
 #include <jerror.h>
 
+/* Disable libjpeg-turbo support for now, due to unresolved cornercases */
+#undef JCS_EXTENSIONS
+
 #define MIN_WIDTH  1
 #define MAX_WIDTH  65535
 #define MIN_HEIGHT 1
@@ -915,7 +918,7 @@ gst_jpeg_dec_decode_direct (GstJpegDec * dec, GstVideoFrame * frame,
 
 #ifdef JCS_EXTENSIONS
   if (dec->format_convert) {
-    gint row_stride = dec->cinfo.output_width * dec->cinfo.output_components;
+    gint row_stride = GST_VIDEO_FRAME_PLANE_STRIDE (frame, 0);
     guchar *bufbase = GST_VIDEO_FRAME_PLANE_DATA (frame, 0);
 
     if (num_fields == 2) {
@@ -1008,6 +1011,55 @@ gst_fmt_to_jpeg_turbo_ext_fmt (GstVideoFormat gstfmt)
       return 0;
   }
 }
+
+static void
+gst_jpeg_turbo_parse_ext_fmt_convert (GstJpegDec * dec, gint * clrspc)
+{
+  GstCaps *peer_caps, *dec_caps;
+
+  dec_caps = gst_static_caps_get (&gst_jpeg_dec_src_pad_template.static_caps);
+  peer_caps =
+      gst_pad_peer_query_caps (GST_VIDEO_DECODER_SRC_PAD (dec), dec_caps);
+  gst_caps_unref (dec_caps);
+
+  GST_DEBUG ("Received caps from peer: %" GST_PTR_FORMAT, peer_caps);
+  dec->format_convert = FALSE;
+  if (!gst_caps_is_empty (peer_caps)) {
+    GstStructure *peerstruct;
+    const gchar *peerformat;
+    GstVideoFormat peerfmt;
+
+    if (!gst_caps_is_fixed (peer_caps))
+      peer_caps = gst_caps_fixate (peer_caps);
+
+    peerstruct = gst_caps_get_structure (peer_caps, 0);
+    peerformat = gst_structure_get_string (peerstruct, "format");
+    peerfmt = gst_video_format_from_string (peerformat);
+
+    switch (peerfmt) {
+      case GST_VIDEO_FORMAT_RGB:
+      case GST_VIDEO_FORMAT_RGBx:
+      case GST_VIDEO_FORMAT_xRGB:
+      case GST_VIDEO_FORMAT_RGBA:
+      case GST_VIDEO_FORMAT_ARGB:
+      case GST_VIDEO_FORMAT_BGR:
+      case GST_VIDEO_FORMAT_BGRx:
+      case GST_VIDEO_FORMAT_xBGR:
+      case GST_VIDEO_FORMAT_BGRA:
+      case GST_VIDEO_FORMAT_ABGR:
+        if (clrspc)
+          *clrspc = JCS_RGB;
+        dec->format = peerfmt;
+        dec->format_convert = TRUE;
+        dec->libjpeg_ext_format = gst_fmt_to_jpeg_turbo_ext_fmt (peerfmt);
+        break;
+      default:
+        break;
+    }
+  }
+  gst_caps_unref (peer_caps);
+  GST_DEBUG_OBJECT (dec, "format_convert=%d", dec->format_convert);
+}
 #endif
 
 static void
@@ -1017,7 +1069,6 @@ gst_jpeg_dec_negotiate (GstJpegDec * dec, gint width, gint height, gint clrspc,
   GstVideoCodecState *outstate;
   GstVideoInfo *info;
   GstVideoFormat format;
-  GstCaps *peer_caps, *dec_caps;
 
 #ifdef JCS_EXTENSIONS
   if (dec->format_convert) {
@@ -1052,48 +1103,10 @@ gst_jpeg_dec_negotiate (GstJpegDec * dec, gint width, gint height, gint clrspc,
     gst_video_codec_state_unref (outstate);
   }
 #ifdef JCS_EXTENSIONS
-  dec_caps = gst_static_caps_get (&gst_jpeg_dec_src_pad_template.static_caps);
-  peer_caps =
-      gst_pad_peer_query_caps (GST_VIDEO_DECODER_SRC_PAD (dec), dec_caps);
-  gst_caps_unref (dec_caps);
-
-  GST_DEBUG ("Received caps from peer: %" GST_PTR_FORMAT, peer_caps);
-  dec->format_convert = FALSE;
-  if (!gst_caps_is_empty (peer_caps)) {
-    GstStructure *peerstruct;
-    const gchar *peerformat;
-    GstVideoFormat peerfmt;
-
-    if (!gst_caps_is_fixed (peer_caps))
-      peer_caps = gst_caps_fixate (peer_caps);
-
-    peerstruct = gst_caps_get_structure (peer_caps, 0);
-    peerformat = gst_structure_get_string (peerstruct, "format");
-    peerfmt = gst_video_format_from_string (peerformat);
-
-    switch (peerfmt) {
-      case GST_VIDEO_FORMAT_RGB:
-      case GST_VIDEO_FORMAT_RGBx:
-      case GST_VIDEO_FORMAT_xRGB:
-      case GST_VIDEO_FORMAT_RGBA:
-      case GST_VIDEO_FORMAT_ARGB:
-      case GST_VIDEO_FORMAT_BGR:
-      case GST_VIDEO_FORMAT_BGRx:
-      case GST_VIDEO_FORMAT_xBGR:
-      case GST_VIDEO_FORMAT_BGRA:
-      case GST_VIDEO_FORMAT_ABGR:
-        clrspc = JCS_RGB;
-        format = peerfmt;
-        dec->format_convert = TRUE;
-        dec->libjpeg_ext_format = gst_fmt_to_jpeg_turbo_ext_fmt (peerfmt);
-        break;
-      default:
-        break;
-    }
-  }
-  dec->format = format;
-  gst_caps_unref (peer_caps);
-  GST_DEBUG_OBJECT (dec, "format_convert=%d", dec->format_convert);
+  /* Determine if libjpeg-turbo direct format conversion can be used
+   * with current caps and if so, adjust $dec to enable it and $clrspc
+   * accordingly. */
+  gst_jpeg_turbo_parse_ext_fmt_convert (dec, &clrspc);
 #endif
 
   outstate =
@@ -1179,6 +1192,7 @@ gst_jpeg_dec_prepare_decode (GstJpegDec * dec)
   dec->cinfo.do_block_smoothing = FALSE;
   dec->cinfo.dct_method = dec->idct_method;
 #ifdef JCS_EXTENSIONS
+  gst_jpeg_turbo_parse_ext_fmt_convert (dec, NULL);
   if (dec->format_convert) {
     dec->cinfo.out_color_space = dec->libjpeg_ext_format;
     dec->cinfo.raw_data_out = FALSE;

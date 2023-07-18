@@ -30,6 +30,7 @@
 #include "visionai/algorithms/media/util/gstreamer_registry.h"
 #include "visionai/proto/cluster_selection.pb.h"
 #include "visionai/streams/apps/flags.h"
+#include "visionai/streams/apps/visualization/drawable.h"
 #include "visionai/streams/apps/visualization/receive_cat_visual_tool.h"
 #include "visionai/streams/apps/visualization/render_utils.h"
 #include "visionai/streams/client/event_update.h"
@@ -242,8 +243,7 @@ absl::Status Run() {
   std::shared_ptr<ReceiveCatVisualTool> v_receive_cat = nullptr;
   std::shared_ptr<ReceiveCatVisualTool> a_receive_cat = nullptr;
   SyncQueue<std::tuple<absl::Time, int, int, std::string>> v_queue;
-  SyncQueue<std::tuple<absl::Time, google::cloud::visionai::v1::
-                                       OccupancyCountingPredictionResult>>
+  SyncQueue<std::tuple<absl::Time, std::unique_ptr<renderutils::Drawable>>>
       a_queue;
   const std::string window_name = "Anaheim Visualization Tool";
   if (!no_display) {
@@ -290,8 +290,7 @@ absl::Status Run() {
     a_t = std::thread(&ReceiveCatVisualTool::Run, a_receive_cat);
 
     absl::Time latest_anno_time = absl::InfinitePast();
-    google::cloud::visionai::v1::OccupancyCountingPredictionResult
-        latest_oc_result;
+    std::unique_ptr<renderutils::Drawable> latest_drawable;
     absl::Duration annotation_buffer_time = absl::ZeroDuration();
 
     // Initiate track_id_map and dwell_stats_map for dwell time feature.
@@ -336,12 +335,11 @@ absl::Status Run() {
         while (absl::Now() - img_time < annotation_buffer_time) {
           absl::SleepFor(absl::Milliseconds(50));
         }
-        if (!a_queue.Empty()) {
-          std::tuple<
-              absl::Time,
-              google::cloud::visionai::v1::OccupancyCountingPredictionResult>
-              anno;
-          while (!a_queue.Empty()) {
+        // We want our annotation time to be as close to the video frame's
+        // timestamp as possible. Ideally equivalent or just slightly above
+        if (!a_queue.Empty() && latest_anno_time < img_time) {
+          std::tuple<absl::Time, std::unique_ptr<renderutils::Drawable>> anno;
+          while (!a_queue.Empty() && std::get<0>(anno) < img_time) {
             anno = a_queue.Pop().value();
             ++fps_counter;
             if (fps_counter == 0) {
@@ -357,7 +355,7 @@ absl::Status Run() {
             }
           }
           latest_anno_time = std::get<0>(anno);
-          latest_oc_result = std::get<1>(anno);
+          latest_drawable = std::move(std::get<1>(anno));
           if (absl::Now() - latest_anno_time > annotation_buffer_time) {
             annotation_buffer_time = absl::Now() - latest_anno_time;
             LOG(INFO) << "Annotation buffer time: " << annotation_buffer_time;
@@ -369,25 +367,7 @@ absl::Status Run() {
         if ((img_time > latest_anno_time
                  ? img_time - latest_anno_time
                  : latest_anno_time - img_time) < absl::Milliseconds(1000)) {
-          // Draw bounding boxes.
-          renderutils::DrawBoundingBoxesWithDwellTime(
-              img, width, height, latest_oc_result, track_id_map,
-              dwell_stats_map, show_score);
-
-          if (latest_oc_result.stats().active_zone_counts().empty() &&
-              latest_oc_result.stats().crossing_line_counts().empty()) {
-            // Draw full frame count.
-            renderutils::DrawFullFrameCount(img, latest_oc_result);
-          } else if (!latest_oc_result.stats().active_zone_counts().empty()) {
-            // Draw active zone count.
-            renderutils::DrawActiveZoneCount(img, width, height,
-                                             latest_oc_result);
-          } else if (!latest_oc_result.stats().crossing_line_counts().empty()) {
-            // Draw line crossing count.
-            renderutils::DrawLineCrossingCount(img, width, height,
-                                               latest_oc_result);
-          }
-
+          latest_drawable->draw(img, width, height);
           // Show fps of annotation output stream.
           renderutils::ShowAnnotationFps(img, annotation_fps);
         }

@@ -122,7 +122,7 @@ class MockMultipleServicesGrpcServer {
 
   // Creates a stub that communicates with the specified mock service.
   template <class Service,
-            typename = typename std::enable_if<std::disjunction<std::is_same<
+            typename = typename std::enable_if<absl::disjunction<std::is_same<
                 Service, typename ServicesImpl::ServiceType>...>::value>::type>
   std::unique_ptr<typename Service::Stub> NewStub() {
     return Service::NewStub(::grpc::CreateChannel(

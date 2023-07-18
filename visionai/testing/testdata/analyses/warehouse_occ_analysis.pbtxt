@@ -4,13 +4,13 @@ analyzers: {
   attrs: {
     key: "warehouse_endpoint"
     value: {
-      s: "dns://warehouse-visionai.googleapis.com",
+      s: "staging-warehouse-visionai.sandbox.googleapis.com",
     }
   }
   attrs: {
     key: "asset_name"
     value: {
-      s: "projects/test-project/locations/us-central1/corpora/test-corpus/assets/application-output-91622bcd",
+      s: "projects/389013567096/locations/us-central1/corpora/2314842873256276106/assets/15253763642707954702",
     }
   }
 }
@@ -27,7 +27,7 @@ analyzers: {
   attrs: {
     key: "output_file_gcs_path"
     value: {
-      s: "gs://lva-batch-testing/test-occ-parking.json"
+      s: "gs://lva-batch-testing/warehouse-occ.json"
     }
   }
   inputs: {

@@ -31,6 +31,8 @@
 #include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/webrtc/utils.h"
 #include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/webrtc/webrtctransceiver.h"
 
+#include <stdlib.h>
+
 #define GST_CAT_DEFAULT gst_webrtc_stats_debug
 GST_DEBUG_CATEGORY_STATIC (GST_CAT_DEFAULT);
 
@@ -86,6 +88,8 @@ _gst_structure_take_structure (GstStructure * s, const char *fieldname,
     GstStructure ** value_s)
 {
   GValue v = G_VALUE_INIT;
+
+  g_return_if_fail (GST_IS_STRUCTURE (*value_s));
 
   g_value_init (&v, GST_TYPE_STRUCTURE);
   g_value_take_boxed (&v, *value_s);
@@ -541,7 +545,9 @@ _get_stats_from_rtp_source_stats (GstWebRTCBin * webrtc,
     /* Store the raw stats from GStreamer into the structure for advanced
      * information.
      */
-    _gst_structure_take_structure (in, "gst-rtpjitterbuffer-stats", &jb_stats);
+    if (jb_stats)
+      _gst_structure_take_structure (in, "gst-rtpjitterbuffer-stats",
+          &jb_stats);
 
     gst_structure_set (in, "gst-rtpsource-stats", GST_TYPE_STRUCTURE,
         source_stats, NULL);
@@ -737,7 +743,6 @@ _get_stats_from_transport_channel (GstWebRTCBin * webrtc,
     stats = gst_value_get_structure (val);
 
     /* skip foreign sources */
-    gst_structure_get (stats, "ssrc", G_TYPE_UINT, &stats_ssrc, NULL);
     if (gst_structure_get_uint (stats, "ssrc", &stats_ssrc) &&
         ssrc == stats_ssrc)
       _get_stats_from_rtp_source_stats (webrtc, stream, stats, codec_id,
@@ -758,16 +763,18 @@ _get_stats_from_transport_channel (GstWebRTCBin * webrtc,
 }
 
 /* https://www.w3.org/TR/webrtc-stats/#codec-dict* */
-static void
+static gboolean
 _get_codec_stats_from_pad (GstWebRTCBin * webrtc, GstPad * pad,
     GstStructure * s, gchar ** out_id, guint * out_ssrc, guint * out_clock_rate)
 {
+  GstWebRTCBinPad *wpad = GST_WEBRTC_BIN_PAD (pad);
   GstStructure *stats;
-  GstCaps *caps;
+  GstCaps *caps = NULL;
   gchar *id;
   double ts;
   guint ssrc = 0;
   gint clock_rate = 0;
+  gboolean has_caps_ssrc = FALSE;
 
   gst_structure_get_double (s, "timestamp", &ts);
 
@@ -775,10 +782,15 @@ _get_codec_stats_from_pad (GstWebRTCBin * webrtc, GstPad * pad,
   id = g_strdup_printf ("codec-stats-%s", GST_OBJECT_NAME (pad));
   _set_base_stats (stats, GST_WEBRTC_STATS_CODEC, ts, id);
 
-  caps = gst_pad_get_current_caps (pad);
+  if (wpad->received_caps)
+    caps = gst_caps_ref (wpad->received_caps);
+  GST_DEBUG_OBJECT (pad, "Pad caps are: %" GST_PTR_FORMAT, caps);
   if (caps && gst_caps_is_fixed (caps)) {
     GstStructure *caps_s = gst_caps_get_structure (caps, 0);
     gint pt;
+    const gchar *encoding_name, *media, *encoding_params;
+    GstSDPMedia sdp_media = { 0 };
+    guint channels = 0;
 
     if (gst_structure_get_int (caps_s, "payload", &pt))
       gst_structure_set (stats, "payload-type", G_TYPE_UINT, pt, NULL);
@@ -786,10 +798,45 @@ _get_codec_stats_from_pad (GstWebRTCBin * webrtc, GstPad * pad,
     if (gst_structure_get_int (caps_s, "clock-rate", &clock_rate))
       gst_structure_set (stats, "clock-rate", G_TYPE_UINT, clock_rate, NULL);
 
-    if (gst_structure_get_uint (caps_s, "ssrc", &ssrc))
+    if (gst_structure_get_uint (caps_s, "ssrc", &ssrc)) {
       gst_structure_set (stats, "ssrc", G_TYPE_UINT, ssrc, NULL);
+      has_caps_ssrc = TRUE;
+    }
 
-    /* FIXME: codecType, mimeType, channels, sdpFmtpLine, implementation, transportId */
+    media = gst_structure_get_string (caps_s, "media");
+    encoding_name = gst_structure_get_string (caps_s, "encoding-name");
+    encoding_params = gst_structure_get_string (caps_s, "encoding-params");
+
+    if (media || encoding_name) {
+      gchar *mime_type;
+
+      mime_type = g_strdup_printf ("%s/%s", media ? media : "",
+          encoding_name ? encoding_name : "");
+      gst_structure_set (stats, "mime-type", G_TYPE_STRING, mime_type, NULL);
+      g_free (mime_type);
+    }
+
+    if (encoding_params)
+      channels = atoi (encoding_params);
+    if (channels)
+      gst_structure_set (stats, "channels", G_TYPE_UINT, channels, NULL);
+
+    if (gst_pad_get_direction (pad) == GST_PAD_SRC)
+      gst_structure_set (stats, "codec-type", G_TYPE_STRING, "decode", NULL);
+    else
+      gst_structure_set (stats, "codec-type", G_TYPE_STRING, "encode", NULL);
+
+    gst_sdp_media_init (&sdp_media);
+    if (gst_sdp_media_set_media_from_caps (caps, &sdp_media) == GST_SDP_OK) {
+      const gchar *fmtp = gst_sdp_media_get_attribute_val (&sdp_media, "fmtp");
+
+      if (fmtp) {
+        gst_structure_set (stats, "sdp-fmtp-line", G_TYPE_STRING, fmtp, NULL);
+      }
+    }
+    gst_sdp_media_uninit (&sdp_media);
+
+    /* FIXME: transportId */
   }
 
   if (caps)
@@ -808,6 +855,8 @@ _get_codec_stats_from_pad (GstWebRTCBin * webrtc, GstPad * pad,
 
   if (out_clock_rate)
     *out_clock_rate = clock_rate;
+
+  return has_caps_ssrc;
 }
 
 static gboolean
@@ -817,8 +866,10 @@ _get_stats_from_pad (GstWebRTCBin * webrtc, GstPad * pad, GstStructure * s)
   TransportStream *stream;
   gchar *codec_id;
   guint ssrc, clock_rate;
+  gboolean has_caps_ssrc;
 
-  _get_codec_stats_from_pad (webrtc, pad, s, &codec_id, &ssrc, &clock_rate);
+  has_caps_ssrc = _get_codec_stats_from_pad (webrtc, pad, s, &codec_id, &ssrc,
+      &clock_rate);
 
   if (!wpad->trans)
     goto out;
@@ -826,6 +877,9 @@ _get_stats_from_pad (GstWebRTCBin * webrtc, GstPad * pad, GstStructure * s)
   stream = WEBRTC_TRANSCEIVER (wpad->trans)->stream;
   if (!stream)
     goto out;
+
+  if (!has_caps_ssrc)
+    ssrc = wpad->last_ssrc;
 
   _get_stats_from_transport_channel (webrtc, stream, codec_id, ssrc,
       clock_rate, s);

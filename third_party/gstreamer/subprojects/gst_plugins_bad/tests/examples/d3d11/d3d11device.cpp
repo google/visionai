@@ -19,10 +19,10 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "d3d11device.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/tests/examples/d3d11/d3d11device.h"
 #include <d3dcompiler.h>
 #include <wrl.h>
 #include <string.h>

@@ -22,6 +22,7 @@
 #include "visionai/streams/client/resource_util.h"
 #include "visionai/streams/packet/packet.h"
 #include "visionai/testing/grpc/mock_grpc.h"
+#include "visionai/testing/status/status_matchers.h"
 #include "visionai/util/time_util.h"
 #include "visionai/util/status/status_macros.h"
 

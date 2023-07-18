@@ -73,7 +73,7 @@
  * If you must do that for some reason, there is still an option.
  * If the debugging
  * subsystem was compiled out, GST_DISABLE_GST_DEBUG is defined in
- * &lt;gst/gst.h&gt;,
+ * <gst/gst.h>,
  * so you can check that before doing your trick.
  * Disabling the debugging subsystem will give you a slight (read: unnoticeable)
  * speed increase and will reduce the size of your compiled code. The GStreamer
@@ -576,6 +576,54 @@ gst_debug_log_valist (GstDebugCategory * category, GstDebugLevel level,
   }
   g_free (message.message);
   va_end (message.arguments);
+}
+
+/**
+ * gst_debug_log_literal:
+ * @category: category to log
+ * @level: level of the message is in
+ * @file: the file that emitted the message, usually the __FILE__ identifier
+ * @function: the function that emitted the message
+ * @line: the line from that the message was emitted, usually __LINE__
+ * @object: (transfer none) (allow-none): the object this message relates to,
+ *     or %NULL if none
+ * @message_string: a message string
+ *
+ * Logs the given message using the currently registered debugging handlers.
+ *
+ * Since: 1.20
+ */
+void
+gst_debug_log_literal (GstDebugCategory * category, GstDebugLevel level,
+    const gchar * file, const gchar * function, gint line,
+    GObject * object, const gchar * message_string)
+{
+  GstDebugMessage message;
+  LogFuncEntry *entry;
+  GSList *handler;
+
+  g_return_if_fail (category != NULL);
+
+#ifdef GST_ENABLE_EXTRA_CHECKS
+  g_warn_if_fail (object == NULL || G_IS_OBJECT (object));
+#endif
+
+  if (level > gst_debug_category_get_threshold (category))
+    return;
+
+  g_return_if_fail (file != NULL);
+  g_return_if_fail (function != NULL);
+  g_return_if_fail (message_string != NULL);
+
+  message.message = (gchar *) message_string;
+
+  handler = __log_functions;
+  while (handler) {
+    entry = handler->data;
+    handler = g_slist_next (handler);
+    entry->func (category, level, file, function, line, object, &message,
+        entry->user_data);
+  }
 }
 
 /**
@@ -2056,6 +2104,8 @@ parse_debug_level (gchar * str, GstDebugLevel * level)
     } else {
       return FALSE;
     }
+  } else if (strcmp (str, "NONE") == 0) {
+    *level = GST_LEVEL_NONE;
   } else if (strcmp (str, "ERROR") == 0) {
     *level = GST_LEVEL_ERROR;
   } else if (strncmp (str, "WARN", 4) == 0) {
@@ -2338,6 +2388,13 @@ void
 gst_debug_log_valist (GstDebugCategory * category, GstDebugLevel level,
     const gchar * file, const gchar * function, gint line,
     GObject * object, const gchar * format, va_list args)
+{
+}
+
+void
+gst_debug_log_literal (GstDebugCategory * category, GstDebugLevel level,
+    const gchar * file, const gchar * function, gint line,
+    GObject * object, const gchar * message_string)
 {
 }
 
@@ -2942,13 +2999,14 @@ generate_backtrace_trace (void)
   char **strings;
   GString *trace;
 
-  trace = g_string_new (NULL);
   nptrs = backtrace (buffer, BT_BUF_SIZE);
 
   strings = backtrace_symbols (buffer, nptrs);
 
   if (!strings)
     return NULL;
+
+  trace = g_string_new (NULL);
 
   for (j = 0; j < nptrs; j++)
     g_string_append_printf (trace, "%s\n", strings[j]);

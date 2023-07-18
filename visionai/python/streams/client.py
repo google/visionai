@@ -2,27 +2,31 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-"""Example client binary to list streams in Vertex AI Vision."""
+"""Base client library for the Streams service."""
 
-import dataclasses
+import logging
+from typing import Optional
 
-from google import auth as google_auth
-from google.auth.transport import grpc as google_auth_transport_grpc
-from google.auth.transport import requests as google_auth_transport_requests
+from google.api_core import client_options as client_options_lib
 
-from visionai.python.protos.googleapis.v1 import streams_service_pb2
-from visionai.python.protos.googleapis.v1 import streams_service_pb2_grpc
+from visionai.python.gapic.visionai import visionai_v1
+from visionai.python.net import channel
 
-
-@dataclasses.dataclass
-class ConnectionOptions:
-  service_endpoint: str
-  project_id: str
-  location_id: str
-  cluster_id: str
+_logger = logging.getLogger(__name__)
 
 
-def list_streams(connection_options):
+def _create_streams_client(
+    connection_options: channel.ConnectionOptions,
+) -> visionai_v1.StreamsServiceClient:
+  return visionai_v1.StreamsServiceClient(
+      client_options=client_options_lib.ClientOptions(
+          api_endpoint=channel.get_service_endpoint(connection_options.env),
+      ),
+      transport="grpc",
+  )
+
+
+def list_streams(connection_options: channel.ConnectionOptions):
   """List Streams from Vertex AI Vision.
 
   Args:
@@ -32,13 +36,9 @@ def list_streams(connection_options):
   Returns:
     A `ListStreamsResponse`.
   """
-  credentials, _ = google_auth.default()
-  request = google_auth_transport_requests.Request()
-  channel = google_auth_transport_grpc.secure_authorized_channel(
-      credentials, request, connection_options.service_endpoint
-  )
-  stub = streams_service_pb2_grpc.StreamsServiceStub(channel)
-  request = streams_service_pb2.ListStreamsRequest()
+  streams_client = _create_streams_client(connection_options)
+
+  request = visionai_v1.ListStreamsRequest()
   parent = (
       "projects/{project_id}/locations/{location_id}/clusters/{cluster_id}"
       .format(
@@ -49,5 +49,83 @@ def list_streams(connection_options):
   )
   metadata = [("x-goog-request-params", "parent={}".format(parent))]
   request.parent = parent
-  response = stub.ListStreams(request, metadata=metadata)
+  response = streams_client.list_streams(request, metadata=metadata)
   return response
+
+
+def create_cluster(
+    connection_options: channel.ConnectionOptions, timeout: Optional[int] = 7200
+) -> visionai_v1.Cluster:
+  """Creates a new cluster and wait for it to complete.
+
+  Args:
+    connection_options: A `ConnectionOptions` targetting a specific Vertex AI
+      Vision instance.
+    timeout: a timeout in seconds for waiting for the cluster creation. By
+      defualt, waits for 2h.
+
+  Returns:
+    The cluster created.
+
+  Raises:
+      google.api_core.GoogleAPICallError: If the operation errors or if
+          the timeout is reached before the operation completes.
+  """
+  streams_client = _create_streams_client(connection_options)
+  parent = "projects/{project_id}/locations/{location_id}".format(
+      project_id=connection_options.project_id,
+      location_id=connection_options.location_id,
+  )
+  request = visionai_v1.CreateClusterRequest(
+      cluster_id=connection_options.cluster_id,
+      parent=parent,
+  )
+
+  create_cluster_op = streams_client.create_cluster(
+      request, metadata=[("x-goog-request-params", "parent={}".format(parent))]
+  )
+  _logger.info(
+      "Wait for CreateCluster operation %s. ", create_cluster_op.operation.name
+  )
+  _logger.info("Cluster created %s", create_cluster_op.result(timeout=timeout))
+  return create_cluster_op.result()
+
+
+def delete_cluster(
+    connection_options: channel.ConnectionOptions, timeout: Optional[int] = 7200
+) -> None:
+  """Deletes a cluster and wait for it to complete.
+
+  Args:
+    connection_options: A `ConnectionOptions` targetting a specific Vertex AI
+      Vision instance.
+    timeout: a timeout in seconds for waiting for the cluster deletion. By
+      defualt, waits for 2h.
+
+  Returns:
+    The cluster deleted.
+
+  Raises:
+      google.api_core.GoogleAPICallError: If the operation errors or if
+          the timeout is reached before the operation completes.
+  """
+  streams_client = _create_streams_client(connection_options)
+  name = (
+      "projects/{project_id}/locations/{location_id}/clusters/{cluster_id}"
+      .format(
+          project_id=connection_options.project_id,
+          location_id=connection_options.location_id,
+          cluster_id=connection_options.cluster_id,
+      )
+  )
+  request = visionai_v1.DeleteClusterRequest(
+      name=name,
+  )
+
+  delete_cluster_op = streams_client.delete_cluster(
+      request, metadata=[("x-goog-request-params", "name={}".format(name))]
+  )
+  _logger.info(
+      "Wait for DeleteCluster operation %s. ", delete_cluster_op.operation.name
+  )
+  _logger.info("Cluster deleted %s", delete_cluster_op.result(timeout=timeout))

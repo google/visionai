@@ -121,6 +121,9 @@
 #include <windows.h>
 extern HMODULE _priv_gst_dll_handle;
 #endif
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
 
 /* Use a toolchain-dependent suffix on Windows */
 #ifdef G_OS_WIN32
@@ -1186,7 +1189,7 @@ gst_registry_scan_plugin_file (GstRegistryScanContext * context,
     /* Load plugin the old fashioned way... */
 
     /* We don't use a GError here because a failure to load some shared
-     * objects as plugins is normal (particularly in the uninstalled case)
+     * objects as plugins is normal (particularly in the development environment case)
      */
     newplugin = _priv_gst_plugin_load_file_for_registry (filename,
         context->registry, NULL);
@@ -1210,12 +1213,40 @@ gst_registry_scan_plugin_file (GstRegistryScanContext * context,
 }
 
 static gboolean
-is_blacklisted_directory (const gchar * dirent)
+skip_directory (const gchar * parent_path, const gchar * dirent)
 {
+  const gchar *target;
+
   /* hotdoc private folder can contain many files and it slows down
    * the discovery for nothing */
   if (g_str_has_prefix (dirent, "hotdoc-private-"))
     return TRUE;
+
+  /* Rust build dirs which may contain artefacts we should skip, can be
+   * /target/{debug,release} or /target/{arch}/{debug,release} */
+  target = strstr (parent_path, "/target/");
+
+  /* On Windows both forward and backward slashes may be used */
+#ifdef G_OS_WIN32
+  if (target == NULL)
+    target = strstr (parent_path, "\\target\\");
+#endif
+
+  if (target != NULL) {
+    if (g_str_has_suffix (target + 7, "/debug")
+#ifdef G_OS_WIN32
+        || g_str_has_suffix (target + 7, "\\debug")
+        || g_str_has_suffix (target + 7, "\\release")
+#endif
+        || g_str_has_suffix (target + 7, "/release")) {
+      if (dirent[0] == '.'
+          || strcmp (dirent, "build") == 0
+          || strcmp (dirent, "deps") == 0
+          || strcmp (dirent, "incremental") == 0) {
+        return TRUE;
+      }
+    }
+  }
 
   if (G_LIKELY (dirent[0] != '.'))
     return FALSE;
@@ -1226,7 +1257,7 @@ is_blacklisted_directory (const gchar * dirent)
     return TRUE;
 
   /* can also skip .git and .deps dirs, those won't contain useful files.
-   * This speeds up scanning a bit in uninstalled setups. */
+   * This speeds up scanning a bit in development environment setups. */
   if (strcmp (dirent, ".git") == 0 || strcmp (dirent, ".deps") == 0)
     return TRUE;
 
@@ -1259,7 +1290,7 @@ gst_registry_scan_path_level (GstRegistryScanContext * context,
     }
 
     if (file_status.st_mode & S_IFDIR) {
-      if (G_UNLIKELY (is_blacklisted_directory (dirent))) {
+      if (G_UNLIKELY (skip_directory (path, dirent))) {
         GST_TRACE_OBJECT (context->registry, "ignoring %s directory", dirent);
         g_free (filename);
         continue;
@@ -1543,6 +1574,54 @@ load_plugin_func (gpointer data, gpointer user_data)
   }
 }
 
+char *
+priv_gst_get_relocated_libgstreamer (void)
+{
+  char *dir = NULL;
+
+#ifdef G_OS_WIN32
+  {
+    char *base_dir;
+
+    GST_DEBUG ("attempting to retrieve libgstreamer-1.0 location using "
+        "Win32-specific method");
+
+    base_dir =
+        g_win32_get_package_installation_directory_of_module
+        (_priv_gst_dll_handle);
+    if (!base_dir)
+      return NULL;
+
+    dir = g_build_filename (base_dir, GST_PLUGIN_SUBDIR, NULL);
+    GST_DEBUG ("using DLL dir %s", dir);
+
+    g_free (base_dir);
+  }
+#elif defined(__APPLE__) && defined(HAVE_DLADDR)
+  {
+    Dl_info info;
+
+    GST_DEBUG ("attempting to retrieve libgstreamer-1.0 location using "
+        "dladdr()");
+
+    if (dladdr (&gst_init, &info)) {
+      GST_LOG ("dli_fname: %s", info.dli_fname);
+
+      if (!info.dli_fname) {
+        return NULL;
+      }
+
+      dir = g_path_get_dirname (info.dli_fname);
+    } else {
+      GST_LOG ("dladdr() failed");
+      return NULL;
+    }
+  }
+#endif
+
+  return dir;
+}
+
 #ifndef GST_DISABLE_REGISTRY
 /* Unref all plugins marked 'cached', to clear old plugins that no
  * longer exist. Returns %TRUE if any plugins were removed */
@@ -1654,7 +1733,7 @@ scan_and_update_registry (GstRegistry * default_registry,
   if (plugin_path == NULL)
     plugin_path = g_getenv ("GST_PLUGIN_SYSTEM_PATH");
   if (plugin_path == NULL) {
-    char *home_plugins;
+    char *home_plugins, *relocated_libgstreamer, *system_plugindir;
 
     GST_DEBUG ("GST_PLUGIN_SYSTEM_PATH not set");
 
@@ -1669,28 +1748,21 @@ scan_and_update_registry (GstRegistry * default_registry,
 
     /* add the main (installed) library path */
 
-#ifdef G_OS_WIN32
-    {
-      char *base_dir;
-      char *dir;
-
-      base_dir =
-          g_win32_get_package_installation_directory_of_module
-          (_priv_gst_dll_handle);
-
-      dir = g_build_filename (base_dir, GST_PLUGIN_SUBDIR,
+    relocated_libgstreamer = priv_gst_get_relocated_libgstreamer ();
+    if (relocated_libgstreamer) {
+      GST_DEBUG ("found libgstreamer-" GST_API_VERSION " library "
+          "at %s", relocated_libgstreamer);
+      system_plugindir = g_build_filename (relocated_libgstreamer,
           "gstreamer-" GST_API_VERSION, NULL);
-      GST_DEBUG ("scanning DLL dir %s", dir);
-
-      changed |= gst_registry_scan_path_internal (&context, dir);
-
-      g_free (dir);
-      g_free (base_dir);
+    } else {
+      system_plugindir = g_strdup (PLUGINDIR);
     }
-#else
-    GST_DEBUG ("scanning main plugins %s", PLUGINDIR);
-    changed |= gst_registry_scan_path_internal (&context, PLUGINDIR);
-#endif
+
+    GST_DEBUG ("using plugin dir %s", system_plugindir);
+    changed |= gst_registry_scan_path_internal (&context, system_plugindir);
+
+    g_clear_pointer (&system_plugindir, g_free);
+    g_clear_pointer (&relocated_libgstreamer, g_free);
   } else {
     gchar **list;
     gint i;
@@ -1732,12 +1804,11 @@ scan_and_update_registry (GstRegistry * default_registry,
   return REGISTRY_SCAN_AND_UPDATE_SUCCESS_UPDATED;
 }
 
-static gboolean
+static void
 ensure_current_registry (GError ** error)
 {
   gchar *registry_file;
   GstRegistry *default_registry;
-  gboolean ret = TRUE;
   gboolean do_update = TRUE;
   gboolean have_cache = TRUE;
 
@@ -1787,9 +1858,7 @@ ensure_current_registry (GError ** error)
   }
 
   g_free (registry_file);
-  GST_INFO ("registry reading and updating done, result = %d", ret);
-
-  return ret;
+  GST_INFO ("registry reading and updating done");
 }
 #endif /* GST_DISABLE_REGISTRY */
 
@@ -1852,13 +1921,11 @@ gst_registry_fork_set_enabled (gboolean enabled)
 gboolean
 gst_update_registry (void)
 {
-  gboolean res;
-
 #ifndef GST_DISABLE_REGISTRY
   if (!_priv_gst_disable_registry) {
     GError *err = NULL;
 
-    res = ensure_current_registry (&err);
+    ensure_current_registry (&err);
     if (err) {
       GST_WARNING ("registry update failed: %s", err->message);
       g_error_free (err);
@@ -1867,12 +1934,10 @@ gst_update_registry (void)
     }
   } else {
     GST_INFO ("registry update disabled by environment");
-    res = TRUE;
   }
 
 #else
   GST_WARNING ("registry update failed: %s", "registry disabled");
-  res = TRUE;
 #endif /* GST_DISABLE_REGISTRY */
 
 #ifndef GST_DISABLE_OPTION_PARSING
@@ -1882,7 +1947,7 @@ gst_update_registry (void)
   }
 #endif
 
-  return res;
+  return TRUE;
 }
 
 /**

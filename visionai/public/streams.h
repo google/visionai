@@ -104,6 +104,17 @@ struct ServiceConnectionOptions {
 
 /// @}
 
+/// @brief MotionFilterOptions is a structure that contains options to config
+///        the motion filter.
+struct MotionFilterOptions {
+  std::string cool_down_period;
+  std::string min_event_length;
+  std::string motion_detection_sensitivity;
+  std::string lookback_window;
+};
+
+/// @}
+
 /// @defgroup control Control
 /// @brief Constructs for controlling service resources.
 
@@ -126,6 +137,31 @@ absl::Status CreateStream(const ServiceConnectionOptions& options,
 /// @brief Deletes the stream with id `stream_id`.
 absl::Status DeleteStream(const ServiceConnectionOptions& options,
                           absl::string_view stream_id);
+/// @}
+
+/// @brief Add an input stream to an app platform application.
+///
+/// @param option Connection options.
+/// @param stream_id The id of the stream to add.
+/// @param application_id The id of the application to add the stream to.
+/// @return OK on success. Otherwise the error indicating the cause.
+///
+absl::Status AddStreamToApplication(const ServiceConnectionOptions& options,
+                                    absl::string_view stream_id,
+                                    absl::string_view application_id);
+/// @}
+
+/// @brief Remove an input stream from an app platform application.
+///
+/// @param option Connection options.
+/// @param stream_id The id of the stream to remove.
+/// @param application_id The id of the application to remove the stream from.
+/// @return OK on success. Otherwise the error indicating the cause.
+///
+absl::Status RemoveStreamFromApplication(
+    const ServiceConnectionOptions& options,
+    absl::string_view stream_id,
+    absl::string_view application_id);
 /// @}
 
 /// @defgroup packet Packet
@@ -441,6 +477,20 @@ absl::Status IngestMp4(const ServiceConnectionOptions& options,
 absl::Status IngestRtsp(const ServiceConnectionOptions& options,
                         absl::string_view stream_id,
                         absl::string_view rtsp_url);
+
+/// @}
+
+/// @brief Ingests an MP4 video file on the local file system named `file_name`
+///        into a stream of id `stream_id`, with motion filter, in loop mode.
+///
+/// Returns OK on success; otherwise, an error message telling why the ingestion
+/// could not complete successfully.
+///
+absl::Status IngestMotion(const ServiceConnectionOptions& options,
+                       absl::string_view stream_id,
+                       absl::string_view event_id,
+                       absl::string_view file_name,
+                       const MotionFilterOptions& motion_options);
 
 /// @}
 

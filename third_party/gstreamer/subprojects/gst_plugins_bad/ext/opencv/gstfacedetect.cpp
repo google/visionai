@@ -73,14 +73,14 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
 #include <vector>
 
 using namespace std;
 
-#include "gstfacedetect.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstfacedetect.h"
 #include <opencv2/imgproc.hpp>
 
 GST_DEBUG_CATEGORY_STATIC (gst_face_detect_debug);

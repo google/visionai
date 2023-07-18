@@ -1,5 +1,4 @@
 # This is the directory for general utilities.
-load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 package(
     default_visibility = [
@@ -70,29 +69,15 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-cc_proto_library(
-    name = "duration_cc_proto",
-    deps = [
-        "@com_google_protobuf//:duration_proto",
-    ],
-)
-
-cc_proto_library(
-    name = "timestamp_cc_proto",
-    deps = [
-        "@com_google_protobuf//:timestamp_proto",
-    ],
-)
-
 cc_library(
     name = "time_util",
     srcs = ["time_util.cc"],
     hdrs = ["time_util.h"],
     visibility = ["//visibility:public"],
     deps = [
-        ":duration_cc_proto",
-        ":timestamp_cc_proto",
+        ":time_constants",
         "@com_google_absl//absl/time",
+        "@com_google_protobuf//:protobuf",
     ],
 )
 
@@ -103,6 +88,11 @@ cc_test(
         ":time_util",
         "@com_google_googletest//:gtest_main",
     ],
+)
+
+cc_library(
+    name = "time_constants",
+    hdrs = ["time_constants.h"],
 )
 
 cc_library(

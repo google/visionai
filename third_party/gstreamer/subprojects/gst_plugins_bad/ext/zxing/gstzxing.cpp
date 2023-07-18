@@ -50,15 +50,15 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstzxing.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/zxing/gstzxing.h"
 
 #include <string.h>
 #include <math.h>
 
-#include <gst/video/video.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/video/video.h"
 
 #include "ReadBarcode.h"
 #include "TextUtfEncoding.h"

@@ -20,6 +20,7 @@
 #include "visionai/streams/client/mock_streaming_service.h"
 #include "visionai/streams/client/resource_util.h"
 #include "visionai/streams/packet/packet.h"
+#include "visionai/testing/status/status_matchers.h"
 
 namespace visionai {
 namespace testing {

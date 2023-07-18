@@ -15,6 +15,7 @@
 #include "visionai/streams/framework/attr_def.pb.h"
 #include "visionai/streams/framework/attr_value_util.h"
 #include "visionai/streams/framework/event_writer_def_registry.h"
+#include "visionai/util/time_util.h"
 #include "visionai/util/status/status_macros.h"
 
 namespace visionai {
@@ -34,6 +35,7 @@ const AttrDef* FindAttrDef(absl::string_view name, const T& def) {
 absl::Status EventWriterInitContext::Initialize(
     const EventWriterConfig& config) {
   cluster_selection_ = config.cluster_selection();
+  grace_period_ = ToAbseilDuration(config.grace_period());
 
   VAI_ASSIGN_OR_RETURN(auto event_writer_def,
                    EventWriterDefRegistry::Global()->LookUp(config.name()),
@@ -68,6 +70,10 @@ EventWriterInitContext::Create(const EventWriterConfig& config) {
 absl::StatusOr<ClusterSelection> EventWriterInitContext::GetClusterSelection()
     const {
   return cluster_selection_;
+}
+
+absl::Duration EventWriterInitContext::GetGracePeriod() const {
+  return grace_period_;
 }
 
 EventWriterRegistry* EventWriterRegistry::Global() {

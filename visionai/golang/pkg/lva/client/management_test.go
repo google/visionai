@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"google3/base/go/log"
-	lvagpb "google3/google/cloud/visionai/v1alpha1_lva_go_grpc_proto"
-	lvapb "google3/google/cloud/visionai/v1alpha1_lva_go_proto"
+	lvagpb "google3/google/cloud/visionai/v1_lva_go_grpc_proto"
+	lvapb "google3/google/cloud/visionai/v1_lva_go_proto"
 	lropb "google3/google/longrunning/operations_go_proto"
 	lro "google3/google/longrunning/operations_grpc_go"
 
@@ -27,15 +27,18 @@ import (
 )
 
 var (
-	testParent = "projects/test-project/locations/test-locations/clusters/test-cluster"
+	testParent    = "projects/test-project/locations/test-locations/clusters/test-cluster"
+	testParentPrj = "projects/test-project/locations/test-locations"
 )
 
 type fakeLVAService struct {
 	lvagpb.UnimplementedLiveVideoAnalyticsServer
 	lro.UnimplementedOperationsServer
 
-	analyses  []*lvapb.Analysis
-	processes []*lvapb.Process
+	analyses        []*lvapb.Analysis
+	processes       []*lvapb.Process
+	operators       []*lvapb.Operator
+	publicOperators []*lvapb.Operator
 }
 
 func (s *fakeLVAService) ListAnalyses(ctx context.Context, req *lvapb.ListAnalysesRequest) (*lvapb.ListAnalysesResponse, error) {
@@ -50,6 +53,15 @@ func (s *fakeLVAService) ListAnalyses(ctx context.Context, req *lvapb.ListAnalys
 
 func (s *fakeLVAService) GetAnalysis(ctx context.Context, req *lvapb.GetAnalysisRequest) (*lvapb.Analysis, error) {
 	for _, a := range s.analyses {
+		if a.GetName() == req.GetName() {
+			return a, nil
+		}
+	}
+	return nil, status.Error(codes.NotFound, "not found")
+}
+
+func (s *fakeLVAService) GetOperator(ctx context.Context, req *lvapb.GetOperatorRequest) (*lvapb.Operator, error) {
+	for _, a := range s.operators {
 		if a.GetName() == req.GetName() {
 			return a, nil
 		}
@@ -121,6 +133,29 @@ func (s *fakeLVAService) BatchRunProcess(ctx context.Context, req *lvapb.BatchRu
 	return &lropb.Operation{}, nil
 }
 
+func (s *fakeLVAService) ListOperators(ctx context.Context, req *lvapb.ListOperatorsRequest) (*lvapb.ListOperatorsResponse, error) {
+	ops := make([]*lvapb.Operator, 0)
+	for _, p := range s.operators {
+		if strings.HasPrefix(p.GetName(), req.GetParent()) {
+			ops = append(ops, p)
+		}
+	}
+	return lvapb.ListOperatorsResponse_builder{Operators: ops}.Build(), nil
+}
+
+func (s *fakeLVAService) ListPublicOperators(ctx context.Context, req *lvapb.ListPublicOperatorsRequest) (*lvapb.ListPublicOperatorsResponse, error) {
+	return lvapb.ListPublicOperatorsResponse_builder{Operators: s.publicOperators}.Build(), nil
+}
+
+func (s *fakeLVAService) DeleteOperator(ctx context.Context, req *lvapb.DeleteOperatorRequest) (*lropb.Operation, error) {
+	for i, p := range s.operators {
+		if p.GetName() == req.GetName() {
+			s.operators = append(s.operators[:i], s.operators[i+1:]...)
+		}
+	}
+	return &lropb.Operation{}, nil
+}
+
 func (s *fakeLVAService) GetOperation(ctx context.Context, req *lropb.GetOperationRequest) (*lropb.Operation, error) {
 	return &lropb.Operation{
 		Done: true,
@@ -181,7 +216,7 @@ func TestListLiveVideoAnalyticsAnalyses(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			manager := mustCreateManager(test.analyses, []*lvapb.Process{})
+			manager := mustCreateManager(managerOptions{analyses: test.analyses})
 			got, err := manager.ListAnalyses(test.parent)
 			if err != nil {
 				t.Fatalf("want nil, got error %v", err)
@@ -231,7 +266,7 @@ func TestGetLiveVideoAnalyticsAnalysis(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			manager := mustCreateManager(test.analyses, []*lvapb.Process{})
+			manager := mustCreateManager(managerOptions{analyses: test.analyses})
 			got, err := manager.GetAnalysis(test.analysis)
 			if test.wantErr {
 				if err == nil {
@@ -256,7 +291,7 @@ func TestCreateLiveVideoAnalyticsAnalysis(t *testing.T) {
 		}.Build(),
 	}
 	analysis := lvapb.Analysis_builder{}.Build()
-	manager := mustCreateManager(analyses, []*lvapb.Process{})
+	manager := mustCreateManager(managerOptions{analyses: analyses})
 	_, err := manager.GetAnalysis(fmt.Sprintf("%s/analyses/analysis-2", testParent))
 	if !is(err, codes.NotFound) {
 		t.Fatalf("want NotFound, got %v", err)
@@ -280,7 +315,7 @@ func TestDeleteLiveVideoAnalyticsAnalysis(t *testing.T) {
 			Name: fmt.Sprintf("%s/analyses/analysis-2", testParent),
 		}.Build(),
 	}
-	manager := mustCreateManager(analyses, []*lvapb.Process{})
+	manager := mustCreateManager(managerOptions{analyses: analyses})
 	_, err := manager.GetAnalysis(fmt.Sprintf("%s/analyses/analysis-1", testParent))
 	if err != nil {
 		t.Fatalf("want nil, got %v", err)
@@ -297,7 +332,14 @@ func TestDeleteLiveVideoAnalyticsAnalysis(t *testing.T) {
 	}
 }
 
-func mustCreateManager(analyses []*lvapb.Analysis, processes []*lvapb.Process) Interface {
+type managerOptions struct {
+	analyses        []*lvapb.Analysis
+	processes       []*lvapb.Process
+	operators       []*lvapb.Operator
+	publicOperators []*lvapb.Operator
+}
+
+func mustCreateManager(options managerOptions) Interface {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatal(err)
@@ -305,8 +347,10 @@ func mustCreateManager(analyses []*lvapb.Analysis, processes []*lvapb.Process) I
 	s := grpc.NewServer()
 
 	server := &fakeLVAService{
-		analyses:  analyses,
-		processes: processes,
+		analyses:        options.analyses,
+		processes:       options.processes,
+		operators:       options.operators,
+		publicOperators: options.publicOperators,
 	}
 	lvagpb.RegisterLiveVideoAnalyticsServer(s, server)
 	lro.RegisterOperationsServer(s, server)
@@ -322,6 +366,90 @@ func mustCreateManager(analyses []*lvapb.Analysis, processes []*lvapb.Process) I
 		log.Fatal(err)
 	}
 	return manager
+}
+
+func TestListLiveVideoAnalyticsOperators(t *testing.T) {
+	tests := []struct {
+		name      string
+		operators []*lvapb.Operator
+		parent    string
+		want      []*lvapb.Operator
+	}{
+		{
+			name:   "successfully list operators",
+			parent: testParentPrj,
+			operators: []*lvapb.Operator{
+				lvapb.Operator_builder{
+					Name: fmt.Sprintf("%s/operators/operator-1", testParentPrj),
+				}.Build(),
+			},
+			want: []*lvapb.Operator{
+				lvapb.Operator_builder{
+					Name: fmt.Sprintf("%s/operators/operator-1", testParentPrj),
+				}.Build(),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			manager := mustCreateManager(managerOptions{operators: test.operators})
+			got, err := manager.ListOperators(test.parent)
+			if err != nil {
+				t.Fatalf("want nil, got error %v", err)
+			}
+			if len(got) != len(test.want) {
+				t.Fatalf("want %d operators, got %d operators", len(test.want), len(got))
+			}
+			for id := range test.want {
+				if diff := cmp.Diff(got[id], test.want[id], protocmp.Transform()); diff != "" {
+					t.Errorf("want %s, got %s, (-want +got)\n %s", test.want[id], got[id], diff)
+				}
+			}
+		})
+	}
+}
+
+func TestListLiveVideoAnalyticsPublicOperators(t *testing.T) {
+	tests := []struct {
+		name            string
+		publicOperators []*lvapb.Operator
+		parent          string
+		want            []*lvapb.Operator
+	}{
+		{
+			name:   "successfully list operators",
+			parent: testParentPrj,
+			publicOperators: []*lvapb.Operator{
+				lvapb.Operator_builder{
+					Name: fmt.Sprintf("%s/operators/operator-2", testParentPrj),
+				}.Build(),
+			},
+			want: []*lvapb.Operator{
+				lvapb.Operator_builder{
+					Name: fmt.Sprintf("%s/operators/operator-2", testParentPrj),
+				}.Build(),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			manager := mustCreateManager(managerOptions{publicOperators: test.publicOperators})
+			got, err := manager.ListPublicOperators(test.parent)
+			if err != nil {
+				t.Fatalf("want nil, got error %v", err)
+			}
+			if len(got) != len(test.want) {
+				t.Fatalf("want %d operators, got %d operators", len(test.want), len(got))
+			}
+			for id := range test.want {
+				if diff := cmp.Diff(got[id], test.want[id], protocmp.Transform()); diff != "" {
+					t.Errorf("want %s, got %s, (-want +got)\n %s", test.want[id], got[id], diff)
+				}
+			}
+		})
+	}
 }
 
 func TestListLiveVideoAnalyticsProcesses(t *testing.T) {
@@ -378,7 +506,8 @@ func TestListLiveVideoAnalyticsProcesses(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			manager := mustCreateManager([]*lvapb.Analysis{}, test.processes)
+
+			manager := mustCreateManager(managerOptions{processes: test.processes})
 			got, err := manager.ListProcesses(test.parent)
 			if err != nil {
 				t.Fatalf("want nil, got error %v", err)
@@ -428,7 +557,7 @@ func TestGetLiveVideoAnalyticsProcess(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			manager := mustCreateManager([]*lvapb.Analysis{}, test.processes)
+			manager := mustCreateManager(managerOptions{processes: test.processes})
 			got, err := manager.GetProcess(test.process)
 			if test.wantErr {
 				if err == nil {
@@ -453,7 +582,7 @@ func TestCreateLiveVideoAnalyticsProcess(t *testing.T) {
 		}.Build(),
 	}
 	process := lvapb.Process_builder{}.Build()
-	manager := mustCreateManager([]*lvapb.Analysis{}, processes)
+	manager := mustCreateManager(managerOptions{processes: processes})
 	_, err := manager.GetProcess(fmt.Sprintf("%s/processes/process-2", testParent))
 	if !is(err, codes.NotFound) {
 		t.Fatalf("want NotFound, got %v", err)
@@ -477,7 +606,7 @@ func TestDeleteLiveVideoAnalyticsProcess(t *testing.T) {
 			Name: fmt.Sprintf("%s/processes/process-2", testParent),
 		}.Build(),
 	}
-	manager := mustCreateManager([]*lvapb.Analysis{}, processes)
+	manager := mustCreateManager(managerOptions{processes: processes})
 	_, err := manager.GetProcess(fmt.Sprintf("%s/processes/process-1", testParent))
 	if err != nil {
 		t.Fatalf("want nil, got %v", err)
@@ -494,13 +623,39 @@ func TestDeleteLiveVideoAnalyticsProcess(t *testing.T) {
 	}
 }
 
+func TestDeleteLiveVideoAnalyticsOperator(t *testing.T) {
+	operators := []*lvapb.Operator{
+		lvapb.Operator_builder{
+			Name: fmt.Sprintf("%s/operators/operator-1", testParentPrj),
+		}.Build(),
+		lvapb.Operator_builder{
+			Name: fmt.Sprintf("%s/operators/operator-2", testParentPrj),
+		}.Build(),
+	}
+	manager := mustCreateManager(managerOptions{operators: operators})
+	_, err := manager.GetOperator(fmt.Sprintf("%s/operators/operator-1", testParentPrj))
+	if err != nil {
+		t.Fatalf("want nil, got %v", err)
+	}
+
+	err = manager.DeleteOperator(fmt.Sprintf("%s/operators/operator-1", testParentPrj))
+	if err != nil {
+		t.Fatalf("want nil, got error %v", err)
+	}
+
+	_, err = manager.GetOperator(fmt.Sprintf("%s/operators/operator-1", testParentPrj))
+	if !is(err, codes.NotFound) {
+		t.Fatalf("want NotFound, got %v", err)
+	}
+}
+
 func TestBatchRunLiveVideoAnalyticsProcess(t *testing.T) {
 	processes := []*lvapb.Process{
 		lvapb.Process_builder{
 			Name: fmt.Sprintf("%s/processes/process-1", testParent),
 		}.Build(),
 	}
-	manager := mustCreateManager([]*lvapb.Analysis{}, processes)
+	manager := mustCreateManager(managerOptions{processes: processes})
 	for i := 2; i < 4; i++ {
 		_, err := manager.GetProcess(fmt.Sprintf("%s/processes/process-%d", testParent, i))
 		if !is(err, codes.NotFound) {

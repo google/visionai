@@ -45,6 +45,9 @@ type deploymentTmplInfo struct {
 
 	DockerImageLink   string
 	EnableNewRegistry bool
+
+	LiveMode    bool
+	InputStream string
 }
 
 var deploymentTemplate = `
@@ -93,7 +96,7 @@ spec:
       containers:
         - name: {{.ContainerName}}
     {{- if .EnableNewRegistry}}
-		      image: "{{.DockerImageLink}}"
+          image: "{{.DockerImageLink}}"
     {{- else}}
           image: "{{.DockerRegistry}}/operators/{{.DockerImageName}}:{{.DockerImageTag}}"
 		{{- end}}
@@ -122,6 +125,12 @@ spec:
               value: "1"
             - name: PROJECT_ID
               value: "{{.ProjectIDEnv}}"
+            - name: PROCESS_NAME
+              value: "{{.ProcessName}}"
+    {{- if .LiveMode}}
+            - name: INPUT_STREAM
+              value: "{{.InputStream}}"
+    {{- end}}
     {{- if .IncludeRuntimeEnv}}
             - name: ANALYSIS_NAME
               value: "{{.AnalysisNameEnv}}"
@@ -183,6 +192,9 @@ func genAnalyzerDeployment(info *asg.AnalyzerInfo, ctx *Context) (string, error)
 		ProcessName:       processNameTemplateString,
 		EnableNewRegistry: info.Operator.DockerImage != "",
 		DockerImageLink:   info.Operator.DockerImage,
+
+		LiveMode:    ctx.FeatureOptions.RunMode == "live",
+		InputStream: fmt.Sprintf(inputStreamIDTemplateString, 0),
 	}
 	var renderedTmpl bytes.Buffer
 	err = tmpl.Execute(&renderedTmpl, tmplInfo)

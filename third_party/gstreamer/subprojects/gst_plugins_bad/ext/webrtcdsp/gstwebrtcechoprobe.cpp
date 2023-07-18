@@ -28,13 +28,13 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstwebrtcechoprobe.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/webrtcdsp/gstwebrtcechoprobe.h"
 
 #include <webrtc/modules/interface/module_common_types.h>
-#include <gst/audio/audio.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/audio/audio.h"
 
 GST_DEBUG_CATEGORY_EXTERN (webrtc_dsp_debug);
 #define GST_CAT_DEFAULT (webrtc_dsp_debug)

@@ -593,7 +593,7 @@ gst_h264_decoder_parse_sps (GstH264Decoder * self, GstH264NalUnit * nalu)
   GstH264DecoderPrivate *priv = self->priv;
   GstH264SPS sps;
   GstH264ParserResult pres;
-  gboolean ret;
+  GstFlowReturn ret;
 
   pres = gst_h264_parse_sps (nalu, &sps);
   if (pres != GST_H264_PARSER_OK) {
@@ -1036,8 +1036,8 @@ gst_h264_decoder_init_current_picture (GstH264Decoder * self)
   /* If the slice header indicates we will have to perform reference marking
    * process after this picture is decoded, store required data for that
    * purpose */
-  if (priv->current_slice.header.dec_ref_pic_marking.
-      adaptive_ref_pic_marking_mode_flag) {
+  if (priv->current_slice.header.
+      dec_ref_pic_marking.adaptive_ref_pic_marking_mode_flag) {
     priv->current_picture->dec_ref_pic_marking =
         priv->current_slice.header.dec_ref_pic_marking;
   }
@@ -1410,6 +1410,16 @@ gst_h264_decoder_set_format (GstVideoDecoder * decoder,
 
   self->input_state = gst_video_codec_state_ref (state);
 
+  /* in case live streaming, we will run on low-latency mode */
+  priv->is_live = FALSE;
+  query = gst_query_new_latency ();
+  if (gst_pad_peer_query (GST_VIDEO_DECODER_SINK_PAD (self), query))
+    gst_query_parse_latency (query, &priv->is_live, NULL, NULL);
+  gst_query_unref (query);
+
+  if (priv->is_live)
+    GST_DEBUG_OBJECT (self, "Live source, will run on low-latency mode");
+
   if (state->caps) {
     GstStructure *str;
     const GValue *codec_data_value;
@@ -1478,16 +1488,6 @@ gst_h264_decoder_set_format (GstVideoDecoder * decoder,
     }
     gst_buffer_unmap (priv->codec_data, &map);
   }
-
-  /* in case live streaming, we will run on low-latency mode */
-  priv->is_live = FALSE;
-  query = gst_query_new_latency ();
-  if (gst_pad_peer_query (GST_VIDEO_DECODER_SINK_PAD (self), query))
-    gst_query_parse_latency (query, &priv->is_live, NULL, NULL);
-  gst_query_unref (query);
-
-  if (priv->is_live)
-    GST_DEBUG_OBJECT (self, "Live source, will run on low-latency mode");
 
   return TRUE;
 }
@@ -2331,7 +2331,8 @@ gst_h264_decoder_set_latency (GstH264Decoder * self, const GstH264SPS * sps,
   GstClockTime min, max;
   GstStructure *structure;
   gint fps_d = 1, fps_n = 0;
-  guint32 num_reorder_frames;
+  GstH264DpbBumpMode bump_level;
+  guint32 frames_delay;
 
   caps = gst_pad_get_current_caps (GST_VIDEO_DECODER_SRC_PAD (self));
   if (!caps)
@@ -2352,18 +2353,30 @@ gst_h264_decoder_set_latency (GstH264Decoder * self, const GstH264SPS * sps,
     fps_d = 1;
   }
 
-  num_reorder_frames = priv->is_live ? 0 : 1;
-  if (sps->vui_parameters_present_flag
-      && sps->vui_parameters.bitstream_restriction_flag)
-    num_reorder_frames = sps->vui_parameters.num_reorder_frames;
-  if (num_reorder_frames > max_dpb_size)
-    num_reorder_frames = priv->is_live ? 0 : 1;
+  bump_level = get_bump_level (self);
+  frames_delay = 0;
+  switch (bump_level) {
+    case GST_H264_DPB_BUMP_NORMAL_LATENCY:
+      /* We always wait the DPB full before bumping. */
+      frames_delay = max_dpb_size;
+      break;
+    case GST_H264_DPB_BUMP_LOW_LATENCY:
+      /* We bump the IDR if the second frame is not a minus POC. */
+      frames_delay = 1;
+      break;
+    case GST_H264_DPB_BUMP_VERY_LOW_LATENCY:
+      /* We bump the IDR immediately. */
+      frames_delay = 0;
+      break;
+    default:
+      g_assert_not_reached ();
+      break;
+  }
 
   /* Consider output delay wanted by subclass */
-  num_reorder_frames += priv->preferred_output_delay;
+  frames_delay += priv->preferred_output_delay;
 
-  min = gst_util_uint64_scale_int (num_reorder_frames * GST_SECOND, fps_d,
-      fps_n);
+  min = gst_util_uint64_scale_int (frames_delay * GST_SECOND, fps_d, fps_n);
   max = gst_util_uint64_scale_int ((max_dpb_size + priv->preferred_output_delay)
       * GST_SECOND, fps_d, fps_n);
 

@@ -129,6 +129,7 @@ gst_base_ts_mux_pad_flush (GstAggregatorPad * agg_pad, GstAggregator * agg)
 
   /* Send initial segments again after a flush-stop, and also resend the
    * header sections */
+  g_mutex_lock (&mux->lock);
   mux->first = TRUE;
 
   /* output PAT, SI tables */
@@ -141,6 +142,7 @@ gst_base_ts_mux_pad_flush (GstAggregatorPad * agg_pad, GstAggregator * agg)
 
     tsmux_resend_pmt (program);
   }
+  g_mutex_unlock (&mux->lock);
 
   return GST_FLOW_OK;
 }
@@ -261,14 +263,13 @@ gst_base_ts_mux_set_header_on_caps (GstBaseTsMux * mux)
   GValue value = { 0 };
   GstCaps *caps;
 
-  caps = gst_pad_get_current_caps (GST_AGGREGATOR_SRC_PAD (mux));
-
-  /* If we have no caps, we are possibly shutting down */
-  if (!caps)
-    return;
+  caps = gst_pad_get_pad_template_caps (GST_AGGREGATOR_SRC_PAD (mux));
 
   caps = gst_caps_make_writable (caps);
   structure = gst_caps_get_structure (caps, 0);
+
+  gst_structure_set (structure, "packetsize", G_TYPE_INT, mux->packet_size,
+      NULL);
 
   g_value_init (&array, GST_TYPE_ARRAY);
 
@@ -297,6 +298,7 @@ steal_si_section (GstMpegtsSectionType * type, TsMuxSection * section,
   return TRUE;
 }
 
+/* Must be called with mux->lock held */
 static void
 gst_base_ts_mux_reset (GstBaseTsMux * mux, gboolean alloc)
 {
@@ -307,7 +309,7 @@ gst_base_ts_mux_reset (GstBaseTsMux * mux, gboolean alloc)
 
   mux->first = TRUE;
   mux->last_flow_ret = GST_FLOW_OK;
-  mux->last_ts = 0;
+  mux->last_ts = GST_CLOCK_TIME_NONE;
   mux->is_delta = TRUE;
   mux->is_header = FALSE;
 
@@ -317,7 +319,7 @@ gst_base_ts_mux_reset (GstBaseTsMux * mux, gboolean alloc)
 
   if (mux->out_adapter)
     gst_adapter_clear (mux->out_adapter);
-  mux->output_ts_offset = GST_CLOCK_TIME_NONE;
+  mux->output_ts_offset = GST_CLOCK_STIME_NONE;
 
   if (mux->tsmux) {
     if (mux->tsmux->si_sections)
@@ -372,6 +374,7 @@ release_buffer_cb (guint8 * data, void *user_data)
   stream_data_free ((StreamData *) user_data);
 }
 
+/* Must be called with mux->lock held */
 static GstFlowReturn
 gst_base_ts_mux_create_or_update_stream (GstBaseTsMux * mux,
     GstBaseTsMuxPad * ts_pad, GstCaps * caps)
@@ -388,6 +391,7 @@ gst_base_ts_mux_create_or_update_stream (GstBaseTsMux * mux,
   guint8 color_spec = 0;
   const gchar *stream_format = NULL;
   const char *interlace_mode = NULL;
+  gchar *pmt_name;
 
   GST_DEBUG_OBJECT (ts_pad,
       "%s stream with PID 0x%04x for caps %" GST_PTR_FORMAT,
@@ -693,6 +697,12 @@ gst_base_ts_mux_create_or_update_stream (GstBaseTsMux * mux,
       goto error;
   }
 
+  pmt_name = g_strdup_printf ("PMT_%d", ts_pad->pid);
+  if (mux->prog_map && gst_structure_has_field (mux->prog_map, pmt_name)) {
+    gst_structure_get_int (mux->prog_map, pmt_name, &ts_pad->stream->pmt_index);
+  }
+  g_free (pmt_name);
+
   interlace_mode = gst_structure_get_string (s, "interlace-mode");
   gst_structure_get_int (s, "rate", &ts_pad->stream->audio_sampling);
   gst_structure_get_int (s, "channels", &ts_pad->stream->audio_channels);
@@ -739,6 +749,7 @@ is_valid_pmt_pid (guint16 pmt_pid)
   return TRUE;
 }
 
+/* Must be called with mux->lock held */
 static GstFlowReturn
 gst_base_ts_mux_create_stream (GstBaseTsMux * mux, GstBaseTsMuxPad * ts_pad)
 {
@@ -760,6 +771,7 @@ gst_base_ts_mux_create_stream (GstBaseTsMux * mux, GstBaseTsMuxPad * ts_pad)
   return ret;
 }
 
+/* Must be called with mux->lock held */
 static GstFlowReturn
 gst_base_ts_mux_create_pad_stream (GstBaseTsMux * mux, GstPad * pad)
 {
@@ -869,6 +881,7 @@ no_stream:
   }
 }
 
+/* Must be called with mux->lock held */
 static gboolean
 gst_base_ts_mux_create_pad_stream_func (GstElement * element, GstPad * pad,
     gpointer user_data)
@@ -880,6 +893,7 @@ gst_base_ts_mux_create_pad_stream_func (GstElement * element, GstPad * pad,
   return *ret == GST_FLOW_OK;
 }
 
+/* Must be called with mux->lock held */
 static GstFlowReturn
 gst_base_ts_mux_create_streams (GstBaseTsMux * mux)
 {
@@ -1118,7 +1132,7 @@ new_packet_cb (GstBuffer * buf, void *user_data, gint64 new_pcr)
   }
 
   if (GST_CLOCK_TIME_IS_VALID (GST_BUFFER_PTS (buf))) {
-    if (!GST_CLOCK_TIME_IS_VALID (mux->output_ts_offset)) {
+    if (!GST_CLOCK_STIME_IS_VALID (mux->output_ts_offset)) {
       GstClockTime output_start_time = agg_segment->position;
       if (agg_segment->position == -1
           || agg_segment->position < agg_segment->start) {
@@ -1132,13 +1146,14 @@ new_packet_cb (GstBuffer * buf, void *user_data, gint64 new_pcr)
           GST_STIME_ARGS (mux->output_ts_offset));
     }
 
-    if (GST_CLOCK_TIME_IS_VALID (mux->output_ts_offset)) {
-      GST_BUFFER_PTS (buf) += mux->output_ts_offset;
-    }
-  }
+    GST_BUFFER_PTS (buf) += mux->output_ts_offset;
 
-  if (GST_CLOCK_TIME_IS_VALID (GST_BUFFER_PTS (buf))) {
     agg_segment->position = GST_BUFFER_PTS (buf);
+  } else if (agg_segment->position == -1
+      || agg_segment->position < agg_segment->start) {
+    GST_BUFFER_PTS (buf) = agg_segment->start;
+  } else {
+    GST_BUFFER_PTS (buf) = agg_segment->position;
   }
 
   /* do common init (flags and streamheaders) */
@@ -1182,11 +1197,13 @@ gst_base_ts_mux_aggregate_buffer (GstBaseTsMux * mux,
     return GST_FLOW_OK;
   }
 
+  g_mutex_lock (&mux->lock);
   if (G_UNLIKELY (mux->first)) {
     ret = gst_base_ts_mux_create_streams (mux);
     if (G_UNLIKELY (ret != GST_FLOW_OK)) {
       if (buf)
         gst_buffer_unref (buf);
+      g_mutex_unlock (&mux->lock);
       return ret;
     }
 
@@ -1225,6 +1242,7 @@ gst_base_ts_mux_aggregate_buffer (GstBaseTsMux * mux,
   if (mux->force_key_unit_event != NULL && best->stream->is_video_stream) {
     GstEvent *event;
 
+    g_mutex_unlock (&mux->lock);
     event = check_pending_key_unit_event (mux->force_key_unit_event,
         &agg_pad->segment, GST_BUFFER_PTS (buf),
         GST_BUFFER_FLAGS (buf), mux->pending_key_unit_ts);
@@ -1244,6 +1262,7 @@ gst_base_ts_mux_aggregate_buffer (GstBaseTsMux * mux,
           GST_TIME_ARGS (running_time), count);
       gst_pad_push_event (GST_AGGREGATOR_SRC_PAD (mux), event);
 
+      g_mutex_lock (&mux->lock);
       /* output PAT, SI tables */
       tsmux_resend_pat (mux->tsmux);
       tsmux_resend_si (mux->tsmux);
@@ -1254,6 +1273,8 @@ gst_base_ts_mux_aggregate_buffer (GstBaseTsMux * mux,
 
         tsmux_resend_pmt (program);
       }
+    } else {
+      g_mutex_lock (&mux->lock);
     }
   }
 
@@ -1308,14 +1329,17 @@ gst_base_ts_mux_aggregate_buffer (GstBaseTsMux * mux,
     GST_WARNING_OBJECT (mux, "KLV meta unit too big, splitting not supported");
 
     gst_buffer_unref (buf);
+    g_mutex_unlock (&mux->lock);
     return GST_FLOW_OK;
   }
 
   GST_DEBUG_OBJECT (mux, "delta: %d", delta);
 
-  stream_data = stream_data_new (buf);
-  tsmux_stream_add_data (best->stream, stream_data->map_info.data,
-      stream_data->map_info.size, stream_data, pts, dts, !delta);
+  if (gst_buffer_get_size (buf) > 0) {
+    stream_data = stream_data_new (buf);
+    tsmux_stream_add_data (best->stream, stream_data->map_info.data,
+        stream_data->map_info.size, stream_data, pts, dts, !delta);
+  }
 
   /* outgoing ts follows ts of PCR program stream */
   if (prog->pcr_stream == best->stream) {
@@ -1337,6 +1361,7 @@ gst_base_ts_mux_aggregate_buffer (GstBaseTsMux * mux,
       goto write_fail;
     }
   }
+  g_mutex_unlock (&mux->lock);
   /* flush packet cache */
   return gst_base_ts_mux_push_packets (mux, FALSE);
 
@@ -1378,9 +1403,12 @@ gst_base_ts_mux_request_new_pad (GstElement * element, GstPadTemplate * templ,
   GstPad *pad = NULL;
   gchar *free_name = NULL;
 
+  g_mutex_lock (&mux->lock);
   if (name != NULL && sscanf (name, "sink_%d", &pid) == 1) {
-    if (tsmux_find_stream (mux->tsmux, pid))
+    if (tsmux_find_stream (mux->tsmux, pid)) {
+      g_mutex_unlock (&mux->lock);
       goto stream_exists;
+    }
     /* Make sure we don't use reserved PID.
      * FIXME : This should be extended to other variants (ex: ATSC) reserved PID */
     if (pid < TSMUX_START_ES_PID)
@@ -1393,6 +1421,7 @@ gst_base_ts_mux_request_new_pad (GstElement * element, GstPadTemplate * templ,
     /* Name the pad correctly after the selected pid */
     name = free_name = g_strdup_printf ("sink_%d", pid);
   }
+  g_mutex_unlock (&mux->lock);
 
   pad = (GstPad *)
       GST_ELEMENT_CLASS (parent_class)->request_new_pad (element,
@@ -1426,6 +1455,7 @@ gst_base_ts_mux_release_pad (GstElement * element, GstPad * pad)
 {
   GstBaseTsMux *mux = GST_BASE_TS_MUX (element);
 
+  g_mutex_lock (&mux->lock);
   if (mux->tsmux) {
     GList *cur;
     GstBaseTsMuxPad *ts_pad = GST_BASE_TS_MUX_PAD (pad);
@@ -1450,6 +1480,7 @@ gst_base_ts_mux_release_pad (GstElement * element, GstPad * pad)
       tsmux_resend_pmt (program);
     }
   }
+  g_mutex_unlock (&mux->lock);
 
   GST_ELEMENT_CLASS (parent_class)->release_pad (element, pad);
 }
@@ -1868,8 +1899,10 @@ gst_base_ts_mux_send_event (GstElement * element, GstEvent * event)
     if (section->section_type == GST_MPEGTS_SECTION_SCTE_SIT) {
       handle_scte35_section (mux, event, section, 0, NULL);
     } else {
+      g_mutex_lock (&mux->lock);
       /* TODO: Check that the section type is supported */
       tsmux_add_mpegts_si_section (mux->tsmux, section);
+      g_mutex_unlock (&mux->lock);
     }
 
     gst_event_unref (event);
@@ -1899,18 +1932,25 @@ gst_base_ts_mux_sink_event (GstAggregator * agg, GstAggregatorPad * agg_pad,
       GstFlowReturn ret;
       GList *cur;
 
-      if (ts_pad->stream == NULL)
+      g_mutex_lock (&mux->lock);
+      if (ts_pad->stream == NULL) {
+        g_mutex_unlock (&mux->lock);
         break;
+      }
 
       forward = FALSE;
 
       gst_event_parse_caps (event, &caps);
-      if (!caps || !gst_caps_is_fixed (caps))
+      if (!caps || !gst_caps_is_fixed (caps)) {
+        g_mutex_unlock (&mux->lock);
         break;
+      }
 
       ret = gst_base_ts_mux_create_or_update_stream (mux, ts_pad, caps);
-      if (ret != GST_FLOW_OK)
+      if (ret != GST_FLOW_OK) {
+        g_mutex_unlock (&mux->lock);
         break;
+      }
 
       mux->tsmux->pat_changed = TRUE;
       mux->tsmux->si_changed = TRUE;
@@ -1924,6 +1964,7 @@ gst_base_ts_mux_sink_event (GstAggregator * agg, GstAggregatorPad * agg_pad,
         program->pmt_changed = TRUE;
         tsmux_resend_pmt (program);
       }
+      g_mutex_unlock (&mux->lock);
 
       res = TRUE;
       break;
@@ -2070,7 +2111,7 @@ gst_base_ts_mux_src_event (GstAggregator * agg, GstEvent * event)
       GstIterator *iter;
       GValue sinkpad_value = G_VALUE_INIT;
       GstClockTime running_time;
-      gboolean all_headers, done = FALSE, res = FALSE;
+      gboolean all_headers, done = FALSE;
       guint count;
 
       if (!gst_video_event_is_force_key_unit (event))
@@ -2207,20 +2248,6 @@ beach:
   return ret;
 }
 
-static GstFlowReturn
-gst_base_ts_mux_update_src_caps (GstAggregator * agg, GstCaps * caps,
-    GstCaps ** ret)
-{
-  GstBaseTsMux *mux = GST_BASE_TS_MUX (agg);
-  GstStructure *s;
-
-  *ret = gst_caps_copy (caps);
-  s = gst_caps_get_structure (*ret, 0);
-  gst_structure_set (s, "packetsize", G_TYPE_INT, mux->packet_size, NULL);
-
-  return GST_FLOW_OK;
-}
-
 static GstBaseTsMuxPad *
 gst_base_ts_mux_find_best_pad (GstAggregator * aggregator)
 {
@@ -2292,6 +2319,21 @@ gst_base_ts_mux_aggregate (GstAggregator * agg, gboolean timeout)
   GstBaseTsMux *mux = GST_BASE_TS_MUX (agg);
   GstFlowReturn ret = GST_FLOW_OK;
   GstBaseTsMuxPad *best = gst_base_ts_mux_find_best_pad (agg);
+  GstCaps *caps;
+
+  /* set caps on the srcpad if no caps were set yet */
+  if (!(caps = gst_pad_get_current_caps (agg->srcpad))) {
+    GstStructure *structure;
+
+    caps = gst_pad_get_pad_template_caps (GST_AGGREGATOR_SRC_PAD (mux));
+    caps = gst_caps_make_writable (caps);
+    structure = gst_caps_get_structure (caps, 0);
+    gst_structure_set (structure, "packetsize", G_TYPE_INT, mux->packet_size,
+        NULL);
+
+    gst_aggregator_set_src_caps (GST_AGGREGATOR (mux), caps);
+  }
+  gst_caps_unref (caps);
 
   if (best) {
     GstBuffer *buffer;
@@ -2329,7 +2371,11 @@ done:
 static gboolean
 gst_base_ts_mux_start (GstAggregator * agg)
 {
-  gst_base_ts_mux_reset (GST_BASE_TS_MUX (agg), TRUE);
+  GstBaseTsMux *mux = GST_BASE_TS_MUX (agg);
+
+  g_mutex_lock (&mux->lock);
+  gst_base_ts_mux_reset (mux, TRUE);
+  g_mutex_unlock (&mux->lock);
 
   return TRUE;
 }
@@ -2337,7 +2383,11 @@ gst_base_ts_mux_start (GstAggregator * agg)
 static gboolean
 gst_base_ts_mux_stop (GstAggregator * agg)
 {
+  GstBaseTsMux *mux = GST_BASE_TS_MUX (agg);
+
+  g_mutex_lock (&mux->lock);
   gst_base_ts_mux_reset (GST_BASE_TS_MUX (agg), TRUE);
+  g_mutex_unlock (&mux->lock);
 
   return TRUE;
 }
@@ -2349,6 +2399,7 @@ gst_base_ts_mux_dispose (GObject * object)
 {
   GstBaseTsMux *mux = GST_BASE_TS_MUX (object);
 
+  g_mutex_lock (&mux->lock);
   gst_base_ts_mux_reset (mux, FALSE);
 
   if (mux->out_adapter) {
@@ -2363,7 +2414,17 @@ gst_base_ts_mux_dispose (GObject * object)
     g_hash_table_destroy (mux->programs);
     mux->programs = NULL;
   }
+  g_mutex_unlock (&mux->lock);
   GST_CALL_PARENT (G_OBJECT_CLASS, dispose, (object));
+}
+
+static void
+gst_base_ts_mux_finalize (GObject * object)
+{
+  GstBaseTsMux *mux = GST_BASE_TS_MUX (object);
+
+  g_mutex_clear (&mux->lock);
+  GST_CALL_PARENT (G_OBJECT_CLASS, finalize, (object));
 }
 
 static void
@@ -2372,7 +2433,9 @@ gst_base_ts_mux_constructed (GObject * object)
   GstBaseTsMux *mux = GST_BASE_TS_MUX (object);
 
   /* initial state */
+  g_mutex_lock (&mux->lock);
   gst_base_ts_mux_reset (mux, TRUE);
+  g_mutex_unlock (&mux->lock);
 }
 
 static void
@@ -2397,8 +2460,10 @@ gst_base_ts_mux_set_property (GObject * object, guint prop_id,
     }
     case PROP_PAT_INTERVAL:
       mux->pat_interval = g_value_get_uint (value);
+      g_mutex_lock (&mux->lock);
       if (mux->tsmux)
         tsmux_set_pat_interval (mux->tsmux, mux->pat_interval);
+      g_mutex_unlock (&mux->lock);
       break;
     case PROP_PMT_INTERVAL:
       mux->pmt_interval = g_value_get_uint (value);
@@ -2406,7 +2471,9 @@ gst_base_ts_mux_set_property (GObject * object, guint prop_id,
       for (l = GST_ELEMENT_CAST (mux)->sinkpads; l; l = l->next) {
         GstBaseTsMuxPad *ts_pad = GST_BASE_TS_MUX_PAD (l->data);
 
+        g_mutex_lock (&mux->lock);
         tsmux_set_pmt_interval (ts_pad->prog, mux->pmt_interval);
+        g_mutex_unlock (&mux->lock);
       }
       GST_OBJECT_UNLOCK (mux);
       break;
@@ -2415,17 +2482,23 @@ gst_base_ts_mux_set_property (GObject * object, guint prop_id,
       break;
     case PROP_SI_INTERVAL:
       mux->si_interval = g_value_get_uint (value);
+      g_mutex_lock (&mux->lock);
       tsmux_set_si_interval (mux->tsmux, mux->si_interval);
+      g_mutex_unlock (&mux->lock);
       break;
     case PROP_BITRATE:
       mux->bitrate = g_value_get_uint64 (value);
+      g_mutex_lock (&mux->lock);
       if (mux->tsmux)
         tsmux_set_bitrate (mux->tsmux, mux->bitrate);
+      g_mutex_unlock (&mux->lock);
       break;
     case PROP_PCR_INTERVAL:
       mux->pcr_interval = g_value_get_uint (value);
+      g_mutex_lock (&mux->lock);
       if (mux->tsmux)
         tsmux_set_pcr_interval (mux->tsmux, mux->pcr_interval);
+      g_mutex_unlock (&mux->lock);
       break;
     case PROP_SCTE_35_PID:
       mux->scte35_pid = g_value_get_uint (value);
@@ -2549,13 +2622,14 @@ gst_base_ts_mux_class_init (GstBaseTsMuxClass * klass)
   gobject_class->get_property =
       GST_DEBUG_FUNCPTR (gst_base_ts_mux_get_property);
   gobject_class->dispose = gst_base_ts_mux_dispose;
+  gobject_class->finalize = gst_base_ts_mux_finalize;
   gobject_class->constructed = gst_base_ts_mux_constructed;
 
   gstelement_class->request_new_pad = gst_base_ts_mux_request_new_pad;
   gstelement_class->release_pad = gst_base_ts_mux_release_pad;
   gstelement_class->send_event = gst_base_ts_mux_send_event;
 
-  gstagg_class->update_src_caps = gst_base_ts_mux_update_src_caps;
+  gstagg_class->negotiate = NULL;
   gstagg_class->aggregate = gst_base_ts_mux_aggregate;
   gstagg_class->clip = gst_base_ts_mux_clip;
   gstagg_class->sink_event = gst_base_ts_mux_sink_event;
@@ -2649,4 +2723,6 @@ gst_base_ts_mux_init (GstBaseTsMux * mux)
 
   mux->packet_size = GST_BASE_TS_MUX_NORMAL_PACKET_LENGTH;
   mux->automatic_alignment = 0;
+
+  g_mutex_init (&mux->lock);
 }

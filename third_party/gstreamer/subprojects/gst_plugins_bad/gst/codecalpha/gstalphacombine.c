@@ -29,8 +29,8 @@
  *
  * ## Example launch line
  * |[
- * gst-launch-1.0 -v videotestsrc ! .c videotestsrc pattern=ball ! .c
- *     alphacombine name=c ! compositor ! autovideosink
+ * gst-launch-1.0 -v videotestsrc ! c. videotestsrc pattern=ball ! c.
+ *     alphacombine name=c ! compositor ! videoconvert ! autovideosink
  * ]| This pipeline uses luma of a ball test pattern as alpha, combined with
  * default test pattern and renders the resulting moving ball on a checker
  * board.
@@ -109,6 +109,9 @@ struct _GstAlphaCombine
   GstVideoInfo sink_vinfo;
   GstVideoInfo alpha_vinfo;
   GstVideoFormat src_format;
+
+  guint sink_format_cookie;
+  guint alpha_format_cookie;
 };
 
 #define gst_alpha_combine_parent_class parent_class
@@ -156,6 +159,13 @@ gst_alpha_combine_unlock_stop (GstAlphaCombine * self)
   g_mutex_lock (&self->buffer_lock);
   g_assert (self->flushing);
   self->flushing--;
+
+  /* Reset the format cookies to ensure they are equal */
+  if (!self->flushing) {
+    self->sink_format_cookie = 0;
+    self->alpha_format_cookie = 0;
+  }
+
   g_mutex_unlock (&self->buffer_lock);
 }
 
@@ -382,6 +392,7 @@ gst_alpha_combine_set_sink_format (GstAlphaCombine * self, GstCaps * caps)
   GstVideoFormat sink_format, src_format = GST_VIDEO_FORMAT_UNKNOWN;
   GstEvent *event;
   gint i;
+  gboolean ret;
 
   if (!gst_video_info_from_caps (&self->sink_vinfo, caps)) {
     GST_ELEMENT_ERROR (self, STREAM, FORMAT, ("Invalid video format"), (NULL));
@@ -412,7 +423,15 @@ gst_alpha_combine_set_sink_format (GstAlphaCombine * self, GstCaps * caps)
   event = gst_event_new_caps (caps);
   gst_caps_unref (caps);
 
-  return gst_pad_push_event (self->src_pad, event);
+  ret = gst_pad_push_event (self->src_pad, event);
+
+  /* signal the sink format change */
+  g_mutex_lock (&self->buffer_lock);
+  self->sink_format_cookie++;
+  g_cond_signal (&self->buffer_cond);
+  g_mutex_unlock (&self->buffer_lock);
+
+  return ret;
 }
 
 static gboolean
@@ -438,9 +457,24 @@ gst_alpha_combine_set_alpha_format (GstAlphaCombine * self, GstCaps * caps)
     return FALSE;
   }
 
+  self->alpha_format_cookie++;
+
+  /* wait for the matching format change on the sink pad */
+  while (self->alpha_format_cookie != self->sink_format_cookie &&
+      !self->flushing)
+    g_cond_wait (&self->buffer_cond, &self->buffer_lock);
+
   g_mutex_unlock (&self->buffer_lock);
 
   return TRUE;
+}
+
+static void
+gst_alpha_combine_handle_gap (GstAlphaCombine * self)
+{
+  GstBuffer *gap_buffer = gst_buffer_new ();
+  GST_BUFFER_FLAG_SET (gap_buffer, GST_BUFFER_FLAG_GAP);
+  gst_alpha_combine_push_alpha_buffer (self, gap_buffer);
 }
 
 static gboolean
@@ -493,6 +527,12 @@ gst_alpha_combine_alpha_event (GstPad * pad, GstObject * object,
       GstCaps *caps;
       gst_event_parse_caps (event, &caps);
       gst_alpha_combine_set_alpha_format (self, caps);
+      break;
+    }
+    case GST_EVENT_GAP:
+    {
+      gst_alpha_combine_handle_gap (self);
+      break;
     }
     default:
       break;
@@ -560,6 +600,8 @@ gst_alpha_combine_change_state (GstElement * element, GstStateChange transition)
       self->src_format = GST_VIDEO_FORMAT_UNKNOWN;
       gst_video_info_init (&self->sink_vinfo);
       gst_video_info_init (&self->alpha_vinfo);
+      self->sink_format_cookie = 0;
+      self->alpha_format_cookie = 0;
       break;
     default:
       break;

@@ -26,6 +26,9 @@ namespace visionai {
 ::visionai::ConnectionOptions
 DefaultConnectionOptions();
 
+// Get a ConnectionOptions initialized to reasonable defaults for unit test.
+::visionai::ConnectionOptions DefaultConnectionOptionsForTest();
+
 // Create a grpc channel from the given connection options.
 //
 // On failure, a "lame" channel is returned (one on which all operations fail).
@@ -41,6 +44,13 @@ std::shared_ptr<::grpc::Channel> CreateChannel(
 std::unique_ptr<::grpc::ClientContext> CreateClientContext(
     const ::visionai::ConnectionOptions&
         options);
+
+// Create a client context from the given client context options.
+//
+// This always succeeds.
+std::unique_ptr<::grpc::ClientContext> CreateClientContext(
+    const ::visionai::ConnectionOptions::ClientContextOptions&
+        client_context_options);
 
 // Set the authorization header from the json key if necessary. The function
 // will check if the GOOGLE_APPLICATION_CREDENTIALS is set and the target

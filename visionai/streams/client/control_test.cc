@@ -21,6 +21,7 @@
 #include "visionai/streams/client/mock_streams_service.h"
 #include "visionai/streams/client/resource_util.h"
 #include "visionai/testing/grpc/mock_grpc.h"
+#include "visionai/testing/status/status_matchers.h"
 #include "visionai/util/time_util.h"
 
 namespace visionai {
@@ -45,7 +46,6 @@ using ::google::longrunning::Operation;
 using ::testing::EqualsProto;
 using ::testing::Invoke;
 using ::testing::StrEq;
-using ::testing::status::IsOkAndHolds;
 
 const absl::string_view kTestProjectId = "some-project-id";
 const absl::string_view kTestLocationId = "some-location-id";

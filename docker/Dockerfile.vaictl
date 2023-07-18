@@ -6,11 +6,11 @@
 # To build:
 # docker build -f Dockerfile.vaictl . -t vaictl
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 COPY install/*.sh /install/
 COPY artifacts /artifacts
 
 RUN /install/install_basic_tools.sh
 RUN /install/install_gcloud_kubectl.sh
-RUN apt-get update && apt install -y ./artifacts/visionai_0.0-4_amd64.deb
+RUN apt-get update && apt install -y ./artifacts/visionai_0.0-5_amd64.deb

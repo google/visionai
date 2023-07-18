@@ -456,7 +456,8 @@ tsmux_program_new (TsMux * mux, gint prog_id)
   program->scte35_null_interval = TSMUX_DEFAULT_SCTE_35_NULL_INTERVAL;
   program->next_scte35_pcr = -1;
 
-  program->streams = g_array_sized_new (FALSE, TRUE, sizeof (TsMuxStream *), 1);
+  /* mux->streams owns the streams */
+  program->streams = g_ptr_array_new_full (1, NULL);
 
   mux->programs = g_list_prepend (mux->programs, program);
   mux->nb_programs++;
@@ -608,12 +609,45 @@ tsmux_program_get_scte35_pid (TsMuxProgram * program)
 void
 tsmux_program_add_stream (TsMuxProgram * program, TsMuxStream * stream)
 {
+  GPtrArray *streams;
+  guint i;
+  gint pmt_index, array_index = -1 /* append */ ;
+  guint16 pid;
+
   g_return_if_fail (program != NULL);
   g_return_if_fail (stream != NULL);
 
-  stream->program_array_index = program->streams->len;
+  streams = program->streams;
+  pmt_index = stream->pmt_index;
+  pid = tsmux_stream_get_pid (stream);
 
-  g_array_append_val (program->streams, stream);
+  if (pmt_index >= 0) {
+    /* Insert into streams with known indices */
+    for (i = 0; i < streams->len; i++) {
+      TsMuxStream *s = g_ptr_array_index (streams, i);
+
+      if (s->pmt_index < 0 || pmt_index < s->pmt_index) {
+        array_index = i;
+        GST_DEBUG ("PID 0x%04x: Using known-order index %d/%u",
+            pid, array_index, streams->len);
+        break;
+      }
+    }
+  } else {
+    /* Insert after streams with known indices, sorted by PID */
+    for (i = 0; i < streams->len; i++) {
+      TsMuxStream *s = g_ptr_array_index (streams, i);
+
+      if (s->pmt_index < 0 && pid < tsmux_stream_get_pid (s)) {
+        array_index = i;
+        GST_DEBUG ("PID 0x%04x: Using PID-order index %d/%u",
+            pid, array_index, streams->len);
+        break;
+      }
+    }
+  }
+
+  g_ptr_array_insert (streams, array_index, stream);
   program->pmt_changed = TRUE;
 }
 
@@ -744,22 +778,11 @@ tsmux_find_stream (TsMux * mux, guint16 pid)
 static gboolean
 tsmux_program_remove_stream (TsMuxProgram * program, TsMuxStream * stream)
 {
-  GArray *streams = program->streams;
-  TsMuxStream *s;
-  gint i;
+  GPtrArray *streams = program->streams;
 
-  i = stream->program_array_index;
-  g_return_val_if_fail (i >= 0, FALSE);
-
-  s = g_array_index (streams, TsMuxStream *, i);
-  g_return_val_if_fail (s == stream, FALSE);
-
-  g_array_remove_index (streams, i);
-
-  /* Correct indices of remaining streams, if any */
-  for (; i < streams->len; i++) {
-    s = g_array_index (streams, TsMuxStream *, i);
-    s->program_array_index -= 1;
+  if (!g_ptr_array_remove (streams, stream)) {
+    g_warn_if_reached ();
+    return FALSE;
   }
 
   return streams->len == 0;
@@ -1653,7 +1676,7 @@ tsmux_program_free (TsMuxProgram * program)
   if (program->scte35_null_section)
     tsmux_section_free (program->scte35_null_section);
 
-  g_array_free (program->streams, TRUE);
+  g_ptr_array_free (program->streams, TRUE);
   g_slice_free (TsMuxProgram, program);
 }
 
@@ -1666,6 +1689,16 @@ void
 tsmux_program_set_pmt_pid (TsMuxProgram * program, guint16 pmt_pid)
 {
   program->pmt_pid = pmt_pid;
+}
+
+static gint
+compare_program_number (gconstpointer a, gconstpointer b)
+{
+  const GstMpegtsPatProgram *pgm1 = *(const GstMpegtsPatProgram * const *) a;
+  const GstMpegtsPatProgram *pgm2 = *(const GstMpegtsPatProgram * const *) b;
+  gint num1 = pgm1->program_number, num2 = pgm2->program_number;
+
+  return num1 - num2;
 }
 
 static gboolean
@@ -1696,6 +1729,8 @@ tsmux_write_pat (TsMux * mux)
 
       g_ptr_array_add (pat, pat_pgm);
     }
+
+    g_ptr_array_sort (pat, compare_program_number);
 
     if (mux->pat.section)
       gst_mpegts_section_unref (mux->pat.section);
@@ -1772,7 +1807,7 @@ tsmux_write_pmt (TsMux * mux, TsMuxProgram * program)
     /* Write out the entries */
     for (i = 0; i < program->streams->len; i++) {
       GstMpegtsPMTStream *pmt_stream;
-      TsMuxStream *stream = g_array_index (program->streams, TsMuxStream *, i);
+      TsMuxStream *stream = g_ptr_array_index (program->streams, i);
 
       pmt_stream = gst_mpegts_pmt_stream_new ();
 

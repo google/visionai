@@ -54,11 +54,11 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gst/opencv/gstopencvutils.h"
-#include "gstcvsmooth.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/opencv/gstopencvutils.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstcvsmooth.h"
 #include <opencv2/imgproc.hpp>
 
 

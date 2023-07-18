@@ -25,7 +25,7 @@ constexpr char kVideoRawCapStringWithZeroFrameRate[] =
 
 TEST(pipeline_string, GetMp4FileSrcGstPipeline) {
   std::string gst_pipeline = FileSrcGstPipelineStr(kMp4VideoFilePath);
-  EXPECT_EQ(gst_pipeline, "filesrc location=/test.mp4 ! qtdemux ! h264parse");
+  EXPECT_EQ(gst_pipeline, "filesrc location=/test.mp4 ! parsebin");
 }
 
 TEST(pipeline_string, GetMkvFileSrcGstPipeline) {
@@ -34,29 +34,27 @@ TEST(pipeline_string, GetMkvFileSrcGstPipeline) {
 }
 
 TEST(pipeline_string, GetMp4FileSinkH264GstPipelineStr) {
-  auto gst_pipeline =
-      Mp4FileSinkH264GstPipelineStr(kMp4VideoFilePath);
+  auto gst_pipeline = Mp4FileSinkH264GstPipelineStr(kMp4VideoFilePath);
   EXPECT_EQ(gst_pipeline.value(),
-      "video/x-h264 ! mp4mux ! filesink location=/test.mp4");
+            "video/x-h264 ! mp4mux ! filesink location=/test.mp4");
 }
 
 TEST(pipeline_string, GetMp4FileSinkTranscodeGstPipelineStr) {
-  auto gst_pipeline = Mp4FileSinkTranscodeGstPipelineStr(kVideoRawCapString,
-                                                        kMp4VideoFilePath);
+  auto gst_pipeline =
+      Mp4FileSinkTranscodeGstPipelineStr(kVideoRawCapString, kMp4VideoFilePath);
   EXPECT_EQ(gst_pipeline.value(),
-      "decodebin ! videoconvert ! video/x-raw ! videorate ! "
-      "video/x-raw,framerate=30/1 ! x264enc ! mp4mux ! "
-      "filesink location=/test.mp4");
+            "decodebin ! videoconvert ! video/x-raw ! videorate ! "
+            "video/x-raw,framerate=30/1 ! x264enc ! mp4mux ! "
+            "filesink location=/test.mp4");
 }
 
 TEST(pipeline_string, GetMp4FileSinkTranscodeGstPipelineStrWithZeroFrameRate) {
   auto gst_pipeline = Mp4FileSinkTranscodeGstPipelineStr(
-      kVideoRawCapStringWithZeroFrameRate,
-      kMp4VideoFilePath);
+      kVideoRawCapStringWithZeroFrameRate, kMp4VideoFilePath);
   EXPECT_EQ(gst_pipeline.value(),
-      "decodebin ! videoconvert ! video/x-raw ! videorate ! "
-      "video/x-raw,framerate=25/1 ! x264enc ! mp4mux ! "
-      "filesink location=/test.mp4");
+            "decodebin ! videoconvert ! video/x-raw ! videorate ! "
+            "video/x-raw,framerate=25/1 ! x264enc ! mp4mux ! "
+            "filesink location=/test.mp4");
 }
 
 }  // namespace visionai

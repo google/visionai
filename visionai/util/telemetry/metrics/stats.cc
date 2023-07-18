@@ -246,6 +246,14 @@ std::string GetAnalysisId() {
     return analysis_info_vec.back();
 }
 
+std::string GetProcessName() {
+  return std::string(absl::NullSafeStringView(getenv(kProcessNameEnv)));
+}
+
+std::string GetInputStream() {
+  return std::string(absl::NullSafeStringView(getenv(kInputStreamNameEnv)));
+}
+
 #undef REGISTER_MEASURE
 #undef REGISTER_TAGKEY
 

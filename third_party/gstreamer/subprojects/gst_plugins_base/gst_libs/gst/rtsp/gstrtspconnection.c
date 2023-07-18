@@ -172,7 +172,8 @@ struct _GstRTSPConnection
   GMutex socket_use_mutex;
   gboolean manual_http;
   gboolean may_cancel;
-  GCancellable *cancellable;
+  GMutex cancellable_mutex;
+  GCancellable *cancellable;    /* protected by cancellable_mutex */
 
   gchar tunnelid[TUNNELID_LEN];
   gboolean tunneled;
@@ -352,6 +353,20 @@ socket_client_event (GSocketClient * client, GSocketClientEvent event,
   }
 }
 
+/* transfer full */
+static GCancellable *
+get_cancellable (GstRTSPConnection * conn)
+{
+  GCancellable *cancellable = NULL;
+
+  g_mutex_lock (&conn->cancellable_mutex);
+  if (conn->cancellable)
+    cancellable = g_object_ref (conn->cancellable);
+  g_mutex_unlock (&conn->cancellable_mutex);
+
+  return cancellable;
+}
+
 /**
  * gst_rtsp_connection_create:
  * @url: a #GstRTSPUrl
@@ -377,6 +392,7 @@ gst_rtsp_connection_create (const GstRTSPUrl * url, GstRTSPConnection ** conn)
 
   newconn->may_cancel = TRUE;
   newconn->cancellable = g_cancellable_new ();
+  g_mutex_init (&newconn->cancellable_mutex);
   newconn->client = g_socket_client_new ();
 
   if (url->transports & GST_RTSP_LOWER_TRANS_TLS)
@@ -627,6 +643,15 @@ gst_rtsp_connection_get_tls (GstRTSPConnection * conn, GError ** error)
  * Sets the TLS validation flags to be used to verify the peer
  * certificate when a TLS connection is established.
  *
+ * GLib guarantees that if certificate verification fails, at least one error
+ * will be set, but it does not guarantee that all possible errors will be
+ * set. Accordingly, you may not safely decide to ignore any particular type
+ * of error.
+ *
+ * For example, it would be incorrect to mask %G_TLS_CERTIFICATE_EXPIRED if
+ * you want to allow expired certificates, because this could potentially be
+ * the only error flag set even if other problems exist with the certificate.
+ *
  * Returns: TRUE if the validation flags are set correctly, or FALSE if
  * @conn is NULL or is not a TLS connection.
  *
@@ -641,8 +666,10 @@ gst_rtsp_connection_set_tls_validation_flags (GstRTSPConnection * conn,
   g_return_val_if_fail (conn != NULL, FALSE);
 
   res = g_socket_client_get_tls (conn->client);
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
   if (res)
     g_socket_client_set_tls_validation_flags (conn->client, flags);
+  G_GNUC_END_IGNORE_DEPRECATIONS;
 
   return res;
 }
@@ -654,7 +681,16 @@ gst_rtsp_connection_set_tls_validation_flags (GstRTSPConnection * conn,
  * Gets the TLS validation flags used to verify the peer certificate
  * when a TLS connection is established.
  *
- * Returns: the validationg flags.
+ * GLib guarantees that if certificate verification fails, at least one error
+ * will be set, but it does not guarantee that all possible errors will be
+ * set. Accordingly, you may not safely decide to ignore any particular type
+ * of error.
+ *
+ * For example, it would be incorrect to ignore %G_TLS_CERTIFICATE_EXPIRED if
+ * you want to allow expired certificates, because this could potentially be
+ * the only error flag set even if other problems exist with the certificate.
+ *
+ * Returns: the validation flags.
  *
  * Since: 1.2.1
  */
@@ -663,7 +699,9 @@ gst_rtsp_connection_get_tls_validation_flags (GstRTSPConnection * conn)
 {
   g_return_val_if_fail (conn != NULL, 0);
 
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
   return g_socket_client_get_tls_validation_flags (conn->client);
+  G_GNUC_END_IGNORE_DEPRECATIONS;
 }
 
 /**
@@ -839,6 +877,7 @@ setup_tunneling (GstRTSPConnection * conn, gint64 timeout, gchar * uri,
   gchar *connection_uri = NULL;
   gchar *request_uri = NULL;
   gchar *host = NULL;
+  GCancellable *cancellable;
 
   url = conn->url;
 
@@ -896,18 +935,23 @@ setup_tunneling (GstRTSPConnection * conn, gint64 timeout, gchar * uri,
 
   connection_uri = get_tunneled_connection_uri_strdup (url, url_port);
 
+  cancellable = get_cancellable (conn);
+
   /* connect to the host/port */
   if (conn->proxy_host) {
     connection = g_socket_client_connect_to_host (conn->client,
-        conn->proxy_host, conn->proxy_port, conn->cancellable, &error);
+        conn->proxy_host, conn->proxy_port, cancellable, &error);
     request_uri = g_strdup (connection_uri);
   } else {
     connection = g_socket_client_connect_to_uri (conn->client,
-        connection_uri, 0, conn->cancellable, &error);
+        connection_uri, 0, cancellable, &error);
     request_uri =
         g_strdup_printf ("%s%s%s", url->abspath,
         url->query ? "?" : "", url->query ? url->query : "");
   }
+
+  g_clear_object (&cancellable);
+
   if (connection == NULL)
     goto connect_failed;
 
@@ -1033,6 +1077,7 @@ gst_rtsp_connection_connect_with_response_usec (GstRTSPConnection * conn,
   GstClockTime to;
   guint16 url_port;
   GstRTSPUrl *url;
+  GCancellable *cancellable;
 
   g_return_val_if_fail (conn != NULL, GST_RTSP_EINVAL);
   g_return_val_if_fail (conn->url != NULL, GST_RTSP_EINVAL);
@@ -1052,18 +1097,23 @@ gst_rtsp_connection_connect_with_response_usec (GstRTSPConnection * conn,
     connection_uri = gst_rtsp_url_get_request_uri (url);
   }
 
+  cancellable = get_cancellable (conn);
+
   if (conn->proxy_host) {
     connection = g_socket_client_connect_to_host (conn->client,
-        conn->proxy_host, conn->proxy_port, conn->cancellable, &error);
+        conn->proxy_host, conn->proxy_port, cancellable, &error);
     request_uri = g_strdup (connection_uri);
   } else {
     connection = g_socket_client_connect_to_uri (conn->client,
-        connection_uri, url_port, conn->cancellable, &error);
+        connection_uri, url_port, cancellable, &error);
 
     /* use the relative component of the uri for non-proxy connections */
     request_uri = g_strdup_printf ("%s%s%s", url->abspath,
         url->query ? "?" : "", url->query ? url->query : "");
   }
+
+  g_clear_object (&cancellable);
+
   if (connection == NULL)
     goto connect_failed;
 
@@ -1289,6 +1339,8 @@ write_bytes (GOutputStream * stream, const guint8 * buffer, guint * idx,
   /* ERRORS */
 error:
   {
+    g_object_unref (cancellable);
+
     if (G_UNLIKELY (r == 0))
       return GST_RTSP_EEOF;
 
@@ -1422,13 +1474,19 @@ fill_raw_bytes (GstRTSPConnection * conn, guint8 * buffer, guint size,
   if (G_LIKELY (size > (guint) out)) {
     gssize r;
     gsize count = size - out;
+    GCancellable *cancellable;
+
+    cancellable = conn->may_cancel ? get_cancellable (conn) : NULL;
+
     if (block)
       r = g_input_stream_read (conn->input_stream, (gchar *) & buffer[out],
-          count, conn->may_cancel ? conn->cancellable : NULL, err);
+          count, cancellable, err);
     else
       r = g_pollable_input_stream_read_nonblocking (G_POLLABLE_INPUT_STREAM
           (conn->input_stream), (gchar *) & buffer[out], count,
-          conn->may_cancel ? conn->cancellable : NULL, err);
+          cancellable, err);
+
+    g_clear_object (&cancellable);
 
     if (G_UNLIKELY (r < 0)) {
       if (out == 0) {
@@ -1732,6 +1790,7 @@ gst_rtsp_connection_write_usec (GstRTSPConnection * conn, const guint8 * data,
 {
   guint offset;
   GstRTSPResult res;
+  GCancellable *cancellable;
 
   g_return_val_if_fail (conn != NULL, GST_RTSP_EINVAL);
   g_return_val_if_fail (data != NULL || size == 0, GST_RTSP_EINVAL);
@@ -1741,9 +1800,10 @@ gst_rtsp_connection_write_usec (GstRTSPConnection * conn, const guint8 * data,
 
   set_write_socket_timeout (conn, timeout);
 
+  cancellable = get_cancellable (conn);
   res =
-      write_bytes (conn->output_stream, data, &offset, size, TRUE,
-      conn->cancellable);
+      write_bytes (conn->output_stream, data, &offset, size, TRUE, cancellable);
+  g_clear_object (&cancellable);
 
   clear_write_socket_timeout (conn);
 
@@ -1937,6 +1997,7 @@ gst_rtsp_connection_send_messages_usec (GstRTSPConnection * conn,
   guint n_vectors, n_memories;
   gint i, j, k;
   gsize bytes_to_write, bytes_written;
+  GCancellable *cancellable;
 
   g_return_val_if_fail (conn != NULL, GST_RTSP_EINVAL);
   g_return_val_if_fail (messages != NULL || n_messages == 0, GST_RTSP_EINVAL);
@@ -2053,9 +2114,11 @@ gst_rtsp_connection_send_messages_usec (GstRTSPConnection * conn,
   /* write request: this is synchronous */
   set_write_socket_timeout (conn, timeout);
 
+  cancellable = get_cancellable (conn);
   res =
       writev_bytes (conn->output_stream, vectors, n_vectors, &bytes_written,
-      TRUE, conn->cancellable);
+      TRUE, cancellable);
+  g_clear_object (&cancellable);
 
   clear_write_socket_timeout (conn);
 
@@ -2928,8 +2991,10 @@ gst_rtsp_connection_free (GstRTSPConnection * conn)
 
   res = gst_rtsp_connection_close (conn);
 
-  if (conn->cancellable)
-    g_object_unref (conn->cancellable);
+  g_mutex_lock (&conn->cancellable_mutex);
+  g_clear_object (&conn->cancellable);
+  g_mutex_unlock (&conn->cancellable_mutex);
+  g_mutex_clear (&conn->cancellable_mutex);
   if (conn->client)
     g_object_unref (conn->client);
   if (conn->tls_database)
@@ -2975,6 +3040,7 @@ gst_rtsp_connection_poll_usec (GstRTSPConnection * conn, GstRTSPEvent events,
   GMainContext *ctx;
   GSource *rs, *ws, *ts;
   GIOCondition condition;
+  GCancellable *cancellable;
 
   g_return_val_if_fail (conn != NULL, GST_RTSP_EINVAL);
   g_return_val_if_fail (events != 0, GST_RTSP_EINVAL);
@@ -2992,21 +3058,22 @@ gst_rtsp_connection_poll_usec (GstRTSPConnection * conn, GstRTSPEvent events,
     g_source_unref (ts);
   }
 
+  cancellable = get_cancellable (conn);
   if (events & GST_RTSP_EV_READ) {
     rs = g_socket_create_source (conn->read_socket, G_IO_IN | G_IO_PRI,
-        conn->cancellable);
+        cancellable);
     g_source_set_dummy_callback (rs);
     g_source_attach (rs, ctx);
     g_source_unref (rs);
   }
 
   if (events & GST_RTSP_EV_WRITE) {
-    ws = g_socket_create_source (conn->write_socket, G_IO_OUT,
-        conn->cancellable);
+    ws = g_socket_create_source (conn->write_socket, G_IO_OUT, cancellable);
     g_source_set_dummy_callback (ws);
     g_source_attach (ws, ctx);
     g_source_unref (ws);
   }
+  g_clear_object (&cancellable);
 
   /* Returns after handling all pending events */
   while (!g_main_context_iteration (ctx, TRUE));
@@ -3115,10 +3182,14 @@ gst_rtsp_connection_flush (GstRTSPConnection * conn, gboolean flush)
   g_return_val_if_fail (conn != NULL, GST_RTSP_EINVAL);
 
   if (flush) {
-    g_cancellable_cancel (conn->cancellable);
+    GCancellable *cancellable = get_cancellable (conn);
+    g_cancellable_cancel (cancellable);
+    g_clear_object (&cancellable);
   } else {
+    g_mutex_lock (&conn->cancellable_mutex);
     g_object_unref (conn->cancellable);
     conn->cancellable = g_cancellable_new ();
+    g_mutex_unlock (&conn->cancellable_mutex);
   }
 
   return GST_RTSP_OK;
@@ -3632,6 +3703,7 @@ gst_rtsp_connection_do_tunnel (GstRTSPConnection * conn,
     }
 
     /* clean up some of the state of conn2 */
+    g_mutex_lock (&conn2->cancellable_mutex);
     g_cancellable_cancel (conn2->cancellable);
     conn2->write_socket = conn2->read_socket = NULL;
     conn2->socket0 = NULL;
@@ -3642,6 +3714,7 @@ gst_rtsp_connection_do_tunnel (GstRTSPConnection * conn,
     conn2->control_stream = NULL;
     g_object_unref (conn2->cancellable);
     conn2->cancellable = NULL;
+    g_mutex_unlock (&conn2->cancellable_mutex);
 
     /* We make socket0 the write socket and socket1 the read socket. */
     conn->write_socket = conn->socket0;
@@ -4000,6 +4073,7 @@ gst_rtsp_source_dispatch_write (GPollableOutputStream * stream,
     guint n_vectors, n_memories, n_ids, drop_messages;
     gint i, j, l, n_mmap;
     GstRTSPSerializedMessage *msg;
+    GCancellable *cancellable;
 
     /* if this connection was already closed, stop now */
     if (G_POLLABLE_OUTPUT_STREAM (conn->output_stream) != stream ||
@@ -4125,10 +4199,14 @@ gst_rtsp_source_dispatch_write (GPollableOutputStream * stream,
       }
     }
 
+    cancellable = get_cancellable (watch->conn);
+
     res =
         writev_bytes (watch->conn->output_stream, vectors, n_vectors,
-        &bytes_written, FALSE, watch->conn->cancellable);
+        &bytes_written, FALSE, cancellable);
     g_assert (bytes_written == bytes_to_write || res != GST_RTSP_OK);
+
+    g_clear_object (&cancellable);
 
     /* First unmap all memories here, this simplifies the code below
      * as we don't have to skip all memories that were already written
@@ -4505,6 +4583,7 @@ gst_rtsp_watch_write_serialized_messages (GstRTSPWatch * watch,
 {
   GstRTSPResult res;
   GMainContext *context = NULL;
+  GCancellable *cancellable;
   gint i;
 
   g_return_val_if_fail (watch != NULL, GST_RTSP_EINVAL);
@@ -4565,10 +4644,14 @@ gst_rtsp_watch_write_serialized_messages (GstRTSPWatch * watch,
       }
     }
 
+    cancellable = get_cancellable (watch->conn);
+
     res =
         writev_bytes (watch->conn->output_stream, vectors, n_vectors,
-        &bytes_written, FALSE, watch->conn->cancellable);
+        &bytes_written, FALSE, cancellable);
     g_assert (bytes_written == bytes_to_write || res != GST_RTSP_OK);
+
+    g_clear_object (&cancellable);
 
     /* At this point we sent everything we could without blocking or
      * error and updated the offsets inside the message accordingly */

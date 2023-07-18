@@ -66,7 +66,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
 #include <vector>
@@ -74,12 +74,12 @@
 #include "camerautils.hpp"
 #include "cameraevent.hpp"
 
-#include "gstcameraundistort.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstcameraundistort.h"
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 
-#include <gst/opencv/gstopencvutils.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/opencv/gstopencvutils.h"
 
 GST_DEBUG_CATEGORY_STATIC (gst_camera_undistort_debug);
 #define GST_CAT_DEFAULT gst_camera_undistort_debug

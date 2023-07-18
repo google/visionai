@@ -135,57 +135,6 @@ TEST_F(GstreamerVideoWriterTest, H264InputMuxOnly) {
   std::remove(output_file.c_str());
 }
 
-TEST_F(GstreamerVideoWriterTest, H264InputTranscodingMux) {
-  std::string output_file = "/tmp/H264InputTranscodingMux.mp4";
-  GstreamerVideoWriter::Options options;
-  options.file_path = output_file;
-  options.caps_string = kExerciseVideoCapString;
-  options.h264_mux_only = false;
-  auto writer = GstreamerVideoWriter::Create(options).value();
-
-  EXPECT_EQ(writer->GetPipelineStr(),
-            absl::StrFormat("decodebin ! videoconvert ! video/x-raw ! "
-                            "videorate ! video/x-raw,framerate=25/1 ! x264enc "
-                            "! mp4mux ! filesink location=%s",
-                            output_file));
-
-  std::vector<int64_t> expected_pts, expected_dts, expected_duration;
-  GstreamerRunner::Options input_runner_opt;
-  input_runner_opt.processing_pipeline_string = absl::StrFormat(
-      "filesrc location=%s ! qtdemux ! h264parse", kExerciseVideoPath);
-  input_runner_opt.appsink_sync = true;
-  input_runner_opt.receiver_callback =
-      [&](GstreamerBuffer buffer) -> absl::Status {
-    expected_pts.push_back(buffer.get_pts());
-    expected_dts.push_back(buffer.get_dts());
-    expected_duration.push_back(buffer.get_duration());
-    return writer->Put(buffer);
-  };
-  auto input_runner = GstreamerRunner::Create(input_runner_opt).value();
-  absl::SleepFor(absl::Seconds(2));
-  input_runner->SignalEOS();
-  absl::SleepFor(absl::Milliseconds(100));
-  writer.reset();
-
-  std::vector<int64_t> got_pts, got_dts, got_duration;
-  int64_t expect_duration = 40000000;
-  GetOutputVideoPTS(output_file, &got_pts, &got_dts, &got_duration);
-  ASSERT_EQ(got_pts.size(), got_dts.size());
-  ASSERT_EQ(got_pts.size(), got_duration.size());
-  for (int i = 0; i < got_duration.size(); i++) {
-    EXPECT_EQ(expect_duration, got_duration[i]);
-  }
-  sort(got_pts.begin(), got_pts.end(), std::less<int64_t>());
-  int64_t last_pts = 0;
-  for (int i = 0; i < got_pts.size(); i++) {
-    if (last_pts > 0) {
-      EXPECT_NEAR(expect_duration, got_pts[i] - last_pts, 1);
-    }
-    last_pts = got_pts[i];
-  }
-  std::remove(output_file.c_str());
-}
-
 TEST_F(GstreamerVideoWriterTest, NonH264InputRejected) {
   GstreamerVideoWriter::Options options;
   options.file_path = kOutputFile;
@@ -195,55 +144,6 @@ TEST_F(GstreamerVideoWriterTest, NonH264InputRejected) {
 
   EXPECT_FALSE(writer.ok());
   EXPECT_TRUE(absl::IsFailedPrecondition(writer.status()));
-}
-
-TEST_F(GstreamerVideoWriterTest, NonH264InputAllowed) {
-  std::string output_file = "/tmp/RawImageInput.mp4";
-  GstreamerVideoWriter::Options options;
-  options.file_path = output_file;
-  options.caps_string = kVideoTestSrcCapString;
-  options.h264_mux_only = false;
-  auto writer = GstreamerVideoWriter::Create(options).value();
-
-  EXPECT_EQ(writer->GetPipelineStr(),
-            absl::StrFormat("decodebin ! videoconvert ! video/x-raw ! "
-                            "videorate ! video/x-raw,framerate=30/1 ! x264enc "
-                            "! mp4mux ! filesink location=%s",
-                            output_file));
-  std::vector<int64_t> empty;
-  int count = 0;
-  GstreamerRunner::Options input_runner_opt;
-  input_runner_opt.processing_pipeline_string = "videotestsrc";
-  input_runner_opt.appsink_sync = true;
-  input_runner_opt.receiver_callback =
-      [&](GstreamerBuffer buffer) -> absl::Status {
-    count++;
-    return writer->Put(buffer);
-  };
-  auto input_runner = GstreamerRunner::Create(input_runner_opt).value();
-  absl::SleepFor(absl::Seconds(2));
-  input_runner->SignalEOS();
-  absl::SleepFor(absl::Milliseconds(100));
-  writer.reset();
-
-  std::vector<int64_t> got_pts, got_dts, got_duration;
-  int64_t expect_duration = 33333333;
-  GetOutputVideoPTS(output_file, &got_pts, &got_dts, &got_duration);
-  EXPECT_NEAR(got_pts.size(), count, 2);
-  EXPECT_NEAR(got_dts.size(), count, 2);
-  EXPECT_NEAR(got_duration.size(), count, 2);
-  for (int i = 0; i < got_duration.size(); i++) {
-    EXPECT_EQ(expect_duration, got_duration[i]);
-  }
-  sort(got_pts.begin(), got_pts.end(), std::less<int64_t>());
-  int64_t last_pts = 0;
-  for (int i = 0; i < got_pts.size(); i++) {
-    if (last_pts > 0) {
-      EXPECT_NEAR(expect_duration, got_pts[i] - last_pts, 1);
-    }
-    last_pts = got_pts[i];
-  }
-  std::remove(output_file.c_str());
 }
 
 }  // namespace visionai

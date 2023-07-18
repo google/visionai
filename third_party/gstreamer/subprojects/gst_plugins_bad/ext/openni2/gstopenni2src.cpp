@@ -32,10 +32,10 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstopenni2src.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/openni2/gstopenni2src.h"
 
 GST_DEBUG_CATEGORY_STATIC (openni2src_debug);
 #define GST_CAT_DEFAULT openni2src_debug

@@ -23,6 +23,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
+#include "visionai/streams/apps/visualization/test_utils.h"
 #include "visionai/util/time_util.h"
 
 namespace visionai {
@@ -47,13 +48,6 @@ constexpr int kYTextOffset = -10;
 const cv::Scalar kBlackColor = cv::Scalar(0, 0, 0);
 const cv::Scalar kWhiteColor = cv::Scalar(255, 255, 255);
 const cv::Scalar kRedColor = cv::Scalar(0, 0, 255);
-
-// Checks if two RGB images are exactly equal.
-bool CheckTwoImagesEqual(const cv::Mat a, const cv::Mat b) {
-  if ((a.rows != b.rows) || (a.cols != b.cols)) return false;
-  cv::Scalar s = sum(a - b);
-  return (s[0] == 0) && (s[1] == 0) && (s[2] == 0);
-}
 
 // Tests if CreateColor works as expected.
 TEST(CreateColor, TestCreateColor) {
@@ -139,7 +133,7 @@ TEST(DrawBoundingBoxes, TestOneBoundingBoxWithShowScore) {
               kStatsTextFontFamily, kTrackTextFontscale, color,
               kStatsTextThickness);
 
-  EXPECT_TRUE(CheckTwoImagesEqual(atom_img, expected_img));
+  EXPECT_TRUE(testutils::CheckTwoImagesEqual(atom_img, expected_img));
 }
 
 // Tests if DrawBoundingBoxes works with show_score and track_id
@@ -179,7 +173,7 @@ TEST(DrawBoundingBoxes, TestOneBoundingBoxWithShowScoreTrackId) {
               kStatsTextFontFamily, kTrackTextFontscale, color,
               kStatsTextThickness);
 
-  EXPECT_TRUE(CheckTwoImagesEqual(atom_img, expected_img));
+  EXPECT_TRUE(testutils::CheckTwoImagesEqual(atom_img, expected_img));
 }
 
 // Tests if DrawBoundingBoxesWithDwellTime works as expected.
@@ -230,7 +224,7 @@ TEST(DrawBoundingBoxesWithDwellTime, OneDwellTime) {
     cv::rectangle(expected_img, rect, color, kLineThick2);
   }
 
-  EXPECT_TRUE(CheckTwoImagesEqual(atom_img, expected_img));
+  EXPECT_TRUE(testutils::CheckTwoImagesEqual(atom_img, expected_img));
 }
 
 // Tests DrawFullFrameCount function.
@@ -312,7 +306,7 @@ TEST(DrawFullFrameCount, PersonAndVehicle) {
   // Blend the stats with original image
   cv::addWeighted(overlay, 0.5, expected_img, 0.5, 0, expected_img);
 
-  EXPECT_TRUE(CheckTwoImagesEqual(atom_img, expected_img));
+  EXPECT_TRUE(testutils::CheckTwoImagesEqual(atom_img, expected_img));
 }
 
 // Tests DrawActiveZoneCount function.
@@ -558,7 +552,7 @@ TEST(DrawActiveZoneCount, StatsTable) {
   // Blend the stats with original image
   cv::addWeighted(overlay, 0.5, expected_img, 0.5, 0, expected_img);
 
-  EXPECT_TRUE(CheckTwoImagesEqual(atom_img, expected_img));
+  EXPECT_TRUE(testutils::CheckTwoImagesEqual(atom_img, expected_img));
 }
 
 // Tests if lines are drawn correctly on the frame.
@@ -873,7 +867,7 @@ TEST(DrawLineCrossingCount, StatsTable) {
   // Blend the stats with original image
   cv::addWeighted(overlay, 0.5, expected_image, 0.5, 0, expected_image);
 
-  EXPECT_TRUE(CheckTwoImagesEqual(actual_image, expected_image));
+  EXPECT_TRUE(testutils::CheckTwoImagesEqual(actual_image, expected_image));
 }
 
 // Tests if ShowAnnotationFps works correct.
@@ -892,7 +886,7 @@ TEST(ShowAnnotationFps, ShowAnnotationFps) {
                         kYInitOffset + rect_height - 5),
               kStatsTextFontFamily, kTrackTextFontscale, kWhiteColor);
 
-  EXPECT_TRUE(CheckTwoImagesEqual(atom_img, expected_img));
+  EXPECT_TRUE(testutils::CheckTwoImagesEqual(atom_img, expected_img));
 }
 
 // Tests if cleaning maps in DrawBoundingBoxesWithDwellTime works correct.

@@ -45,11 +45,11 @@
 /* TODO opencv can do scaling for some cases */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstopencvvideofilter.h"
-#include "gstopencvutils.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/opencv/gstopencvvideofilter.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/opencv/gstopencvutils.h"
 #include <opencv2/core.hpp>
 
 GST_DEBUG_CATEGORY_STATIC (gst_opencv_video_filter_debug);

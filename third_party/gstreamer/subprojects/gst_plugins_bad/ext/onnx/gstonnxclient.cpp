@@ -20,7 +20,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include "gstonnxclient.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/onnx/gstonnxclient.h"
 #include <providers/cpu/cpu_provider_factory.h>
 #ifdef GST_ML_ONNX_RUNTIME_HAVE_CUDA
 #include <providers/cuda/cuda_provider_factory.h>

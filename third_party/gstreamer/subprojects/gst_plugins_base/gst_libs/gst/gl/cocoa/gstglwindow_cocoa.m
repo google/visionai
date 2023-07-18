@@ -92,6 +92,7 @@ static gboolean gst_gl_window_cocoa_controls_viewport (GstGLWindow * window);
 struct _GstGLWindowCocoaPrivate
 {
   gpointer internal_win_id;
+  gpointer internal_view;
   gpointer external_view;
   gboolean visible;
   gint preferred_width;
@@ -224,6 +225,7 @@ gst_gl_window_cocoa_create_window (GstGLWindowCocoa *window_cocoa)
       backing: NSBackingStoreBuffered defer: NO screen: nil gstWin: window_cocoa];
 
   priv->internal_win_id = (__bridge_retained gpointer)internal_win_id;
+  priv->internal_view = (__bridge gpointer)glView;
 
   GST_DEBUG ("NSWindow id: %"G_GUINTPTR_FORMAT, (guintptr) priv->internal_win_id);
 
@@ -253,19 +255,22 @@ static void
 _close_window (gpointer * data)
 {
   GstGLWindowCocoa *window_cocoa = GST_GL_WINDOW_COCOA (data);
-  GstGLNSWindow *internal_win_id =
-      (__bridge GstGLNSWindow *) window_cocoa->priv->internal_win_id;
+  GstGLNSView *view =
+      (__bridge GstGLNSView *) window_cocoa->priv->internal_view;
 
-  [[internal_win_id contentView] removeFromSuperview];
+  [view removeFromSuperview];
+
   CFBridgingRelease (window_cocoa->priv->internal_win_id);
+  CFBridgingRelease (window_cocoa->priv->internal_view);
   window_cocoa->priv->internal_win_id = NULL;
+  window_cocoa->priv->internal_view = NULL;
 }
 
 static void
 gst_gl_window_cocoa_close (GstGLWindow * window)
 {
-  _invoke_on_main ((GstGLWindowCB) _close_window, gst_object_ref (window),
-      (GDestroyNotify) gst_object_unref);
+  _gst_gl_invoke_on_main ((GstGLWindowCB) _close_window,
+      gst_object_ref (window), (GDestroyNotify) gst_object_unref);
 }
 
 static guintptr
@@ -299,8 +304,8 @@ gst_gl_window_cocoa_set_window_handle (GstGLWindow * window, guintptr handle)
           (__bridge GstGLNSWindow *)window_cocoa->priv->internal_win_id;
       NSView *external_view =
           (__bridge NSView *)window_cocoa->priv->external_view;
+      NSView *view = (__bridge NSView *)window_cocoa->priv->internal_view;
 
-      NSView *view = [internal_win_id contentView];
       [internal_win_id orderOut:internal_win_id];
 
       [external_view addSubview: view];
@@ -347,8 +352,8 @@ gst_gl_window_cocoa_show (GstGLWindow * window)
     }
 
     if (!priv->external_view && !priv->visible)
-      _invoke_on_main ((GstGLWindowCB) _show_window, gst_object_ref (window),
-          (GDestroyNotify) gst_object_unref);
+      _gst_gl_invoke_on_main ((GstGLWindowCB) _show_window,
+          gst_object_ref (window), (GDestroyNotify) gst_object_unref);
   }
 }
 
@@ -356,14 +361,11 @@ static void
 gst_gl_window_cocoa_queue_resize (GstGLWindow * window)
 {
   GstGLWindowCocoa *window_cocoa = GST_GL_WINDOW_COCOA (window);
-  GstGLNSView *view;
   GstGLWindowCocoaPrivate *priv = window_cocoa->priv;
-  GstGLNSWindow *internal_win_id = (__bridge GstGLNSWindow *)priv->internal_win_id;
+  GstGLNSView *view = (__bridge GstGLNSView *)priv->internal_view;
 
   if (!g_atomic_int_get (&window_cocoa->priv->view_ready))
     return;
-
-  view = (GstGLNSView *)[internal_win_id contentView];
 
   [view->layer queueResize];
 }
@@ -372,16 +374,13 @@ static void
 gst_gl_window_cocoa_draw (GstGLWindow * window)
 {
   GstGLWindowCocoa *window_cocoa = GST_GL_WINDOW_COCOA (window);
-  GstGLNSView *view;
   GstGLWindowCocoaPrivate *priv = window_cocoa->priv;
-  GstGLNSWindow *internal_win_id = (__bridge GstGLNSWindow *)priv->internal_win_id;
+  GstGLNSView *view = (__bridge GstGLNSView *)priv->internal_view;
 
   /* As the view is created asynchronously in the main thread we cannot know
    * exactly when it will be ready to draw to */
   if (!g_atomic_int_get (&window_cocoa->priv->view_ready))
     return;
-
-  view = (GstGLNSView *)[internal_win_id contentView];
 
   /* this redraws the GstGLCAOpenGLLayer which calls
    * gst_gl_window_cocoa_draw_thread(). Use an explicit CATransaction since we
@@ -551,9 +550,8 @@ static void
 _set_render_rectangle (gpointer data)
 {
  struct SetRenderRectangle *render = data;
- NSView *view;
  GstGLWindowCocoaPrivate *priv = render->window_cocoa->priv;
- GstGLNSWindow *internal_win_id = (__bridge GstGLNSWindow *)priv->internal_win_id;
+ GstGLNSView *view = (__bridge GstGLNSView *)priv->internal_view;
 
  GST_LOG_OBJECT (render->window_cocoa, "setting render rectangle %i,%i+%ix%i",
                  render->rect.x, render->rect.y, render->rect.w, render->rect.h);
@@ -561,7 +559,6 @@ _set_render_rectangle (gpointer data)
    return;
  }
 
- view = [internal_win_id contentView];
  NSRect newMainViewFrame = NSMakeRect(render->rect.x,
                                       render->rect.y,
                                       render->rect.w,
@@ -588,8 +585,8 @@ gst_gl_window_cocoa_set_render_rectangle (GstGLWindow * window, gint x, gint y, 
  render->rect.w = width;
  render->rect.h = height;
 
- _invoke_on_main ((GstGLWindowCB) _set_render_rectangle, render,
-                  (GDestroyNotify) _free_set_render_rectangle);
+ _gst_gl_invoke_on_main ((GstGLWindowCB) _set_render_rectangle, render,
+     (GDestroyNotify) _free_set_render_rectangle);
 
  return TRUE;
 }
@@ -741,7 +738,7 @@ close_window_cb (gpointer data)
 @end
 
 void
-_invoke_on_main (GstGLWindowCB func, gpointer data, GDestroyNotify notify)
+_gst_gl_invoke_on_main (GstGLWindowCB func, gpointer data, GDestroyNotify notify)
 {
   if ([NSThread isMainThread]) {
     func (data);

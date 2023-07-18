@@ -59,7 +59,7 @@ SECTION .text
     mova      m4, m2
     ; m5 = t0[x+1+j]
     mova      m5, m2
-    ; m4 = xor(t0[x+1+j], b0[x+1-j]
+    ; m4 = xor(t0[x+1+j], b0[x+1-j])
     pxor      m4, m3
     pavgb     m5, m3
     ; round down to 0
@@ -82,7 +82,7 @@ SECTION .text
     pmaxub    m2, m3
     ; m3 = FFABS(t0[x+1+j] - b0[x+1-j]);
     mova      m3, m2
-    ; m4 = FFABS(FFABS(t0[x+1+j] - b0[x+1-j]);
+    ; m4 = FFABS(t0[x+1+j] - b0[x+1-j]);
     mova      m4, m2
     ; m3 = FFABS(t0[x+j] - b0[x-j])
     psrldq    m3, 1
@@ -160,6 +160,8 @@ SECTION .text
     psraw        m3, 1
     ; rsp + 0 = d
     mova   [rsp+ 0], m3
+    ; rsp + 16 = bzeroq
+    mova   [rsp+16], m1
     ; m2 = m1 - mp
     psubw        m2, m4
     ; m2 = temporal_diff0 (m4 is temporary)
@@ -195,8 +197,8 @@ SECTION .text
     psrlw        m3, 1
     ; m2 = diff (for real)
     pmaxsw       m2, m3
-    ; rsp + 16 = diff
-    mova   [rsp+16], m2
+    ; rsp + 32 = diff
+    mova   [rsp+32], m2
 
     ; m1 = e + c
     paddw        m1, m0
@@ -251,7 +253,7 @@ SECTION .text
     ; now m0 = spatial_score, m1 = spatial_pred
 
     ; m6 = diff
-    mova         m6, [rsp+16]
+    mova         m6, [rsp+32]
 %endmacro
 
 %macro FILTER_TAIL 0
@@ -311,7 +313,7 @@ SECTION .text
     ; m5 = d
     mova         m5, [rsp]
     ; m7 = e
-    LOAD         m7, [bzeroq]
+    mova         m7, [rsp+16]
     ; m2 = b - c
     psubw        m2, m4
     ; m3 = f - e

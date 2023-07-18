@@ -78,15 +78,15 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstonnxobjectdetector.h"
-#include "gstonnxclient.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/onnx/gstonnxobjectdetector.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/onnx/gstonnxclient.h"
 
-#include <gst/gst.h>
-#include <gst/video/video.h>
-#include <gst/video/gstvideometa.h>
+#include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/video/video.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_base/gst_libs/gst/video/gstvideometa.h"
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>

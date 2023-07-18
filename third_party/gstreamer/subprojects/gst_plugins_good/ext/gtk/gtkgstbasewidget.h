@@ -47,6 +47,7 @@ struct _GtkGstBaseWidget
   /* properties */
   gboolean force_aspect_ratio;
   gint par_n, par_d;
+  gint video_par_n, video_par_d;
   gboolean ignore_alpha;
 
   gint display_width;
@@ -90,6 +91,7 @@ void            gtk_gst_base_widget_finalize             (GObject * object);
 /* API */
 gboolean        gtk_gst_base_widget_set_format           (GtkGstBaseWidget * widget, GstVideoInfo * v_info);
 void            gtk_gst_base_widget_set_buffer           (GtkGstBaseWidget * widget, GstBuffer * buffer);
+void            gtk_gst_base_widget_queue_draw           (GtkGstBaseWidget * widget);
 void            gtk_gst_base_widget_set_element          (GtkGstBaseWidget * widget, GstElement * element);
 void            gtk_gst_base_widget_display_size_to_stream_size (GtkGstBaseWidget * base_widget,
                                                                  gdouble x, gdouble y,

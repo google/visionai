@@ -239,16 +239,16 @@ enum
   LAST_SIGNAL
 };
 
-/* automatic sizes, while prerolling we buffer up to 2MB, we ignore time
+/* automatic sizes, while prerolling we buffer up to 8MB, we ignore time
  * and buffers in this case. */
-#define AUTO_PREROLL_SIZE_BYTES                  2 * 1024 * 1024
+#define AUTO_PREROLL_SIZE_BYTES                  8 * 1024 * 1024
 #define AUTO_PREROLL_SIZE_BUFFERS                0
 #define AUTO_PREROLL_NOT_SEEKABLE_SIZE_TIME      10 * GST_SECOND
 #define AUTO_PREROLL_SEEKABLE_SIZE_TIME          0
 
-/* when playing, keep a max of 2MB of data but try to keep the number of buffers
+/* when playing, keep a max of 8MB of data but try to keep the number of buffers
  * as low as possible (try to aim for 5 buffers) */
-#define AUTO_PLAY_SIZE_BYTES        2 * 1024 * 1024
+#define AUTO_PLAY_SIZE_BYTES        8 * 1024 * 1024
 #define AUTO_PLAY_SIZE_BUFFERS      5
 #define AUTO_PLAY_SIZE_TIME         0
 
@@ -5012,7 +5012,7 @@ source_pad_event_probe (GstPad * pad, GstPadProbeInfo * info,
   GstDecodePad *dpad = user_data;
   gboolean res = TRUE;
 
-  GST_LOG_OBJECT (pad, "%s dpad:%p", GST_EVENT_TYPE_NAME (event), dpad);
+  GST_LOG_OBJECT (pad, "event %s", GST_EVENT_TYPE_NAME (event));
 
   if (GST_EVENT_TYPE (event) == GST_EVENT_EOS) {
     GST_DEBUG_OBJECT (pad, "we received EOS");
@@ -5159,8 +5159,8 @@ gst_decode_pad_query (GstPad * pad, GstObject * parent, GstQuery * query)
 
     ret = FALSE;
     GST_DEBUG_OBJECT (dpad->dbin,
-        "calling autoplug-query for %s (element %s): %" GST_PTR_FORMAT,
-        GST_PAD_NAME (dpad), GST_ELEMENT_NAME (delem->element), query);
+        "calling autoplug-query for %" GST_PTR_FORMAT " (element %s): %"
+        GST_PTR_FORMAT, dpad, GST_ELEMENT_NAME (delem->element), query);
     g_signal_emit (G_OBJECT (dpad->dbin),
         gst_decode_bin_signals[SIGNAL_AUTOPLUG_QUERY], 0, dpad, delem->element,
         query, &ret);

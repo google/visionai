@@ -12,6 +12,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "visionai/streams/client/mock_streaming_service.h"
+#include "visionai/testing/status/status_matchers.h"
 #include "visionai/util/net/grpc/client_connect.h"
 #include "visionai/util/time_util.h"
 
@@ -30,8 +31,6 @@ using ::testing::EqualsProto;
 using ::testing::HasSubstr;
 using ::testing::Return;
 using ::testing::SetArgPointee;
-using ::testing::status::IsOkAndHolds;
-using ::testing::status::StatusIs;
 
 class StreamingControlGrpcClientTest : public ::testing::Test {
  protected:

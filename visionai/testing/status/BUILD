@@ -1,6 +1,7 @@
-package(default_visibility = ["//visionai:__subpackages__"])
-
-licenses(["notice"])
+package(
+    default_visibility = ["//visionai:__subpackages__"],
+    licenses = ["notice"],
+)
 
 cc_library(
     name = "status_matchers",

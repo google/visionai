@@ -101,7 +101,7 @@ static GstFlowReturn gst_ffmpegviddec_finish (GstVideoDecoder * decoder);
 static GstFlowReturn gst_ffmpegviddec_drain (GstVideoDecoder * decoder);
 
 static gboolean picture_changed (GstFFMpegVidDec * ffmpegdec,
-    AVFrame * picture);
+    AVFrame * picture, gboolean one_field);
 static gboolean context_changed (GstFFMpegVidDec * ffmpegdec,
     AVCodecContext * context);
 
@@ -344,12 +344,7 @@ gst_ffmpegviddec_finalize (GObject * object)
   GstFFMpegVidDec *ffmpegdec = (GstFFMpegVidDec *) object;
 
   av_frame_free (&ffmpegdec->picture);
-
-  if (ffmpegdec->context != NULL) {
-    gst_ffmpeg_avcodec_close (ffmpegdec->context);
-    av_free (ffmpegdec->context);
-    ffmpegdec->context = NULL;
-  }
+  avcodec_free_context (&ffmpegdec->context);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -399,13 +394,11 @@ gst_ffmpegviddec_close (GstFFMpegVidDec * ffmpegdec, gboolean reset)
 
   gst_buffer_replace (&ffmpegdec->palette, NULL);
 
-  if (ffmpegdec->context->extradata) {
-    av_free (ffmpegdec->context->extradata);
-    ffmpegdec->context->extradata = NULL;
-  }
+  av_freep (&ffmpegdec->context->extradata);
   if (reset) {
-    if (avcodec_get_context_defaults3 (ffmpegdec->context,
-            oclass->in_plugin) < 0) {
+    avcodec_free_context (&ffmpegdec->context);
+    ffmpegdec->context = avcodec_alloc_context3 (oclass->in_plugin);
+    if (ffmpegdec->context == NULL) {
       GST_DEBUG_OBJECT (ffmpegdec, "Failed to set context defaults");
       return FALSE;
     }
@@ -467,6 +460,33 @@ gst_ffmpegviddec_get_palette (GstFFMpegVidDec * ffmpegdec,
   }
 }
 
+static gboolean
+gst_ffmpegviddec_needs_reset (GstFFMpegVidDec * ffmpegdec,
+    GstVideoCodecState * state)
+{
+  GstCaps *last_caps, *new_caps;
+  gboolean needs_reset;
+
+  if (ffmpegdec->last_caps == NULL)
+    return TRUE;
+
+  last_caps = gst_caps_copy (ffmpegdec->last_caps);
+  new_caps = gst_caps_copy (state->caps);
+
+  /* Simply ignore framerate for now, this could easily be evolved per CODEC if
+   * future issue are found.*/
+  gst_structure_remove_field (gst_caps_get_structure (last_caps, 0),
+      "framerate");
+  gst_structure_remove_field (gst_caps_get_structure (new_caps, 0),
+      "framerate");
+
+  needs_reset = !gst_caps_is_equal (last_caps, new_caps);
+
+  gst_caps_unref (last_caps);
+  gst_caps_unref (new_caps);
+
+  return needs_reset;
+}
 
 static gboolean
 gst_ffmpegviddec_set_format (GstVideoDecoder * decoder,
@@ -480,18 +500,14 @@ gst_ffmpegviddec_set_format (GstVideoDecoder * decoder,
   ffmpegdec = (GstFFMpegVidDec *) decoder;
   oclass = (GstFFMpegVidDecClass *) (G_OBJECT_GET_CLASS (ffmpegdec));
 
-  if (ffmpegdec->last_caps != NULL &&
-      gst_caps_is_equal (ffmpegdec->last_caps, state->caps)) {
-    return TRUE;
-  }
-
   GST_DEBUG_OBJECT (ffmpegdec, "setcaps called");
 
   GST_OBJECT_LOCK (ffmpegdec);
-  /* stupid check for VC1 */
-  if ((oclass->in_plugin->id == AV_CODEC_ID_WMV3) ||
-      (oclass->in_plugin->id == AV_CODEC_ID_VC1))
-    oclass->in_plugin->id = gst_ffmpeg_caps_to_codecid (state->caps, NULL);
+
+  if (!gst_ffmpegviddec_needs_reset (ffmpegdec, state)) {
+    gst_caps_replace (&ffmpegdec->last_caps, state->caps);
+    goto update_state;
+  }
 
   /* close old session */
   if (ffmpegdec->opened) {
@@ -626,6 +642,7 @@ gst_ffmpegviddec_set_format (GstVideoDecoder * decoder,
   if (!gst_ffmpegviddec_open (ffmpegdec))
     goto open_failed;
 
+update_state:
   if (ffmpegdec->input_state)
     gst_video_codec_state_unref (ffmpegdec->input_state);
   ffmpegdec->input_state = gst_video_codec_state_ref (state);
@@ -1032,11 +1049,14 @@ no_frame:
 }
 
 static gboolean
-picture_changed (GstFFMpegVidDec * ffmpegdec, AVFrame * picture)
+picture_changed (GstFFMpegVidDec * ffmpegdec, AVFrame * picture,
+    gboolean one_field)
 {
   gint pic_field_order = 0;
 
-  if (picture->interlaced_frame) {
+  if (one_field) {
+    pic_field_order = ffmpegdec->pic_field_order;
+  } else if (picture->interlaced_frame) {
     if (picture->repeat_pict)
       pic_field_order |= GST_VIDEO_BUFFER_FLAG_RFF;
     if (picture->top_field_first)
@@ -1064,7 +1084,7 @@ context_changed (GstFFMpegVidDec * ffmpegdec, AVCodecContext * context)
 
 static gboolean
 update_video_context (GstFFMpegVidDec * ffmpegdec, AVCodecContext * context,
-    AVFrame * picture)
+    AVFrame * picture, gboolean one_field)
 {
   gint pic_field_order = 0;
 
@@ -1075,7 +1095,7 @@ update_video_context (GstFFMpegVidDec * ffmpegdec, AVCodecContext * context,
       pic_field_order |= GST_VIDEO_BUFFER_FLAG_TFF;
   }
 
-  if (!picture_changed (ffmpegdec, picture)
+  if (!picture_changed (ffmpegdec, picture, one_field)
       && !context_changed (ffmpegdec, context))
     return FALSE;
 
@@ -1275,8 +1295,9 @@ gst_ffmpegviddec_negotiate (GstFFMpegVidDec * ffmpegdec,
   GstStructure *in_s;
   GstVideoInterlaceMode interlace_mode;
   gint caps_height;
+  gboolean one_field = ! !(flags & GST_VIDEO_BUFFER_FLAG_ONEFIELD);
 
-  if (!update_video_context (ffmpegdec, context, picture))
+  if (!update_video_context (ffmpegdec, context, picture, one_field))
     return TRUE;
 
   caps_height = ffmpegdec->pic_height;
@@ -1816,7 +1837,7 @@ gst_ffmpegviddec_video_frame (GstFFMpegVidDec * ffmpegdec,
     if (side_data) {
       GST_LOG_OBJECT (ffmpegdec,
           "Found CC side data of type AV_FRAME_DATA_A53_CC, size %d",
-          side_data->size);
+          (int) side_data->size);
       GST_MEMDUMP ("A53 CC", side_data->data, side_data->size);
 
       /* do not add closed caption meta if it already exists */
@@ -1941,6 +1962,7 @@ no_output:
 
 negotiation_error:
   {
+    gst_video_decoder_drop_frame (GST_VIDEO_DECODER (ffmpegdec), out_frame);
     if (GST_PAD_IS_FLUSHING (GST_VIDEO_DECODER_SRC_PAD (ffmpegdec))) {
       *ret = GST_FLOW_FLUSHING;
       goto beach;
@@ -2129,8 +2151,9 @@ gst_ffmpegviddec_start (GstVideoDecoder * decoder)
   oclass = (GstFFMpegVidDecClass *) (G_OBJECT_GET_CLASS (ffmpegdec));
 
   GST_OBJECT_LOCK (ffmpegdec);
-  gst_ffmpeg_avcodec_close (ffmpegdec->context);
-  if (avcodec_get_context_defaults3 (ffmpegdec->context, oclass->in_plugin) < 0) {
+  avcodec_free_context (&ffmpegdec->context);
+  ffmpegdec->context = avcodec_alloc_context3 (oclass->in_plugin);
+  if (ffmpegdec->context == NULL) {
     GST_DEBUG_OBJECT (ffmpegdec, "Failed to set context defaults");
     GST_OBJECT_UNLOCK (ffmpegdec);
     return FALSE;
@@ -2426,10 +2449,10 @@ gst_ffmpegviddec_get_property (GObject * object,
 
   switch (prop_id) {
     case PROP_LOWRES:
-      g_value_set_enum (value, ffmpegdec->context->lowres);
+      g_value_set_enum (value, ffmpegdec->lowres);
       break;
     case PROP_SKIPFRAME:
-      g_value_set_enum (value, ffmpegdec->context->skip_frame);
+      g_value_set_enum (value, ffmpegdec->skip_frame);
       break;
     case PROP_DIRECT_RENDERING:
       g_value_set_boolean (value, ffmpegdec->direct_rendering);
@@ -2603,8 +2626,7 @@ gst_ffmpegviddec_register (GstPlugin * plugin)
 
     /* (Ronald) MPEG-4 gets a higher priority because it has been well-
      * tested and by far outperforms divxdec/xviddec - so we prefer it.
-     * msmpeg4v3 same, as it outperforms divxdec for divx3 playback.
-     * VC1/WMV3 are not working and thus unpreferred for now. */
+     * msmpeg4v3 same, as it outperforms divxdec for divx3 playback. */
     switch (in_plugin->id) {
       case AV_CODEC_ID_MPEG1VIDEO:
       case AV_CODEC_ID_MPEG2VIDEO:

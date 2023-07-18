@@ -231,6 +231,12 @@ splitmux_part_pad_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
     return GST_FLOW_FLUSHING;
   }
 
+  if (GST_PAD_LAST_FLOW_RETURN (part_pad->target) == GST_FLOW_NOT_LINKED) {
+    SPLITMUX_PART_UNLOCK (reader);
+    gst_buffer_unref (buf);
+    return GST_FLOW_NOT_LINKED;
+  }
+
   /* Adjust buffer timestamps */
   offset = reader->start_offset + part_pad->segment.base;
   offset -= part_pad->initial_ts_offset;
@@ -274,7 +280,8 @@ splitmux_part_is_eos_locked (GstSplitMuxPartReader * part)
   GList *cur;
   for (cur = g_list_first (part->pads); cur != NULL; cur = g_list_next (cur)) {
     GstSplitMuxPartPad *part_pad = SPLITMUX_PART_PAD_CAST (cur->data);
-    if (!part_pad->is_eos)
+    if (GST_PAD_LAST_FLOW_RETURN (part_pad->target) != GST_FLOW_NOT_LINKED
+        && !part_pad->is_eos)
       return FALSE;
   }
 

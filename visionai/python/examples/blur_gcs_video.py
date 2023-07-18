@@ -11,7 +11,7 @@ It demonstrates:
 Steps to run the program:
 1. pip install google-cloud-storage
 2. python3 blur_gcs_video.py --project=<project-id> --location_id=<location-id>
---cluster_id=<cluster-id> --bucket_name=<bucket-name>
+--cluster_id=<cluster-id> --bucket_name=<bucket-name> --frame_rate=<fps-value>
 
 Example:
 Given a GCS bucket:
@@ -26,7 +26,6 @@ test-bucket
   test2.mp4
   test1_deid_output.mp4
   test2_deid_output.mp4
-
 """
 import asyncio
 
@@ -47,7 +46,13 @@ _CLUSTER_ID = flags.DEFINE_string(
 _BUCKET_NAME = flags.DEFINE_string(
     "bucket_name", None, "GCS bucket which stores example mp4 videos"
 )
-_ENV = flags.DEFINE_string("env", "prod", "Your environment")
+_ENV = flags.DEFINE_enum(
+    "env",
+    "PROD",
+    ["AUTOPUSH", "STAGING", "PROD"],
+    "The environment.",
+)
+_FPS = flags.DEFINE_integer("frame_rate", 6, "Video frame rate")
 
 
 def _validate_args():
@@ -58,8 +63,6 @@ def _validate_args():
     raise ValueError("The location_id isn't provided")
   if _CLUSTER_ID.value is None:
     raise ValueError("The cluster_id isn't provided")
-  if _ENV is None:
-    raise ValueError("The env isn't provided")
   if _BUCKET_NAME.value is None:
     raise ValueError("The bucket_name isn't provided")
 
@@ -95,6 +98,7 @@ def _create_processes(
         connection_options,
         gcs_input,
         gcs_output,
+        _FPS.value,
     )
     print(f"process {process.process_id} is created")
     processes.append(process)
@@ -126,7 +130,7 @@ def main(unused_argv) -> None:
       project_id=_PROJECT_ID.value,
       location_id=_LOCATION_ID.value,
       cluster_id=_CLUSTER_ID.value,
-      env=_ENV.value,
+      env=channel.Environment[_ENV.value],
   )
   # Create process for each mp4 file.
   processes = _create_processes(gcs_inputs, connection_options)

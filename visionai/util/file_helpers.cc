@@ -194,14 +194,14 @@ absl::Status ValidateLocalDirectory(const std::string& path) {
         "The local directory (%s) has exceeded the max local dir length %d",
         path, KMaxLocalDirLength));
   }
-  std::string invalid_dir_chars("[^a-zA-Z0-9-_\\/]");
+  std::string invalid_dir_chars("[^a-zA-Z0-9-_\\/.]");
   RE2 pattern(invalid_dir_chars);
   if (RE2::PartialMatch(path, pattern)) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("Found invalid characters in the local directory path "
-                        "(%s). The allowed "
-                        "characters are numbers, alphabets, `-`, `_`, and `/`.",
-                        path));
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Found invalid characters in the local directory path "
+        "(%s). The allowed "
+        "characters are numbers, alphabets, `-`, `_`, `.` and `/`.",
+        path));
   }
   return IsDirectory(path);
 }

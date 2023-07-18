@@ -11,6 +11,11 @@
 
 namespace visionai {
 
+namespace {
+using resource_ids::Application;
+using resource_ids::Stream;
+}  // namespace
+
 TEST(ResourceUtilTest, MakeProjectLocationName) {
   {
     std::string project_id = "p-1";
@@ -64,6 +69,15 @@ TEST(ResourceUtilTest, MakeStreamName) {
     EXPECT_TRUE(name.ok());
     EXPECT_EQ(*name, "projects/p-1/locations/l-1/clusters/c-1/streams/s-1");
   }
+  {
+    Stream stream = {.project_id = "p-1",
+                     .location_id = "l-1",
+                     .cluster_id = "c-1",
+                     .stream_id = "s-1"};
+    auto name = MakeStreamName(stream);
+    EXPECT_TRUE(name.ok());
+    EXPECT_EQ(*name, "projects/p-1/locations/l-1/clusters/c-1/streams/s-1");
+  }
 }
 
 TEST(ResourceUtilTest, MakeChannelName) {
@@ -73,6 +87,16 @@ TEST(ResourceUtilTest, MakeChannelName) {
     auto name = MakeChannelName(cluster_name, channel_id);
     EXPECT_TRUE(name.ok());
     EXPECT_EQ(*name, "projects/p-1/locations/l-1/clusters/c-1/series/s-1");
+  }
+}
+
+TEST(ResourceUtilTest, MakeApplicationName) {
+  {
+    Application application = {
+        .project_id = "p-1", .location_id = "l-1", .application_id = "a-1"};
+    auto name = MakeApplicationName(application);
+    EXPECT_TRUE(name.ok());
+    EXPECT_EQ(*name, "projects/p-1/locations/l-1/applications/a-1");
   }
 }
 
@@ -120,6 +144,50 @@ TEST(ResourceUtilTest, ParseStreamName) {
     std::string stream_name = "c-1";
     auto resource_ids = ParseStreamName(stream_name);
     EXPECT_FALSE(resource_ids.ok());
+  }
+}
+
+TEST(ResourceUtilTest, ParseStreamNameStructured) {
+  {
+    std::string stream_name =
+        "projects/p-1/locations/l-1/clusters/c-1/streams/s-1";
+    auto stream_resource = ParseStreamNameStructured(stream_name);
+    EXPECT_TRUE(stream_resource.ok());
+    EXPECT_EQ(stream_resource->project_id, "p-1");
+    EXPECT_EQ(stream_resource->location_id, "l-1");
+    EXPECT_EQ(stream_resource->cluster_id, "c-1");
+    EXPECT_EQ(stream_resource->stream_id, "s-1");
+  }
+  {
+    std::string stream_name = "projects/p-1/locations/l-1/clusters/c-1";
+    auto stream_resource = ParseStreamNameStructured(stream_name);
+    EXPECT_FALSE(stream_resource.ok());
+  }
+  {
+    std::string stream_name = "c-1";
+    auto stream_resource = ParseStreamNameStructured(stream_name);
+    EXPECT_FALSE(stream_resource.ok());
+  }
+}
+
+TEST(ResourceUtilTest, ParseApplicationNameStructured) {
+  {
+    std::string app_name = "projects/p-1/locations/l-1/applications/a-1";
+    auto app_resource = ParseApplicationNameStructured(app_name);
+    EXPECT_TRUE(app_resource.ok());
+    EXPECT_EQ(app_resource->project_id, "p-1");
+    EXPECT_EQ(app_resource->location_id, "l-1");
+    EXPECT_EQ(app_resource->application_id, "a-1");
+  }
+  {
+    std::string app_name = "projects/p-1/locations/l-1/clusters/c-1";
+    auto app_resource = ParseApplicationNameStructured(app_name);
+    EXPECT_FALSE(app_resource.ok());
+  }
+  {
+    std::string app_name = "c-1";
+    auto app_resource = ParseStreamNameStructured(app_name);
+    EXPECT_FALSE(app_resource.ok());
   }
 }
 

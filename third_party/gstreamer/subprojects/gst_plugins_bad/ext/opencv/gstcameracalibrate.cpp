@@ -78,15 +78,15 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstcameracalibrate.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstcameracalibrate.h"
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 
-#include <gst/opencv/gstopencvutils.h>
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/opencv/gstopencvutils.h"
 
 #include "camerautils.hpp"
 #include "cameraevent.hpp"

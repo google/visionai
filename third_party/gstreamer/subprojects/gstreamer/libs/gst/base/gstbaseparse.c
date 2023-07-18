@@ -231,6 +231,8 @@ struct _GstBaseParsePrivate
   guint lead_in, lead_out;
   GstClockTime lead_in_ts, lead_out_ts;
   GstClockTime min_latency, max_latency;
+  /* Tracks whether the latency message was posted at least once */
+  gboolean posted_latency_msg;
 
   gboolean discont;
   gboolean flushing;
@@ -899,6 +901,7 @@ gst_base_parse_reset (GstBaseParse * parse)
   parse->priv->detect_buffers_size = 0;
 
   parse->priv->segment_seqnum = GST_SEQNUM_INVALID;
+  parse->priv->posted_latency_msg = FALSE;
   GST_OBJECT_UNLOCK (parse);
 }
 
@@ -1058,7 +1061,7 @@ gst_base_parse_parse_frame (GstBaseParse * parse, GstBaseParseFrame * frame)
  * @src_format: #GstFormat describing the source format.
  * @src_value: Source value to be converted.
  * @dest_format: #GstFormat defining the converted format.
- * @dest_value: Pointer where the conversion result will be put.
+ * @dest_value: (out): Pointer where the conversion result will be put.
  *
  * Converts using configured "convert" vmethod in #GstBaseParse class.
  *
@@ -1782,7 +1785,7 @@ gst_base_parse_convert_default (GstBaseParse * parse,
   if (!parse->priv->framecount)
     goto no_framecount;
 
-  duration = parse->priv->acc_duration / GST_MSECOND;
+  duration = parse->priv->acc_duration;
   bytes = parse->priv->bytecount;
 
   if (G_UNLIKELY (!duration || !bytes))
@@ -1793,9 +1796,9 @@ gst_base_parse_convert_default (GstBaseParse * parse,
       /* BYTES -> TIME conversion */
       GST_DEBUG_OBJECT (parse, "converting bytes -> time");
       *dest_value = gst_util_uint64_scale (src_value, duration, bytes);
-      *dest_value *= GST_MSECOND;
-      GST_DEBUG_OBJECT (parse, "conversion result: %" G_GINT64_FORMAT " ms",
-          *dest_value / GST_MSECOND);
+      GST_DEBUG_OBJECT (parse,
+          "converted %" G_GINT64_FORMAT " bytes to %" GST_TIME_FORMAT,
+          src_value, GST_TIME_ARGS (*dest_value));
       ret = TRUE;
     } else {
       GST_DEBUG_OBJECT (parse, "converting bytes -> other not implemented");
@@ -1803,11 +1806,10 @@ gst_base_parse_convert_default (GstBaseParse * parse,
   } else if (src_format == GST_FORMAT_TIME) {
     if (dest_format == GST_FORMAT_BYTES) {
       GST_DEBUG_OBJECT (parse, "converting time -> bytes");
-      *dest_value = gst_util_uint64_scale (src_value / GST_MSECOND, bytes,
-          duration);
+      *dest_value = gst_util_uint64_scale (src_value, bytes, duration);
       GST_DEBUG_OBJECT (parse,
-          "time %" G_GINT64_FORMAT " ms in bytes = %" G_GINT64_FORMAT,
-          src_value / GST_MSECOND, *dest_value);
+          "converted %" GST_TIME_FORMAT " to %" G_GINT64_FORMAT " bytes",
+          GST_TIME_ARGS (src_value), *dest_value);
       ret = TRUE;
     } else {
       GST_DEBUG_OBJECT (parse, "converting time -> other not implemented");
@@ -4072,23 +4074,44 @@ gst_base_parse_set_infer_ts (GstBaseParse * parse, gboolean infer_ts)
  * @max_latency: maximum parse latency
  *
  * Sets the minimum and maximum (which may likely be equal) latency introduced
- * by the parsing process.  If there is such a latency, which depends on the
+ * by the parsing process. If there is such a latency, which depends on the
  * particular parsing of the format, it typically corresponds to 1 frame duration.
+ *
+ * If the provided values changed from previously provided ones, this will
+ * also post a LATENCY message on the bus so the pipeline can reconfigure its
+ * global latency.
  */
 void
 gst_base_parse_set_latency (GstBaseParse * parse, GstClockTime min_latency,
     GstClockTime max_latency)
 {
+  gboolean post_message = FALSE;
+
   g_return_if_fail (GST_CLOCK_TIME_IS_VALID (min_latency));
   g_return_if_fail (min_latency <= max_latency);
 
-  GST_OBJECT_LOCK (parse);
-  parse->priv->min_latency = min_latency;
-  parse->priv->max_latency = max_latency;
-  GST_OBJECT_UNLOCK (parse);
   GST_INFO_OBJECT (parse, "min/max latency %" GST_TIME_FORMAT ", %"
       GST_TIME_FORMAT, GST_TIME_ARGS (min_latency),
       GST_TIME_ARGS (max_latency));
+
+  GST_OBJECT_LOCK (parse);
+  if (parse->priv->min_latency != min_latency) {
+    parse->priv->min_latency = min_latency;
+    post_message = TRUE;
+  }
+  if (parse->priv->max_latency != max_latency) {
+    parse->priv->max_latency = max_latency;
+    post_message = TRUE;
+  }
+  if (!parse->priv->posted_latency_msg) {
+    parse->priv->posted_latency_msg = TRUE;
+    post_message = TRUE;
+  }
+  GST_OBJECT_UNLOCK (parse);
+
+  if (post_message)
+    gst_element_post_message (GST_ELEMENT_CAST (parse),
+        gst_message_new_latency (GST_OBJECT_CAST (parse)));
 }
 
 static gboolean

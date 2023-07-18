@@ -55,10 +55,10 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#  include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include "gstmotioncells.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/ext/opencv/gstmotioncells.h"
 
 GST_DEBUG_CATEGORY_STATIC (gst_motion_cells_debug);
 #define GST_CAT_DEFAULT gst_motion_cells_debug

@@ -298,6 +298,8 @@ GST_END_TEST;
 
 #define TWCC_EXTMAP_STR "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
 
+#define BOGUS_EXTMAP_STR "http://www.ietf.org/id/bogus"
+
 GST_START_TEST (rtpfunnel_twcc_caps)
 {
   GstHarness *h, *h0, *h1;
@@ -310,20 +312,21 @@ GST_START_TEST (rtpfunnel_twcc_caps)
   gst_harness_set_src_caps_str (h0, "application/x-rtp, "
       "ssrc=(uint)123, extmap-5=" TWCC_EXTMAP_STR "");
 
-  /* request a second sinkpad, and verify the extmap is
-     present in the caps when doing a caps-query downstream */
+  /* request a second sinkpad, the extmap should not be
+     present in the caps when doing a caps-query downstream,
+     as we don't want to force upstream (typically a payloader)
+     to use the extension */
   h1 = gst_harness_new_with_element (h->element, "sink_1", NULL);
   caps = gst_pad_query_caps (GST_PAD_PEER (h1->srcpad), NULL);
-  expected_caps = gst_caps_from_string ("application/x-rtp, "
-      "extmap-5=" TWCC_EXTMAP_STR "");
+  expected_caps = gst_caps_new_empty_simple ("application/x-rtp");
   fail_unless (gst_caps_is_equal (expected_caps, caps));
   gst_caps_unref (caps);
   gst_caps_unref (expected_caps);
 
-  /* now try and set a different extmap (4) on the other sinkpad,
-     and verify this does not work */
+  /* now try and set a different extmap for the same id on the other
+   * sinkpad, and verify this does not work */
   gst_harness_set_src_caps_str (h1, "application/x-rtp, "
-      "ssrc=(uint)456, extmap-4=" TWCC_EXTMAP_STR "");
+      "ssrc=(uint)456, extmap-5=" BOGUS_EXTMAP_STR "");
   caps = gst_pad_get_current_caps (GST_PAD_PEER (h1->srcpad));
   fail_unless (caps == NULL);
 

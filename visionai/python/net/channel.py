@@ -5,10 +5,16 @@
 """Library for creating authenticated gRPC channels."""
 
 import dataclasses
+import enum
+import logging
 
-from google import auth as google_auth
-from google.auth.transport import grpc as google_auth_transport_grpc
-from google.auth.transport import requests as google_auth_transport_requests
+_logger = logging.getLogger(__name__)
+
+
+class Environment(enum.Enum):
+  AUTOPUSH = 1
+  STAGING = 2
+  PROD = 3
 
 
 @dataclasses.dataclass
@@ -16,29 +22,45 @@ class ConnectionOptions:
   project_id: str
   location_id: str
   cluster_id: str
-  env: str = 'prod'
+  env: Environment = Environment.PROD
 
 
-def _get_service_endpoint(env: str) -> str:
-  if env == 'staging':
-    return 'staging-visionai.sandbox.googleapis.com'
-  if env == 'autopush':
-    return 'autopush-visionai.sandbox.googleapis.com'
-  return 'visionai.googleapis.com'
-
-
-def create_channel(options: ConnectionOptions):
-  """Create the grpc channel connecting to Google services.
+def get_service_endpoint(env: Environment) -> str:
+  """Gets the visionai endpoint according to specified environment.
 
   Args:
-    options: Connection options which specify the arguments for connecting to
-      Google services.
+    env: Environment, either AUTOPUSH, STAGING OR PROD.
 
   Returns:
-    The created grpc channel.
+    The visionai endpoint to talk to.
   """
-  credentials, _ = google_auth.default()
-  request = google_auth_transport_requests.Request()
-  return google_auth_transport_grpc.secure_authorized_channel(
-      credentials, request, _get_service_endpoint(options.env)
-  )
+  if env == Environment.AUTOPUSH:
+    return 'autopush-visionai.sandbox.googleapis.com'
+  if env == Environment.STAGING:
+    return 'staging-visionai.sandbox.googleapis.com'
+  if env == Environment.PROD:
+    return 'visionai.googleapis.com'
+
+  _logger.error('Unsupported environment %s', env)
+  raise ValueError('Invalid environment.')
+
+
+# TODO(zhangxiaotian): switch to regional endpoint when it is ready.
+def get_warehouse_service_endpoint(env: Environment) -> str:
+  """Gets the warehouse endpoint according to specified environment.
+
+  Args:
+    env: Environment, either AUTOPUSH, STAGING OR PROD.
+
+  Returns:
+    The warehouse endpoint to talk to.
+  """
+  if env == Environment.AUTOPUSH:
+    return 'autopush-warehouse-visionai.sandbox.googleapis.com'
+  if env == Environment.STAGING:
+    return 'staging-warehouse-visionai.sandbox.googleapis.com'
+  if env == Environment.PROD:
+    return 'warehouse-visionai.googleapis.com'
+
+  _logger.error('Unsupported environment %s', env)
+  raise ValueError('Invalid environment.')

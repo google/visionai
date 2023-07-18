@@ -475,7 +475,7 @@ gst_base_transform_transform_caps (GstBaseTransform * trans,
     GST_LOG_OBJECT (trans, "  to: %" GST_PTR_FORMAT, ret);
 
 #ifdef GST_ENABLE_EXTRA_CHECKS
-    if (filter) {
+    if (ret && filter) {
       if (!gst_caps_is_subset (ret, filter)) {
         GstCaps *intersection;
 
@@ -810,7 +810,8 @@ gst_base_transform_default_decide_allocation (GstBaseTransform * trans,
 
     /* by default we remove all metadata, subclasses should implement a
      * filter_meta function */
-    if (gst_meta_api_type_has_tag (api, _gst_meta_tag_memory)) {
+    if (gst_meta_api_type_has_tag (api, _gst_meta_tag_memory)
+        || gst_meta_api_type_has_tag (api, _gst_meta_tag_memory_reference)) {
       /* remove all memory dependent metadata because we are going to have to
        * allocate different memory for input and output. */
       GST_LOG_OBJECT (trans, "removing memory specific metadata %s",
@@ -1595,6 +1596,10 @@ gst_base_transform_default_query (GstBaseTransform * trans,
 
       gst_query_parse_caps (query, &filter);
       caps = gst_base_transform_query_caps (trans, pad, filter);
+      if (!caps) {
+        GST_WARNING_OBJECT (pad, "no caps can be handled by this pad");
+        caps = gst_caps_new_empty ();
+      }
       gst_query_set_caps_result (query, caps);
       gst_caps_unref (caps);
       ret = TRUE;
@@ -1762,7 +1767,8 @@ foreach_metadata (GstBuffer * inbuf, GstMeta ** meta, gpointer user_data)
 
   klass = GST_BASE_TRANSFORM_GET_CLASS (trans);
 
-  if (gst_meta_api_type_has_tag (info->api, _gst_meta_tag_memory)) {
+  if (gst_meta_api_type_has_tag (info->api, _gst_meta_tag_memory)
+      || gst_meta_api_type_has_tag (info->api, _gst_meta_tag_memory_reference)) {
     /* never call the transform_meta with memory specific metadata */
     GST_DEBUG_OBJECT (trans, "not copying memory specific metadata %s",
         g_type_name (info->api));

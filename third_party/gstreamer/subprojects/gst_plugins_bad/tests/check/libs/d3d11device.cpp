@@ -18,12 +18,12 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/config.h"
 #endif
 
-#include <gst/gst.h>
-#include <gst/check/gstcheck.h>
-#include <gst/d3d11/gstd3d11.h>
+#include "third_party/gstreamer/subprojects/gstreamer/gst/gst.h"
+#include "third_party/gstreamer/subprojects/gstreamer/libs/gst/check/gstcheck.h"
+#include "third_party/gstreamer/subprojects/gst_plugins_bad/gst_libs/gst/d3d11/gstd3d11.h"
 #include <wrl.h>
 
 /* *INDENT-OFF* */

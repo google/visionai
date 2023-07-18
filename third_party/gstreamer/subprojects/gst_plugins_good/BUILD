@@ -1,6 +1,9 @@
 load("//third_party/gstreamer:tools.bzl", "gen_config_file")
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_visibility = ["//visibility:public"],
+    features = ["-layering_check"],
+)
 
 licenses(["restricted"])
 
@@ -180,7 +183,10 @@ cc_library(
 
 cc_library(
     name = "multifile",
-    srcs = glob(["gst/multifile/*.c"]),
+    srcs = glob(
+        ["gst/multifile/*.c"],
+        exclude = ["gst/multifile/test-splitmuxpartreader.c"],
+    ),
     hdrs = glob(["gst/multifile/*.h"]),
     copts = DEFAULT_COPTS,
     deps = [

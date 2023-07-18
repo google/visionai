@@ -24,6 +24,8 @@
 #include "third_party/gstreamer/subprojects/gst_plugins_base/config.h"
 #endif
 
+#include <ctype.h>              /* isspace() */
+#include <stdio.h>              /* sscanf() */
 #include <stdlib.h>             /* atoi() */
 #include <string.h>
 

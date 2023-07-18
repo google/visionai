@@ -178,9 +178,17 @@ TEST_F(FileHelpersTest, DirectoryStrInvalidChar) {
 }
 
 TEST_F(FileHelpersTest, DirectoryIsValid) {
-  std::string valid_path = file::JoinPath(testing::TempDir(), "file-helpers");
-  CreateDir(valid_path).IgnoreError();
-  EXPECT_TRUE(ValidateLocalDirectory(valid_path).ok());
+  {
+    std::string valid_path = file::JoinPath(testing::TempDir(), "file-helpers");
+    CreateDir(valid_path).IgnoreError();
+    EXPECT_TRUE(ValidateLocalDirectory(valid_path).ok());
+  }
+  {
+    std::string valid_path =
+        file::JoinPath(testing::TempDir(), ".file-helpers");
+    CreateDir(valid_path).IgnoreError();
+    EXPECT_TRUE(ValidateLocalDirectory(valid_path).ok());
+  }
 }
 
 }  // namespace

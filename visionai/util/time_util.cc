@@ -6,13 +6,11 @@
 
 #include "visionai/util/time_util.h"
 
+#include "visionai/util/time_constants.h"
+
 namespace visionai {
 namespace {
 namespace protobuf = ::google::protobuf;
-
-constexpr int64_t kMilliSecondsInSecond = 1000;
-constexpr int64_t kNanoSecondsInMilliSecond = 1000000;
-constexpr int64_t kNanoSecondsInSecond = 1000000000;
 }  // namespace
 
 absl::Time ToAbseilTimestamp(const protobuf::Timestamp& proto_timestamp) {

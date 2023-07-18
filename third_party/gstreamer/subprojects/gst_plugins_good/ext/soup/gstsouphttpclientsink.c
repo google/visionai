@@ -115,8 +115,11 @@ GST_STATIC_PAD_TEMPLATE ("sink",
 #define gst_soup_http_client_sink_parent_class parent_class
 G_DEFINE_TYPE (GstSoupHttpClientSink, gst_soup_http_client_sink,
     GST_TYPE_BASE_SINK);
-GST_ELEMENT_REGISTER_DEFINE_WITH_CODE (souphttpclientsink, "souphttpclientsink",
-    GST_RANK_NONE, GST_TYPE_SOUP_HTTP_CLIENT_SINK, soup_element_init (plugin));
+
+static gboolean souphttpclientsink_element_init (GstPlugin * plugin);
+GST_ELEMENT_REGISTER_DEFINE_CUSTOM (souphttpclientsink,
+    souphttpclientsink_element_init);
+
 
 static void
 gst_soup_http_client_sink_class_init (GstSoupHttpClientSinkClass * klass)
@@ -211,9 +214,6 @@ gst_soup_http_client_sink_class_init (GstSoupHttpClientSinkClass * klass)
       GST_DEBUG_FUNCPTR (gst_soup_http_client_sink_unlock);
   base_sink_class->render =
       GST_DEBUG_FUNCPTR (gst_soup_http_client_sink_render);
-
-  GST_DEBUG_CATEGORY_INIT (souphttpclientsink_dbg, "souphttpclientsink", 0,
-      "souphttpclientsink element");
 }
 
 static void
@@ -575,7 +575,7 @@ gst_soup_http_client_sink_start (GstBaseSink * sink)
     g_source_attach (source, souphttpsink->context);
     g_source_unref (source);
 
-    souphttpsink->loop = g_main_loop_new (souphttpsink->context, TRUE);
+    souphttpsink->loop = g_main_loop_new (souphttpsink->context, FALSE);
 
     g_mutex_lock (&souphttpsink->mutex);
 
@@ -591,14 +591,15 @@ gst_soup_http_client_sink_start (GstBaseSink * sink)
     }
 
     GST_LOG_OBJECT (souphttpsink, "waiting for main loop thread to start up");
-    g_cond_wait (&souphttpsink->cond, &souphttpsink->mutex);
+    while (!g_main_loop_is_running (souphttpsink->loop))
+      g_cond_wait (&souphttpsink->cond, &souphttpsink->mutex);
     g_mutex_unlock (&souphttpsink->mutex);
     GST_LOG_OBJECT (souphttpsink, "main loop thread running");
   }
 
   /* Set up logging */
   gst_soup_util_log_setup (souphttpsink->session, souphttpsink->log_level,
-      GST_ELEMENT (souphttpsink));
+      G_OBJECT (souphttpsink));
 
   return TRUE;
 }
@@ -910,4 +911,22 @@ authenticate (SoupMessage * msg, SoupAuth * auth,
     }
   }
   return FALSE;
+}
+
+static gboolean
+souphttpclientsink_element_init (GstPlugin * plugin)
+{
+  gboolean ret = TRUE;
+
+  GST_DEBUG_CATEGORY_INIT (souphttpclientsink_dbg, "souphttpclientsink", 0,
+      "souphttpclientsink element");
+
+  if (!soup_element_init (plugin))
+    return TRUE;
+
+  ret =
+      gst_element_register (plugin, "souphttpclientsink", GST_RANK_NONE,
+      GST_TYPE_SOUP_HTTP_CLIENT_SINK);
+
+  return ret;
 }
