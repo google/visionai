@@ -1,3 +1,4 @@
+load("@rules_python//python:defs.bzl", "py_library")
 load("//bazel/pytest:pytest_defs.bzl", "pytest_test")
 
 package(

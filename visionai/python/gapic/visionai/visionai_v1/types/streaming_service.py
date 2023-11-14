@@ -101,6 +101,7 @@ class ReceiveEventsRequest(proto.Message):
                 events for the given stream.
             receiver (str):
                 A name for the receiver to self-identify.
+
                 This is used to keep track of a receiver's read
                 progress.
             controlled_mode (google.cloud.visionai_v1.types.ControlledMode):
@@ -563,6 +564,7 @@ class ReceivePacketsRequest(proto.Message):
                 are retrieved.
             receiver (str):
                 A name for the receiver to self-identify.
+
                 This is used to keep track of a receiver's read
                 progress.
             heartbeat_interval (google.protobuf.duration_pb2.Duration):
@@ -720,11 +722,12 @@ class ControlledMode(proto.Message):
         starting_logical_offset (str):
             This can be set to the following logical
             starting points:
-
             "begin": This will read from the earliest
             available message.
+
             "most-recent": This will read from the latest
             available message.
+
             "end": This will read only future messages.
 
             "stored": This will resume reads one past the
@@ -737,10 +740,12 @@ class ControlledMode(proto.Message):
             This is the logical starting point to
             fallback upon should the specified starting
             offset be unavailable.
+
             This can be one of the following values:
 
             "begin": This will read from the earliest
             available message.
+
             "end": This will read only future messages.
     """
 

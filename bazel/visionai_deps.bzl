@@ -116,9 +116,9 @@ def visionai_deps(is_gob_source_only = False):
     maybe(
         http_archive,
         name = "com_github_googleapis_googleapis",
-        sha256 = "8503282213779a3c230251218c924f385f457a053b4f82ff95d068f71815e558",
-        strip_prefix = "googleapis-d73a41615b101c34c58b3534c2cc7ee1d89cccb0",
-        urls = ["https://github.com/googleapis/googleapis/archive/d73a41615b101c34c58b3534c2cc7ee1d89cccb0.tar.gz"],
+        sha256 = "53cdd6a10d4c57dd9f14cf3cca96d9204f62e05dc39a8028148fad1aea620b48",
+        strip_prefix = "googleapis-10b972be1028d510e96a8b92e0cd2c79ccf54495",
+        urls = ["https://github.com/googleapis/googleapis/archive/10b972be1028d510e96a8b92e0cd2c79ccf54495.tar.gz"],
     )
 
     maybe(

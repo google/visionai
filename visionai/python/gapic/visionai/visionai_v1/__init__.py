@@ -273,6 +273,8 @@ from .types.warehouse import DateTimeRangeArray
 from .types.warehouse import DeleteAnnotationRequest
 from .types.warehouse import DeleteAssetMetadata
 from .types.warehouse import DeleteAssetRequest
+from .types.warehouse import DeleteCollectionMetadata
+from .types.warehouse import DeleteCollectionRequest
 from .types.warehouse import DeleteCorpusRequest
 from .types.warehouse import DeleteDataSchemaRequest
 from .types.warehouse import DeleteIndexEndpointMetadata
@@ -317,6 +319,7 @@ from .types.warehouse import IndexAssetRequest
 from .types.warehouse import IndexAssetResponse
 from .types.warehouse import IndexedAsset
 from .types.warehouse import IndexEndpoint
+from .types.warehouse import IndexingStatus
 from .types.warehouse import IngestAssetRequest
 from .types.warehouse import IngestAssetResponse
 from .types.warehouse import IntRange
@@ -342,6 +345,9 @@ from .types.warehouse import ListSearchHypernymsResponse
 from .types.warehouse import Partition
 from .types.warehouse import RemoveCollectionItemRequest
 from .types.warehouse import RemoveCollectionItemResponse
+from .types.warehouse import RemoveIndexAssetMetadata
+from .types.warehouse import RemoveIndexAssetRequest
+from .types.warehouse import RemoveIndexAssetResponse
 from .types.warehouse import SchemaKeySortingStrategy
 from .types.warehouse import SearchAssetsRequest
 from .types.warehouse import SearchAssetsResponse
@@ -475,6 +481,8 @@ __all__ = (
 'DeleteAssetMetadata',
 'DeleteAssetRequest',
 'DeleteClusterRequest',
+'DeleteCollectionMetadata',
+'DeleteCollectionRequest',
 'DeleteCorpusRequest',
 'DeleteDataSchemaRequest',
 'DeleteDraftRequest',
@@ -557,6 +565,7 @@ __all__ = (
 'IndexAssetResponse',
 'IndexEndpoint',
 'IndexedAsset',
+'IndexingStatus',
 'IngestAssetRequest',
 'IngestAssetResponse',
 'Instance',
@@ -656,6 +665,9 @@ __all__ = (
 'RemoveApplicationStreamInputResponse',
 'RemoveCollectionItemRequest',
 'RemoveCollectionItemResponse',
+'RemoveIndexAssetMetadata',
+'RemoveIndexAssetRequest',
+'RemoveIndexAssetResponse',
 'RenewLeaseRequest',
 'RequestMetadata',
 'ResolveOperatorInfoRequest',

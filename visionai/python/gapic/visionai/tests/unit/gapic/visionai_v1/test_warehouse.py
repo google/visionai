@@ -56,12 +56,13 @@ from visionai.python.gapic.visionai.visionai_v1.types import warehouse
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import options_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
-from google.longrunning import operations_pb2
+from google.longrunning import operations_pb2 # type: ignore
 from google.oauth2 import service_account
 from google.protobuf import any_pb2  # type: ignore
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from google.protobuf import field_mask_pb2  # type: ignore
+from google.protobuf import struct_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.type import datetime_pb2  # type: ignore
 import google.auth
@@ -2508,6 +2509,152 @@ async def test_index_asset_field_headers_async():
             '__call__') as call:
         call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(operations_pb2.Operation(name='operations/op'))
         await client.index_asset(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        'x-goog-request-params',
+        'name=name_value',
+    ) in kw['metadata']
+
+
+@pytest.mark.parametrize("request_type", [
+  warehouse.RemoveIndexAssetRequest,
+  dict,
+])
+def test_remove_index_asset(request_type, transport: str = 'grpc'):
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.remove_index_asset),
+            '__call__') as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = operations_pb2.Operation(name='operations/spam')
+        response = client.remove_index_asset(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == warehouse.RemoveIndexAssetRequest()
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, future.Future)
+
+
+def test_remove_index_asset_empty_call():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport='grpc',
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.remove_index_asset),
+            '__call__') as call:
+        client.remove_index_asset()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == warehouse.RemoveIndexAssetRequest()
+
+@pytest.mark.asyncio
+async def test_remove_index_asset_async(transport: str = 'grpc_asyncio', request_type=warehouse.RemoveIndexAssetRequest):
+    client = WarehouseAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.remove_index_asset),
+            '__call__') as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            operations_pb2.Operation(name='operations/spam')
+        )
+        response = await client.remove_index_asset(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == warehouse.RemoveIndexAssetRequest()
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, future.Future)
+
+
+@pytest.mark.asyncio
+async def test_remove_index_asset_async_from_dict():
+    await test_remove_index_asset_async(request_type=dict)
+
+
+def test_remove_index_asset_field_headers():
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = warehouse.RemoveIndexAssetRequest()
+
+    request.name = 'name_value'
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.remove_index_asset),
+            '__call__') as call:
+        call.return_value = operations_pb2.Operation(name='operations/op')
+        client.remove_index_asset(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        'x-goog-request-params',
+        'name=name_value',
+    ) in kw['metadata']
+
+
+@pytest.mark.asyncio
+async def test_remove_index_asset_field_headers_async():
+    client = WarehouseAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = warehouse.RemoveIndexAssetRequest()
+
+    request.name = 'name_value'
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.remove_index_asset),
+            '__call__') as call:
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(operations_pb2.Operation(name='operations/op'))
+        await client.remove_index_asset(request)
 
         # Establish that the underlying gRPC stub method was called.
         assert len(call.mock_calls)
@@ -14525,6 +14672,236 @@ async def test_create_collection_flattened_error_async():
 
 
 @pytest.mark.parametrize("request_type", [
+  warehouse.DeleteCollectionRequest,
+  dict,
+])
+def test_delete_collection(request_type, transport: str = 'grpc'):
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.delete_collection),
+            '__call__') as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = operations_pb2.Operation(name='operations/spam')
+        response = client.delete_collection(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == warehouse.DeleteCollectionRequest()
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, future.Future)
+
+
+def test_delete_collection_empty_call():
+    # This test is a coverage failsafe to make sure that totally empty calls,
+    # i.e. request == None and no flattened fields passed, work.
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport='grpc',
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.delete_collection),
+            '__call__') as call:
+        client.delete_collection()
+        call.assert_called()
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == warehouse.DeleteCollectionRequest()
+
+@pytest.mark.asyncio
+async def test_delete_collection_async(transport: str = 'grpc_asyncio', request_type=warehouse.DeleteCollectionRequest):
+    client = WarehouseAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Everything is optional in proto3 as far as the runtime is concerned,
+    # and we are mocking out the actual API, so just send an empty request.
+    request = request_type()
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.delete_collection),
+            '__call__') as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            operations_pb2.Operation(name='operations/spam')
+        )
+        response = await client.delete_collection(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == warehouse.DeleteCollectionRequest()
+
+    # Establish that the response is the type that we expect.
+    assert isinstance(response, future.Future)
+
+
+@pytest.mark.asyncio
+async def test_delete_collection_async_from_dict():
+    await test_delete_collection_async(request_type=dict)
+
+
+def test_delete_collection_field_headers():
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = warehouse.DeleteCollectionRequest()
+
+    request.name = 'name_value'
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.delete_collection),
+            '__call__') as call:
+        call.return_value = operations_pb2.Operation(name='operations/op')
+        client.delete_collection(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        'x-goog-request-params',
+        'name=name_value',
+    ) in kw['metadata']
+
+
+@pytest.mark.asyncio
+async def test_delete_collection_field_headers_async():
+    client = WarehouseAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Any value that is part of the HTTP/1.1 URI should be sent as
+    # a field header. Set these to a non-empty value.
+    request = warehouse.DeleteCollectionRequest()
+
+    request.name = 'name_value'
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.delete_collection),
+            '__call__') as call:
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(operations_pb2.Operation(name='operations/op'))
+        await client.delete_collection(request)
+
+        # Establish that the underlying gRPC stub method was called.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        assert args[0] == request
+
+    # Establish that the field header was sent.
+    _, _, kw = call.mock_calls[0]
+    assert (
+        'x-goog-request-params',
+        'name=name_value',
+    ) in kw['metadata']
+
+
+def test_delete_collection_flattened():
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.delete_collection),
+            '__call__') as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = operations_pb2.Operation(name='operations/op')
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        client.delete_collection(
+            name='name_value',
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls) == 1
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].name
+        mock_val = 'name_value'
+        assert arg == mock_val
+
+
+def test_delete_collection_flattened_error():
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.delete_collection(
+            warehouse.DeleteCollectionRequest(),
+            name='name_value',
+        )
+
+@pytest.mark.asyncio
+async def test_delete_collection_flattened_async():
+    client = WarehouseAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Mock the actual call within the gRPC stub, and fake the request.
+    with mock.patch.object(
+            type(client.transport.delete_collection),
+            '__call__') as call:
+        # Designate an appropriate return value for the call.
+        call.return_value = operations_pb2.Operation(name='operations/op')
+
+        call.return_value = grpc_helpers_async.FakeUnaryUnaryCall(
+            operations_pb2.Operation(name='operations/spam')
+        )
+        # Call the method with a truthy value for each flattened field,
+        # using the keyword arguments to the method.
+        response = await client.delete_collection(
+            name='name_value',
+        )
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(call.mock_calls)
+        _, args, _ = call.mock_calls[0]
+        arg = args[0].name
+        mock_val = 'name_value'
+        assert arg == mock_val
+
+@pytest.mark.asyncio
+async def test_delete_collection_flattened_error_async():
+    client = WarehouseAsyncClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        await client.delete_collection(
+            warehouse.DeleteCollectionRequest(),
+            name='name_value',
+        )
+
+
+@pytest.mark.parametrize("request_type", [
   warehouse.GetCollectionRequest,
   dict,
 ])
@@ -16332,6 +16709,69 @@ def test_create_asset_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
     request_init["asset"] = {'name': 'name_value', 'ttl': {'seconds': 751, 'nanos': 543}, 'asset_gcs_source': {'gcs_uri': 'gcs_uri_value'}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateAssetRequest.meta.fields["asset"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["asset"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["asset"][field])):
+                    del request_init["asset"][field][i][subfield]
+            else:
+                del request_init["asset"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -16344,8 +16784,9 @@ def test_create_asset_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Asset.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Asset.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -16415,8 +16856,9 @@ def test_create_asset_rest_required_fields(request_type=warehouse.CreateAssetReq
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Asset.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Asset.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -16424,6 +16866,7 @@ def test_create_asset_rest_required_fields(request_type=warehouse.CreateAssetReq
             response = client.create_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -16484,7 +16927,6 @@ def test_create_asset_rest_bad_request(transport: str = 'rest', request_type=war
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["asset"] = {'name': 'name_value', 'ttl': {'seconds': 751, 'nanos': 543}, 'asset_gcs_source': {'gcs_uri': 'gcs_uri_value'}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -16522,8 +16964,9 @@ def test_create_asset_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Asset.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Asset.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -16573,6 +17016,69 @@ def test_update_asset_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'asset': {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4'}}
     request_init["asset"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4', 'ttl': {'seconds': 751, 'nanos': 543}, 'asset_gcs_source': {'gcs_uri': 'gcs_uri_value'}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateAssetRequest.meta.fields["asset"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["asset"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["asset"][field])):
+                    del request_init["asset"][field][i][subfield]
+            else:
+                del request_init["asset"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -16585,8 +17091,9 @@ def test_update_asset_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Asset.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Asset.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -16651,8 +17158,9 @@ def test_update_asset_rest_required_fields(request_type=warehouse.UpdateAssetReq
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Asset.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Asset.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -16660,6 +17168,7 @@ def test_update_asset_rest_required_fields(request_type=warehouse.UpdateAssetReq
             response = client.update_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -16720,7 +17229,6 @@ def test_update_asset_rest_bad_request(transport: str = 'rest', request_type=war
 
     # send a request that will satisfy transcoding
     request_init = {'asset': {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4'}}
-    request_init["asset"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4', 'ttl': {'seconds': 751, 'nanos': 543}, 'asset_gcs_source': {'gcs_uri': 'gcs_uri_value'}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -16757,8 +17265,9 @@ def test_update_asset_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Asset.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Asset.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -16818,8 +17327,9 @@ def test_get_asset_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Asset.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Asset.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -16886,8 +17396,9 @@ def test_get_asset_rest_required_fields(request_type=warehouse.GetAssetRequest):
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Asset.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Asset.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -16895,6 +17406,7 @@ def test_get_asset_rest_required_fields(request_type=warehouse.GetAssetRequest):
             response = client.get_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -16990,8 +17502,9 @@ def test_get_asset_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Asset.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Asset.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -17050,8 +17563,9 @@ def test_list_assets_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListAssetsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListAssetsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -17120,8 +17634,9 @@ def test_list_assets_rest_required_fields(request_type=warehouse.ListAssetsReque
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListAssetsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListAssetsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -17129,6 +17644,7 @@ def test_list_assets_rest_required_fields(request_type=warehouse.ListAssetsReque
             response = client.list_assets(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -17224,8 +17740,9 @@ def test_list_assets_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListAssetsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListAssetsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -17410,6 +17927,7 @@ def test_delete_asset_rest_required_fields(request_type=warehouse.DeleteAssetReq
             response = client.delete_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -17637,6 +18155,7 @@ def test_upload_asset_rest_required_fields(request_type=warehouse.UploadAssetReq
             response = client.upload_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -17741,8 +18260,9 @@ def test_generate_retrieval_url_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.GenerateRetrievalUrlResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.GenerateRetrievalUrlResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -17810,8 +18330,9 @@ def test_generate_retrieval_url_rest_required_fields(request_type=warehouse.Gene
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.GenerateRetrievalUrlResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.GenerateRetrievalUrlResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -17819,6 +18340,7 @@ def test_generate_retrieval_url_rest_required_fields(request_type=warehouse.Gene
             response = client.generate_retrieval_url(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -17994,6 +18516,7 @@ def test_analyze_asset_rest_required_fields(request_type=warehouse.AnalyzeAssetR
             response = client.analyze_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -18170,6 +18693,7 @@ def test_index_asset_rest_required_fields(request_type=warehouse.IndexAssetReque
             response = client.index_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -18251,6 +18775,183 @@ def test_index_asset_rest_error():
 
 
 @pytest.mark.parametrize("request_type", [
+    warehouse.RemoveIndexAssetRequest,
+    dict,
+])
+def test_remove_index_asset_rest(request_type):
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4'}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), 'request') as req:
+        # Designate an appropriate value for the returned response.
+        return_value = operations_pb2.Operation(name='operations/spam')
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        json_return_value = json_format.MessageToJson(return_value)
+
+        response_value._content = json_return_value.encode('UTF-8')
+        req.return_value = response_value
+        response = client.remove_index_asset(request)
+
+    # Establish that the response is the type that we expect.
+    assert response.operation.name == "operations/spam"
+
+
+def test_remove_index_asset_rest_required_fields(request_type=warehouse.RemoveIndexAssetRequest):
+    transport_class = transports.WarehouseRestTransport
+
+    request_init = {}
+    request_init["name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(json_format.MessageToJson(
+        pb_request,
+        including_default_value_fields=False,
+        use_integers_for_enums=False
+    ))
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(credentials=ga_credentials.AnonymousCredentials()).remove_index_asset._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["name"] = 'name_value'
+
+    unset_fields = transport_class(credentials=ga_credentials.AnonymousCredentials()).remove_index_asset._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "name" in jsonified_request
+    assert jsonified_request["name"] == 'name_value'
+
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport='rest',
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = operations_pb2.Operation(name='operations/spam')
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, 'request') as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, 'transcode') as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                'uri': 'v1/sample_method',
+                'method': "post",
+                'query_params': pb_request,
+            }
+            transcode_result['body'] = pb_request
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+            json_return_value = json_format.MessageToJson(return_value)
+
+            response_value._content = json_return_value.encode('UTF-8')
+            req.return_value = response_value
+
+            response = client.remove_index_asset(request)
+
+            expected_params = [
+                ('$alt', 'json;enum-encoding=int')
+            ]
+            actual_params = req.call_args.kwargs['params']
+            assert expected_params == actual_params
+
+
+def test_remove_index_asset_rest_unset_required_fields():
+    transport = transports.WarehouseRestTransport(credentials=ga_credentials.AnonymousCredentials)
+
+    unset_fields = transport.remove_index_asset._get_unset_required_fields({})
+    assert set(unset_fields) == (set(()) & set(("name", )))
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_remove_index_asset_rest_interceptors(null_interceptor):
+    transport = transports.WarehouseRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.WarehouseRestInterceptor(),
+        )
+    client = WarehouseClient(transport=transport)
+    with mock.patch.object(type(client.transport._session), "request") as req, \
+         mock.patch.object(path_template, "transcode")  as transcode, \
+         mock.patch.object(operation.Operation, "_set_result_from_operation"), \
+         mock.patch.object(transports.WarehouseRestInterceptor, "post_remove_index_asset") as post, \
+         mock.patch.object(transports.WarehouseRestInterceptor, "pre_remove_index_asset") as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = warehouse.RemoveIndexAssetRequest.pb(warehouse.RemoveIndexAssetRequest())
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = json_format.MessageToJson(operations_pb2.Operation())
+
+        request = warehouse.RemoveIndexAssetRequest()
+        metadata =[
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = operations_pb2.Operation()
+
+        client.remove_index_asset(request, metadata=[("key", "val"), ("cephalopod", "squid"),])
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_remove_index_asset_rest_bad_request(transport: str = 'rest', request_type=warehouse.RemoveIndexAssetRequest):
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4'}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, 'request') as req, pytest.raises(core_exceptions.BadRequest):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.remove_index_asset(request)
+
+
+def test_remove_index_asset_rest_error():
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport='rest'
+    )
+
+
+@pytest.mark.parametrize("request_type", [
     warehouse.ViewIndexedAssetsRequest,
     dict,
 ])
@@ -18274,8 +18975,9 @@ def test_view_indexed_assets_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ViewIndexedAssetsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ViewIndexedAssetsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -18344,8 +19046,9 @@ def test_view_indexed_assets_rest_required_fields(request_type=warehouse.ViewInd
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ViewIndexedAssetsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ViewIndexedAssetsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -18353,6 +19056,7 @@ def test_view_indexed_assets_rest_required_fields(request_type=warehouse.ViewInd
             response = client.view_indexed_assets(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -18448,8 +19152,9 @@ def test_view_indexed_assets_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ViewIndexedAssetsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ViewIndexedAssetsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -18551,7 +19256,70 @@ def test_create_index_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["index"] = {'entire_corpus': True, 'single_collection_filter': 'single_collection_filter_value', 'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'state': 1, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}, 'deployed_indexes': [{'index_endpoint': 'index_endpoint_value'}]}
+    request_init["index"] = {'entire_corpus': True, 'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'state': 1, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}, 'deployed_indexes': [{'index_endpoint': 'index_endpoint_value'}]}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateIndexRequest.meta.fields["index"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["index"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["index"][field])):
+                    del request_init["index"][field][i][subfield]
+            else:
+                del request_init["index"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -18638,6 +19406,7 @@ def test_create_index_rest_required_fields(request_type=warehouse.CreateIndexReq
             response = client.create_index(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -18699,7 +19468,6 @@ def test_create_index_rest_bad_request(transport: str = 'rest', request_type=war
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["index"] = {'entire_corpus': True, 'single_collection_filter': 'single_collection_filter_value', 'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'state': 1, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}, 'deployed_indexes': [{'index_endpoint': 'index_endpoint_value'}]}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -18786,7 +19554,70 @@ def test_update_index_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'index': {'name': 'projects/sample1/locations/sample2/corpora/sample3/indexes/sample4'}}
-    request_init["index"] = {'entire_corpus': True, 'single_collection_filter': 'single_collection_filter_value', 'name': 'projects/sample1/locations/sample2/corpora/sample3/indexes/sample4', 'display_name': 'display_name_value', 'description': 'description_value', 'state': 1, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}, 'deployed_indexes': [{'index_endpoint': 'index_endpoint_value'}]}
+    request_init["index"] = {'entire_corpus': True, 'name': 'projects/sample1/locations/sample2/corpora/sample3/indexes/sample4', 'display_name': 'display_name_value', 'description': 'description_value', 'state': 1, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}, 'deployed_indexes': [{'index_endpoint': 'index_endpoint_value'}]}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateIndexRequest.meta.fields["index"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["index"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["index"][field])):
+                    del request_init["index"][field][i][subfield]
+            else:
+                del request_init["index"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -18868,6 +19699,7 @@ def test_update_index_rest_required_fields(request_type=warehouse.UpdateIndexReq
             response = client.update_index(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -18929,7 +19761,6 @@ def test_update_index_rest_bad_request(transport: str = 'rest', request_type=war
 
     # send a request that will satisfy transcoding
     request_init = {'index': {'name': 'projects/sample1/locations/sample2/corpora/sample3/indexes/sample4'}}
-    request_init["index"] = {'entire_corpus': True, 'single_collection_filter': 'single_collection_filter_value', 'name': 'projects/sample1/locations/sample2/corpora/sample3/indexes/sample4', 'display_name': 'display_name_value', 'description': 'description_value', 'state': 1, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}, 'deployed_indexes': [{'index_endpoint': 'index_endpoint_value'}]}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -19030,8 +19861,9 @@ def test_get_index_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Index.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Index.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -19101,8 +19933,9 @@ def test_get_index_rest_required_fields(request_type=warehouse.GetIndexRequest):
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Index.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Index.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -19110,6 +19943,7 @@ def test_get_index_rest_required_fields(request_type=warehouse.GetIndexRequest):
             response = client.get_index(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -19205,8 +20039,9 @@ def test_get_index_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Index.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Index.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -19265,8 +20100,9 @@ def test_list_indexes_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListIndexesResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListIndexesResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -19335,8 +20171,9 @@ def test_list_indexes_rest_required_fields(request_type=warehouse.ListIndexesReq
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListIndexesResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListIndexesResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -19344,6 +20181,7 @@ def test_list_indexes_rest_required_fields(request_type=warehouse.ListIndexesReq
             response = client.list_indexes(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -19439,8 +20277,9 @@ def test_list_indexes_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListIndexesResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListIndexesResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -19625,6 +20464,7 @@ def test_delete_index_rest_required_fields(request_type=warehouse.DeleteIndexReq
             response = client.delete_index(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -19769,6 +20609,69 @@ def test_create_corpus_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2'}
     request_init["corpus"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'default_ttl': {'seconds': 751, 'nanos': 543}, 'type_': 1, 'search_capability_setting': {'search_capabilities': [{'type_': 1}]}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateCorpusRequest.meta.fields["corpus"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["corpus"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["corpus"][field])):
+                    del request_init["corpus"][field][i][subfield]
+            else:
+                del request_init["corpus"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -19853,6 +20756,7 @@ def test_create_corpus_rest_required_fields(request_type=warehouse.CreateCorpusR
             response = client.create_corpus(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -19914,7 +20818,6 @@ def test_create_corpus_rest_bad_request(transport: str = 'rest', request_type=wa
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2'}
-    request_init["corpus"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'default_ttl': {'seconds': 751, 'nanos': 543}, 'type_': 1, 'search_capability_setting': {'search_capabilities': [{'type_': 1}]}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -20014,8 +20917,9 @@ def test_get_corpus_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Corpus.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Corpus.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -20085,8 +20989,9 @@ def test_get_corpus_rest_required_fields(request_type=warehouse.GetCorpusRequest
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Corpus.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Corpus.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -20094,6 +20999,7 @@ def test_get_corpus_rest_required_fields(request_type=warehouse.GetCorpusRequest
             response = client.get_corpus(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -20189,8 +21095,9 @@ def test_get_corpus_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Corpus.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Corpus.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -20238,6 +21145,69 @@ def test_update_corpus_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'corpus': {'name': 'projects/sample1/locations/sample2/corpora/sample3'}}
     request_init["corpus"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3', 'display_name': 'display_name_value', 'description': 'description_value', 'default_ttl': {'seconds': 751, 'nanos': 543}, 'type_': 1, 'search_capability_setting': {'search_capabilities': [{'type_': 1}]}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateCorpusRequest.meta.fields["corpus"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["corpus"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["corpus"][field])):
+                    del request_init["corpus"][field][i][subfield]
+            else:
+                del request_init["corpus"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -20253,8 +21223,9 @@ def test_update_corpus_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Corpus.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Corpus.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -20322,8 +21293,9 @@ def test_update_corpus_rest_required_fields(request_type=warehouse.UpdateCorpusR
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Corpus.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Corpus.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -20331,6 +21303,7 @@ def test_update_corpus_rest_required_fields(request_type=warehouse.UpdateCorpusR
             response = client.update_corpus(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -20391,7 +21364,6 @@ def test_update_corpus_rest_bad_request(transport: str = 'rest', request_type=wa
 
     # send a request that will satisfy transcoding
     request_init = {'corpus': {'name': 'projects/sample1/locations/sample2/corpora/sample3'}}
-    request_init["corpus"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3', 'display_name': 'display_name_value', 'description': 'description_value', 'default_ttl': {'seconds': 751, 'nanos': 543}, 'type_': 1, 'search_capability_setting': {'search_capabilities': [{'type_': 1}]}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -20428,8 +21400,9 @@ def test_update_corpus_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Corpus.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Corpus.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -20489,8 +21462,9 @@ def test_list_corpora_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListCorporaResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListCorporaResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -20559,8 +21533,9 @@ def test_list_corpora_rest_required_fields(request_type=warehouse.ListCorporaReq
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListCorporaResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListCorporaResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -20568,6 +21543,7 @@ def test_list_corpora_rest_required_fields(request_type=warehouse.ListCorporaReq
             response = client.list_corpora(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -20663,8 +21639,9 @@ def test_list_corpora_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListCorporaResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListCorporaResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -20849,6 +21826,7 @@ def test_delete_corpus_rest_required_fields(request_type=warehouse.DeleteCorpusR
             response = client.delete_corpus(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -21070,6 +22048,7 @@ def test_analyze_corpus_rest_required_fields(request_type=warehouse.AnalyzeCorpu
             response = client.analyze_corpus(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -21163,6 +22142,69 @@ def test_create_data_schema_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
     request_init["data_schema"] = {'name': 'name_value', 'key': 'key_value', 'schema_details': {'type_': 1, 'proto_any_config': {'type_uri': 'type_uri_value'}, 'list_config': {'value_schema': {}}, 'customized_struct_config': {'field_schemas': {}}, 'granularity': 1, 'search_strategy': {'search_strategy_type': 1}}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateDataSchemaRequest.meta.fields["data_schema"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["data_schema"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["data_schema"][field])):
+                    del request_init["data_schema"][field][i][subfield]
+            else:
+                del request_init["data_schema"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -21176,8 +22218,9 @@ def test_create_data_schema_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.DataSchema.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.DataSchema.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -21246,8 +22289,9 @@ def test_create_data_schema_rest_required_fields(request_type=warehouse.CreateDa
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.DataSchema.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.DataSchema.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -21255,6 +22299,7 @@ def test_create_data_schema_rest_required_fields(request_type=warehouse.CreateDa
             response = client.create_data_schema(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -21315,7 +22360,6 @@ def test_create_data_schema_rest_bad_request(transport: str = 'rest', request_ty
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["data_schema"] = {'name': 'name_value', 'key': 'key_value', 'schema_details': {'type_': 1, 'proto_any_config': {'type_uri': 'type_uri_value'}, 'list_config': {'value_schema': {}}, 'customized_struct_config': {'field_schemas': {}}, 'granularity': 1, 'search_strategy': {'search_strategy_type': 1}}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -21352,8 +22396,9 @@ def test_create_data_schema_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.DataSchema.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.DataSchema.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -21402,6 +22447,69 @@ def test_update_data_schema_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'data_schema': {'name': 'projects/sample1/locations/sample2/corpora/sample3/dataSchemas/sample4'}}
     request_init["data_schema"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/dataSchemas/sample4', 'key': 'key_value', 'schema_details': {'type_': 1, 'proto_any_config': {'type_uri': 'type_uri_value'}, 'list_config': {'value_schema': {}}, 'customized_struct_config': {'field_schemas': {}}, 'granularity': 1, 'search_strategy': {'search_strategy_type': 1}}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateDataSchemaRequest.meta.fields["data_schema"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["data_schema"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["data_schema"][field])):
+                    del request_init["data_schema"][field][i][subfield]
+            else:
+                del request_init["data_schema"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -21415,8 +22523,9 @@ def test_update_data_schema_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.DataSchema.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.DataSchema.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -21482,8 +22591,9 @@ def test_update_data_schema_rest_required_fields(request_type=warehouse.UpdateDa
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.DataSchema.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.DataSchema.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -21491,6 +22601,7 @@ def test_update_data_schema_rest_required_fields(request_type=warehouse.UpdateDa
             response = client.update_data_schema(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -21551,7 +22662,6 @@ def test_update_data_schema_rest_bad_request(transport: str = 'rest', request_ty
 
     # send a request that will satisfy transcoding
     request_init = {'data_schema': {'name': 'projects/sample1/locations/sample2/corpora/sample3/dataSchemas/sample4'}}
-    request_init["data_schema"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/dataSchemas/sample4', 'key': 'key_value', 'schema_details': {'type_': 1, 'proto_any_config': {'type_uri': 'type_uri_value'}, 'list_config': {'value_schema': {}}, 'customized_struct_config': {'field_schemas': {}}, 'granularity': 1, 'search_strategy': {'search_strategy_type': 1}}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -21588,8 +22698,9 @@ def test_update_data_schema_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.DataSchema.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.DataSchema.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -21650,8 +22761,9 @@ def test_get_data_schema_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.DataSchema.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.DataSchema.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -21719,8 +22831,9 @@ def test_get_data_schema_rest_required_fields(request_type=warehouse.GetDataSche
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.DataSchema.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.DataSchema.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -21728,6 +22841,7 @@ def test_get_data_schema_rest_required_fields(request_type=warehouse.GetDataSche
             response = client.get_data_schema(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -21823,8 +22937,9 @@ def test_get_data_schema_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.DataSchema.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.DataSchema.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -21954,6 +23069,7 @@ def test_delete_data_schema_rest_required_fields(request_type=warehouse.DeleteDa
             response = client.delete_data_schema(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -22103,8 +23219,9 @@ def test_list_data_schemas_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListDataSchemasResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListDataSchemasResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -22173,8 +23290,9 @@ def test_list_data_schemas_rest_required_fields(request_type=warehouse.ListDataS
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListDataSchemasResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListDataSchemasResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -22182,6 +23300,7 @@ def test_list_data_schemas_rest_required_fields(request_type=warehouse.ListDataS
             response = client.list_data_schemas(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -22277,8 +23396,9 @@ def test_list_data_schemas_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListDataSchemasResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListDataSchemasResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -22380,7 +23500,70 @@ def test_create_annotation_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4'}
-    request_init["annotation"] = {'name': 'name_value', 'user_specified_annotation': {'key': 'key_value', 'value': {'int_value': 967, 'float_value': 0.117, 'str_value': 'str_value_value', 'datetime_value': 'datetime_value_value', 'geo_coordinate': {'latitude': 0.86, 'longitude': 0.971}, 'proto_any_value': {'type_url': 'type.googleapis.com/google.protobuf.Duration', 'value': b'\x08\x0c\x10\xdb\x07'}, 'bool_value': True, 'list_value': {'values': {}}, 'customized_struct_value': {'elements': {}}}, 'partition': {'temporal_partition': {'start_time': {'seconds': 751, 'nanos': 543}, 'end_time': {}}, 'spatial_partition': {'x_min': 539, 'y_min': 540, 'x_max': 541, 'y_max': 542}, 'relative_temporal_partition': {'start_offset': {'seconds': 751, 'nanos': 543}, 'end_offset': {}}}}}
+    request_init["annotation"] = {'name': 'name_value', 'user_specified_annotation': {'key': 'key_value', 'value': {'int_value': 967, 'float_value': 0.117, 'str_value': 'str_value_value', 'datetime_value': 'datetime_value_value', 'geo_coordinate': {'latitude': 0.86, 'longitude': 0.971}, 'proto_any_value': {'type_url': 'type.googleapis.com/google.protobuf.Duration', 'value': b'\x08\x0c\x10\xdb\x07'}, 'bool_value': True, 'customized_struct_data_value': {'fields': {}}, 'list_value': {'values': {}}, 'customized_struct_value': {'elements': {}}}, 'partition': {'temporal_partition': {'start_time': {'seconds': 751, 'nanos': 543}, 'end_time': {}}, 'spatial_partition': {'x_min': 539, 'y_min': 540, 'x_max': 541, 'y_max': 542}, 'relative_temporal_partition': {'start_offset': {'seconds': 751, 'nanos': 543}, 'end_offset': {}}}}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateAnnotationRequest.meta.fields["annotation"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["annotation"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["annotation"][field])):
+                    del request_init["annotation"][field][i][subfield]
+            else:
+                del request_init["annotation"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -22393,8 +23576,9 @@ def test_create_annotation_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Annotation.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Annotation.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -22464,8 +23648,9 @@ def test_create_annotation_rest_required_fields(request_type=warehouse.CreateAnn
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Annotation.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Annotation.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -22473,6 +23658,7 @@ def test_create_annotation_rest_required_fields(request_type=warehouse.CreateAnn
             response = client.create_annotation(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -22533,7 +23719,6 @@ def test_create_annotation_rest_bad_request(transport: str = 'rest', request_typ
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4'}
-    request_init["annotation"] = {'name': 'name_value', 'user_specified_annotation': {'key': 'key_value', 'value': {'int_value': 967, 'float_value': 0.117, 'str_value': 'str_value_value', 'datetime_value': 'datetime_value_value', 'geo_coordinate': {'latitude': 0.86, 'longitude': 0.971}, 'proto_any_value': {'type_url': 'type.googleapis.com/google.protobuf.Duration', 'value': b'\x08\x0c\x10\xdb\x07'}, 'bool_value': True, 'list_value': {'values': {}}, 'customized_struct_value': {'elements': {}}}, 'partition': {'temporal_partition': {'start_time': {'seconds': 751, 'nanos': 543}, 'end_time': {}}, 'spatial_partition': {'x_min': 539, 'y_min': 540, 'x_max': 541, 'y_max': 542}, 'relative_temporal_partition': {'start_offset': {'seconds': 751, 'nanos': 543}, 'end_offset': {}}}}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -22571,8 +23756,9 @@ def test_create_annotation_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Annotation.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Annotation.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -22633,8 +23819,9 @@ def test_get_annotation_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Annotation.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Annotation.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -22701,8 +23888,9 @@ def test_get_annotation_rest_required_fields(request_type=warehouse.GetAnnotatio
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Annotation.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Annotation.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -22710,6 +23898,7 @@ def test_get_annotation_rest_required_fields(request_type=warehouse.GetAnnotatio
             response = client.get_annotation(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -22805,8 +23994,9 @@ def test_get_annotation_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Annotation.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Annotation.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -22865,8 +24055,9 @@ def test_list_annotations_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListAnnotationsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListAnnotationsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -22960,8 +24151,9 @@ def test_list_annotations_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListAnnotationsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListAnnotationsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -23063,7 +24255,70 @@ def test_update_annotation_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'annotation': {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4/annotations/sample5'}}
-    request_init["annotation"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4/annotations/sample5', 'user_specified_annotation': {'key': 'key_value', 'value': {'int_value': 967, 'float_value': 0.117, 'str_value': 'str_value_value', 'datetime_value': 'datetime_value_value', 'geo_coordinate': {'latitude': 0.86, 'longitude': 0.971}, 'proto_any_value': {'type_url': 'type.googleapis.com/google.protobuf.Duration', 'value': b'\x08\x0c\x10\xdb\x07'}, 'bool_value': True, 'list_value': {'values': {}}, 'customized_struct_value': {'elements': {}}}, 'partition': {'temporal_partition': {'start_time': {'seconds': 751, 'nanos': 543}, 'end_time': {}}, 'spatial_partition': {'x_min': 539, 'y_min': 540, 'x_max': 541, 'y_max': 542}, 'relative_temporal_partition': {'start_offset': {'seconds': 751, 'nanos': 543}, 'end_offset': {}}}}}
+    request_init["annotation"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4/annotations/sample5', 'user_specified_annotation': {'key': 'key_value', 'value': {'int_value': 967, 'float_value': 0.117, 'str_value': 'str_value_value', 'datetime_value': 'datetime_value_value', 'geo_coordinate': {'latitude': 0.86, 'longitude': 0.971}, 'proto_any_value': {'type_url': 'type.googleapis.com/google.protobuf.Duration', 'value': b'\x08\x0c\x10\xdb\x07'}, 'bool_value': True, 'customized_struct_data_value': {'fields': {}}, 'list_value': {'values': {}}, 'customized_struct_value': {'elements': {}}}, 'partition': {'temporal_partition': {'start_time': {'seconds': 751, 'nanos': 543}, 'end_time': {}}, 'spatial_partition': {'x_min': 539, 'y_min': 540, 'x_max': 541, 'y_max': 542}, 'relative_temporal_partition': {'start_offset': {'seconds': 751, 'nanos': 543}, 'end_offset': {}}}}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateAnnotationRequest.meta.fields["annotation"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["annotation"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["annotation"][field])):
+                    del request_init["annotation"][field][i][subfield]
+            else:
+                del request_init["annotation"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -23076,8 +24331,9 @@ def test_update_annotation_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Annotation.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Annotation.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -23142,8 +24398,9 @@ def test_update_annotation_rest_required_fields(request_type=warehouse.UpdateAnn
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Annotation.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Annotation.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -23151,6 +24408,7 @@ def test_update_annotation_rest_required_fields(request_type=warehouse.UpdateAnn
             response = client.update_annotation(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -23211,7 +24469,6 @@ def test_update_annotation_rest_bad_request(transport: str = 'rest', request_typ
 
     # send a request that will satisfy transcoding
     request_init = {'annotation': {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4/annotations/sample5'}}
-    request_init["annotation"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/assets/sample4/annotations/sample5', 'user_specified_annotation': {'key': 'key_value', 'value': {'int_value': 967, 'float_value': 0.117, 'str_value': 'str_value_value', 'datetime_value': 'datetime_value_value', 'geo_coordinate': {'latitude': 0.86, 'longitude': 0.971}, 'proto_any_value': {'type_url': 'type.googleapis.com/google.protobuf.Duration', 'value': b'\x08\x0c\x10\xdb\x07'}, 'bool_value': True, 'list_value': {'values': {}}, 'customized_struct_value': {'elements': {}}}, 'partition': {'temporal_partition': {'start_time': {'seconds': 751, 'nanos': 543}, 'end_time': {}}, 'spatial_partition': {'x_min': 539, 'y_min': 540, 'x_max': 541, 'y_max': 542}, 'relative_temporal_partition': {'start_offset': {'seconds': 751, 'nanos': 543}, 'end_offset': {}}}}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -23248,8 +24505,9 @@ def test_update_annotation_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Annotation.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Annotation.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -23380,6 +24638,7 @@ def test_delete_annotation_rest_required_fields(request_type=warehouse.DeleteAnn
             response = client.delete_annotation(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -23539,8 +24798,9 @@ def test_clip_asset_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ClipAssetResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ClipAssetResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -23607,8 +24867,9 @@ def test_clip_asset_rest_required_fields(request_type=warehouse.ClipAssetRequest
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ClipAssetResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ClipAssetResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -23616,6 +24877,7 @@ def test_clip_asset_rest_required_fields(request_type=warehouse.ClipAssetRequest
             response = client.clip_asset(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -23719,8 +24981,9 @@ def test_generate_hls_uri_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.GenerateHlsUriResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.GenerateHlsUriResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -23788,8 +25051,9 @@ def test_generate_hls_uri_rest_required_fields(request_type=warehouse.GenerateHl
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.GenerateHlsUriResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.GenerateHlsUriResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -23797,6 +25061,7 @@ def test_generate_hls_uri_rest_required_fields(request_type=warehouse.GenerateHl
             response = client.generate_hls_uri(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -23972,6 +25237,7 @@ def test_import_assets_rest_required_fields(request_type=warehouse.ImportAssetsR
             response = client.import_assets(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -24065,6 +25331,69 @@ def test_create_search_config_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
     request_init["search_config"] = {'name': 'name_value', 'facet_property': {'fixed_range_bucket_spec': {'bucket_start': {'string_value': 'string_value_value', 'integer_value': 1386, 'datetime_value': {'year': 433, 'month': 550, 'day': 318, 'hours': 561, 'minutes': 773, 'seconds': 751, 'nanos': 543, 'utc_offset': {'seconds': 751, 'nanos': 543}, 'time_zone': {'id': 'id_value', 'version': 'version_value'}}}, 'bucket_granularity': {}, 'bucket_count': 1286}, 'custom_range_bucket_spec': {'endpoints': {}}, 'datetime_bucket_spec': {'granularity': 1}, 'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2'], 'display_name': 'display_name_value', 'result_size': 1209, 'bucket_type': 1}, 'search_criteria_property': {'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2']}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateSearchConfigRequest.meta.fields["search_config"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["search_config"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["search_config"][field])):
+                    del request_init["search_config"][field][i][subfield]
+            else:
+                del request_init["search_config"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -24077,8 +25406,9 @@ def test_create_search_config_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchConfig.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchConfig.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -24155,8 +25485,9 @@ def test_create_search_config_rest_required_fields(request_type=warehouse.Create
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchConfig.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchConfig.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -24168,6 +25499,7 @@ def test_create_search_config_rest_required_fields(request_type=warehouse.Create
                     "searchConfigId",
                     "",
                 ),
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -24228,7 +25560,6 @@ def test_create_search_config_rest_bad_request(transport: str = 'rest', request_
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["search_config"] = {'name': 'name_value', 'facet_property': {'fixed_range_bucket_spec': {'bucket_start': {'string_value': 'string_value_value', 'integer_value': 1386, 'datetime_value': {'year': 433, 'month': 550, 'day': 318, 'hours': 561, 'minutes': 773, 'seconds': 751, 'nanos': 543, 'utc_offset': {'seconds': 751, 'nanos': 543}, 'time_zone': {'id': 'id_value', 'version': 'version_value'}}}, 'bucket_granularity': {}, 'bucket_count': 1286}, 'custom_range_bucket_spec': {'endpoints': {}}, 'datetime_bucket_spec': {'granularity': 1}, 'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2'], 'display_name': 'display_name_value', 'result_size': 1209, 'bucket_type': 1}, 'search_criteria_property': {'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2']}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -24266,8 +25597,9 @@ def test_create_search_config_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchConfig.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchConfig.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -24317,6 +25649,69 @@ def test_update_search_config_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'search_config': {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchConfigs/sample4'}}
     request_init["search_config"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchConfigs/sample4', 'facet_property': {'fixed_range_bucket_spec': {'bucket_start': {'string_value': 'string_value_value', 'integer_value': 1386, 'datetime_value': {'year': 433, 'month': 550, 'day': 318, 'hours': 561, 'minutes': 773, 'seconds': 751, 'nanos': 543, 'utc_offset': {'seconds': 751, 'nanos': 543}, 'time_zone': {'id': 'id_value', 'version': 'version_value'}}}, 'bucket_granularity': {}, 'bucket_count': 1286}, 'custom_range_bucket_spec': {'endpoints': {}}, 'datetime_bucket_spec': {'granularity': 1}, 'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2'], 'display_name': 'display_name_value', 'result_size': 1209, 'bucket_type': 1}, 'search_criteria_property': {'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2']}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateSearchConfigRequest.meta.fields["search_config"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["search_config"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["search_config"][field])):
+                    del request_init["search_config"][field][i][subfield]
+            else:
+                del request_init["search_config"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -24329,8 +25724,9 @@ def test_update_search_config_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchConfig.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchConfig.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -24395,8 +25791,9 @@ def test_update_search_config_rest_required_fields(request_type=warehouse.Update
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchConfig.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchConfig.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -24404,6 +25801,7 @@ def test_update_search_config_rest_required_fields(request_type=warehouse.Update
             response = client.update_search_config(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -24464,7 +25862,6 @@ def test_update_search_config_rest_bad_request(transport: str = 'rest', request_
 
     # send a request that will satisfy transcoding
     request_init = {'search_config': {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchConfigs/sample4'}}
-    request_init["search_config"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchConfigs/sample4', 'facet_property': {'fixed_range_bucket_spec': {'bucket_start': {'string_value': 'string_value_value', 'integer_value': 1386, 'datetime_value': {'year': 433, 'month': 550, 'day': 318, 'hours': 561, 'minutes': 773, 'seconds': 751, 'nanos': 543, 'utc_offset': {'seconds': 751, 'nanos': 543}, 'time_zone': {'id': 'id_value', 'version': 'version_value'}}}, 'bucket_granularity': {}, 'bucket_count': 1286}, 'custom_range_bucket_spec': {'endpoints': {}}, 'datetime_bucket_spec': {'granularity': 1}, 'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2'], 'display_name': 'display_name_value', 'result_size': 1209, 'bucket_type': 1}, 'search_criteria_property': {'mapped_fields': ['mapped_fields_value1', 'mapped_fields_value2']}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -24501,8 +25898,9 @@ def test_update_search_config_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchConfig.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchConfig.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -24562,8 +25960,9 @@ def test_get_search_config_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchConfig.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchConfig.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -24630,8 +26029,9 @@ def test_get_search_config_rest_required_fields(request_type=warehouse.GetSearch
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchConfig.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchConfig.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -24639,6 +26039,7 @@ def test_get_search_config_rest_required_fields(request_type=warehouse.GetSearch
             response = client.get_search_config(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -24734,8 +26135,9 @@ def test_get_search_config_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchConfig.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchConfig.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -24865,6 +26267,7 @@ def test_delete_search_config_rest_required_fields(request_type=warehouse.Delete
             response = client.delete_search_config(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -25014,8 +26417,9 @@ def test_list_search_configs_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListSearchConfigsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListSearchConfigsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -25084,8 +26488,9 @@ def test_list_search_configs_rest_required_fields(request_type=warehouse.ListSea
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListSearchConfigsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListSearchConfigsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -25093,6 +26498,7 @@ def test_list_search_configs_rest_required_fields(request_type=warehouse.ListSea
             response = client.list_search_configs(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -25188,8 +26594,9 @@ def test_list_search_configs_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListSearchConfigsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListSearchConfigsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -25292,6 +26699,69 @@ def test_create_search_hypernym_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
     request_init["search_hypernym"] = {'name': 'name_value', 'hypernym': 'hypernym_value', 'hyponyms': ['hyponyms_value1', 'hyponyms_value2']}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateSearchHypernymRequest.meta.fields["search_hypernym"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["search_hypernym"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["search_hypernym"][field])):
+                    del request_init["search_hypernym"][field][i][subfield]
+            else:
+                del request_init["search_hypernym"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -25306,8 +26776,9 @@ def test_create_search_hypernym_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchHypernym.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchHypernym.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -25379,8 +26850,9 @@ def test_create_search_hypernym_rest_required_fields(request_type=warehouse.Crea
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchHypernym.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchHypernym.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -25388,6 +26860,7 @@ def test_create_search_hypernym_rest_required_fields(request_type=warehouse.Crea
             response = client.create_search_hypernym(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -25448,7 +26921,6 @@ def test_create_search_hypernym_rest_bad_request(transport: str = 'rest', reques
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["search_hypernym"] = {'name': 'name_value', 'hypernym': 'hypernym_value', 'hyponyms': ['hyponyms_value1', 'hyponyms_value2']}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -25486,8 +26958,9 @@ def test_create_search_hypernym_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchHypernym.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchHypernym.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -25537,6 +27010,69 @@ def test_update_search_hypernym_rest(request_type):
     # send a request that will satisfy transcoding
     request_init = {'search_hypernym': {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchHypernyms/sample4'}}
     request_init["search_hypernym"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchHypernyms/sample4', 'hypernym': 'hypernym_value', 'hyponyms': ['hyponyms_value1', 'hyponyms_value2']}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateSearchHypernymRequest.meta.fields["search_hypernym"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["search_hypernym"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["search_hypernym"][field])):
+                    del request_init["search_hypernym"][field][i][subfield]
+            else:
+                del request_init["search_hypernym"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -25551,8 +27087,9 @@ def test_update_search_hypernym_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchHypernym.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchHypernym.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -25619,8 +27156,9 @@ def test_update_search_hypernym_rest_required_fields(request_type=warehouse.Upda
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchHypernym.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchHypernym.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -25628,6 +27166,7 @@ def test_update_search_hypernym_rest_required_fields(request_type=warehouse.Upda
             response = client.update_search_hypernym(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -25688,7 +27227,6 @@ def test_update_search_hypernym_rest_bad_request(transport: str = 'rest', reques
 
     # send a request that will satisfy transcoding
     request_init = {'search_hypernym': {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchHypernyms/sample4'}}
-    request_init["search_hypernym"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/searchHypernyms/sample4', 'hypernym': 'hypernym_value', 'hyponyms': ['hyponyms_value1', 'hyponyms_value2']}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -25725,8 +27263,9 @@ def test_update_search_hypernym_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchHypernym.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchHypernym.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -25788,8 +27327,9 @@ def test_get_search_hypernym_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchHypernym.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchHypernym.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -25858,8 +27398,9 @@ def test_get_search_hypernym_rest_required_fields(request_type=warehouse.GetSear
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchHypernym.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchHypernym.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -25867,6 +27408,7 @@ def test_get_search_hypernym_rest_required_fields(request_type=warehouse.GetSear
             response = client.get_search_hypernym(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -25962,8 +27504,9 @@ def test_get_search_hypernym_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchHypernym.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchHypernym.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -26093,6 +27636,7 @@ def test_delete_search_hypernym_rest_required_fields(request_type=warehouse.Dele
             response = client.delete_search_hypernym(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -26242,8 +27786,9 @@ def test_list_search_hypernyms_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListSearchHypernymsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListSearchHypernymsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -26312,8 +27857,9 @@ def test_list_search_hypernyms_rest_required_fields(request_type=warehouse.ListS
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListSearchHypernymsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListSearchHypernymsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -26321,6 +27867,7 @@ def test_list_search_hypernyms_rest_required_fields(request_type=warehouse.ListS
             response = client.list_search_hypernyms(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -26416,8 +27963,9 @@ def test_list_search_hypernyms_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListSearchHypernymsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListSearchHypernymsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -26531,8 +28079,9 @@ def test_search_assets_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchAssetsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchAssetsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -26600,8 +28149,9 @@ def test_search_assets_rest_required_fields(request_type=warehouse.SearchAssetsR
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchAssetsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchAssetsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -26609,6 +28159,7 @@ def test_search_assets_rest_required_fields(request_type=warehouse.SearchAssetsR
             response = client.search_assets(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -26767,8 +28318,9 @@ def test_search_index_endpoint_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.SearchIndexEndpointResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.SearchIndexEndpointResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -26836,8 +28388,9 @@ def test_search_index_endpoint_rest_required_fields(request_type=warehouse.Searc
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.SearchIndexEndpointResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.SearchIndexEndpointResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -26845,6 +28398,7 @@ def test_search_index_endpoint_rest_required_fields(request_type=warehouse.Searc
             response = client.search_index_endpoint(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -26991,7 +28545,70 @@ def test_create_index_endpoint_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2'}
-    request_init["index_endpoint"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'deployed_index': {'automatic_resources': {'min_replica_count': 1803, 'max_replica_count': 1805}, 'dedicated_resources': {'replica_count': 1384}, 'index': 'index_value'}, 'state': 1, 'labels': {}, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}}
+    request_init["index_endpoint"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'deployed_index': {'index': 'index_value'}, 'state': 1, 'labels': {}, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateIndexEndpointRequest.meta.fields["index_endpoint"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["index_endpoint"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["index_endpoint"][field])):
+                    del request_init["index_endpoint"][field][i][subfield]
+            else:
+                del request_init["index_endpoint"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -27078,6 +28695,7 @@ def test_create_index_endpoint_rest_required_fields(request_type=warehouse.Creat
             response = client.create_index_endpoint(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -27139,7 +28757,6 @@ def test_create_index_endpoint_rest_bad_request(transport: str = 'rest', request
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2'}
-    request_init["index_endpoint"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'deployed_index': {'automatic_resources': {'min_replica_count': 1803, 'max_replica_count': 1805}, 'dedicated_resources': {'replica_count': 1384}, 'index': 'index_value'}, 'state': 1, 'labels': {}, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -27241,8 +28858,9 @@ def test_get_index_endpoint_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.IndexEndpoint.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.IndexEndpoint.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -27312,8 +28930,9 @@ def test_get_index_endpoint_rest_required_fields(request_type=warehouse.GetIndex
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.IndexEndpoint.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.IndexEndpoint.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -27321,6 +28940,7 @@ def test_get_index_endpoint_rest_required_fields(request_type=warehouse.GetIndex
             response = client.get_index_endpoint(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -27416,8 +29036,9 @@ def test_get_index_endpoint_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.IndexEndpoint.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.IndexEndpoint.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -27476,8 +29097,9 @@ def test_list_index_endpoints_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListIndexEndpointsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListIndexEndpointsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -27546,8 +29168,9 @@ def test_list_index_endpoints_rest_required_fields(request_type=warehouse.ListIn
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListIndexEndpointsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListIndexEndpointsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -27555,6 +29178,7 @@ def test_list_index_endpoints_rest_required_fields(request_type=warehouse.ListIn
             response = client.list_index_endpoints(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -27650,8 +29274,9 @@ def test_list_index_endpoints_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListIndexEndpointsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListIndexEndpointsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -27753,7 +29378,70 @@ def test_update_index_endpoint_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'index_endpoint': {'name': 'projects/sample1/locations/sample2/indexEndpoints/sample3'}}
-    request_init["index_endpoint"] = {'name': 'projects/sample1/locations/sample2/indexEndpoints/sample3', 'display_name': 'display_name_value', 'description': 'description_value', 'deployed_index': {'automatic_resources': {'min_replica_count': 1803, 'max_replica_count': 1805}, 'dedicated_resources': {'replica_count': 1384}, 'index': 'index_value'}, 'state': 1, 'labels': {}, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}}
+    request_init["index_endpoint"] = {'name': 'projects/sample1/locations/sample2/indexEndpoints/sample3', 'display_name': 'display_name_value', 'description': 'description_value', 'deployed_index': {'index': 'index_value'}, 'state': 1, 'labels': {}, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateIndexEndpointRequest.meta.fields["index_endpoint"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["index_endpoint"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["index_endpoint"][field])):
+                    del request_init["index_endpoint"][field][i][subfield]
+            else:
+                del request_init["index_endpoint"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -27835,6 +29523,7 @@ def test_update_index_endpoint_rest_required_fields(request_type=warehouse.Updat
             response = client.update_index_endpoint(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -27896,7 +29585,6 @@ def test_update_index_endpoint_rest_bad_request(transport: str = 'rest', request
 
     # send a request that will satisfy transcoding
     request_init = {'index_endpoint': {'name': 'projects/sample1/locations/sample2/indexEndpoints/sample3'}}
-    request_init["index_endpoint"] = {'name': 'projects/sample1/locations/sample2/indexEndpoints/sample3', 'display_name': 'display_name_value', 'description': 'description_value', 'deployed_index': {'automatic_resources': {'min_replica_count': 1803, 'max_replica_count': 1805}, 'dedicated_resources': {'replica_count': 1384}, 'index': 'index_value'}, 'state': 1, 'labels': {}, 'create_time': {'seconds': 751, 'nanos': 543}, 'update_time': {}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -28064,6 +29752,7 @@ def test_delete_index_endpoint_rest_required_fields(request_type=warehouse.Delet
             response = client.delete_index_endpoint(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -28291,6 +29980,7 @@ def test_deploy_index_rest_required_fields(request_type=warehouse.DeployIndexReq
             response = client.deploy_index(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -28467,6 +30157,7 @@ def test_undeploy_index_rest_required_fields(request_type=warehouse.UndeployInde
             response = client.undeploy_index(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -28559,7 +30250,70 @@ def test_create_collection_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["collection"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'expire_time': {'seconds': 751, 'nanos': 543}}
+    request_init["collection"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value'}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.CreateCollectionRequest.meta.fields["collection"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["collection"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["collection"][field])):
+                    del request_init["collection"][field][i][subfield]
+            else:
+                del request_init["collection"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -28646,6 +30400,7 @@ def test_create_collection_rest_required_fields(request_type=warehouse.CreateCol
             response = client.create_collection(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -28707,7 +30462,6 @@ def test_create_collection_rest_bad_request(transport: str = 'rest', request_typ
 
     # send a request that will satisfy transcoding
     request_init = {'parent': 'projects/sample1/locations/sample2/corpora/sample3'}
-    request_init["collection"] = {'name': 'name_value', 'display_name': 'display_name_value', 'description': 'description_value', 'expire_time': {'seconds': 751, 'nanos': 543}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -28783,6 +30537,233 @@ def test_create_collection_rest_error():
 
 
 @pytest.mark.parametrize("request_type", [
+    warehouse.DeleteCollectionRequest,
+    dict,
+])
+def test_delete_collection_rest(request_type):
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4'}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), 'request') as req:
+        # Designate an appropriate value for the returned response.
+        return_value = operations_pb2.Operation(name='operations/spam')
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        json_return_value = json_format.MessageToJson(return_value)
+
+        response_value._content = json_return_value.encode('UTF-8')
+        req.return_value = response_value
+        response = client.delete_collection(request)
+
+    # Establish that the response is the type that we expect.
+    assert response.operation.name == "operations/spam"
+
+
+def test_delete_collection_rest_required_fields(request_type=warehouse.DeleteCollectionRequest):
+    transport_class = transports.WarehouseRestTransport
+
+    request_init = {}
+    request_init["name"] = ""
+    request = request_type(**request_init)
+    pb_request = request_type.pb(request)
+    jsonified_request = json.loads(json_format.MessageToJson(
+        pb_request,
+        including_default_value_fields=False,
+        use_integers_for_enums=False
+    ))
+
+    # verify fields with default values are dropped
+
+    unset_fields = transport_class(credentials=ga_credentials.AnonymousCredentials()).delete_collection._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with default values are now present
+
+    jsonified_request["name"] = 'name_value'
+
+    unset_fields = transport_class(credentials=ga_credentials.AnonymousCredentials()).delete_collection._get_unset_required_fields(jsonified_request)
+    jsonified_request.update(unset_fields)
+
+    # verify required fields with non-default values are left alone
+    assert "name" in jsonified_request
+    assert jsonified_request["name"] == 'name_value'
+
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport='rest',
+    )
+    request = request_type(**request_init)
+
+    # Designate an appropriate value for the returned response.
+    return_value = operations_pb2.Operation(name='operations/spam')
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(Session, 'request') as req:
+        # We need to mock transcode() because providing default values
+        # for required fields will fail the real version if the http_options
+        # expect actual values for those fields.
+        with mock.patch.object(path_template, 'transcode') as transcode:
+            # A uri without fields and an empty body will force all the
+            # request fields to show up in the query_params.
+            pb_request = request_type.pb(request)
+            transcode_result = {
+                'uri': 'v1/sample_method',
+                'method': "delete",
+                'query_params': pb_request,
+            }
+            transcode.return_value = transcode_result
+
+            response_value = Response()
+            response_value.status_code = 200
+            json_return_value = json_format.MessageToJson(return_value)
+
+            response_value._content = json_return_value.encode('UTF-8')
+            req.return_value = response_value
+
+            response = client.delete_collection(request)
+
+            expected_params = [
+                ('$alt', 'json;enum-encoding=int')
+            ]
+            actual_params = req.call_args.kwargs['params']
+            assert expected_params == actual_params
+
+
+def test_delete_collection_rest_unset_required_fields():
+    transport = transports.WarehouseRestTransport(credentials=ga_credentials.AnonymousCredentials)
+
+    unset_fields = transport.delete_collection._get_unset_required_fields({})
+    assert set(unset_fields) == (set(()) & set(("name", )))
+
+
+@pytest.mark.parametrize("null_interceptor", [True, False])
+def test_delete_collection_rest_interceptors(null_interceptor):
+    transport = transports.WarehouseRestTransport(
+        credentials=ga_credentials.AnonymousCredentials(),
+        interceptor=None if null_interceptor else transports.WarehouseRestInterceptor(),
+        )
+    client = WarehouseClient(transport=transport)
+    with mock.patch.object(type(client.transport._session), "request") as req, \
+         mock.patch.object(path_template, "transcode")  as transcode, \
+         mock.patch.object(operation.Operation, "_set_result_from_operation"), \
+         mock.patch.object(transports.WarehouseRestInterceptor, "post_delete_collection") as post, \
+         mock.patch.object(transports.WarehouseRestInterceptor, "pre_delete_collection") as pre:
+        pre.assert_not_called()
+        post.assert_not_called()
+        pb_message = warehouse.DeleteCollectionRequest.pb(warehouse.DeleteCollectionRequest())
+        transcode.return_value = {
+            "method": "post",
+            "uri": "my_uri",
+            "body": pb_message,
+            "query_params": pb_message,
+        }
+
+        req.return_value = Response()
+        req.return_value.status_code = 200
+        req.return_value.request = PreparedRequest()
+        req.return_value._content = json_format.MessageToJson(operations_pb2.Operation())
+
+        request = warehouse.DeleteCollectionRequest()
+        metadata =[
+            ("key", "val"),
+            ("cephalopod", "squid"),
+        ]
+        pre.return_value = request, metadata
+        post.return_value = operations_pb2.Operation()
+
+        client.delete_collection(request, metadata=[("key", "val"), ("cephalopod", "squid"),])
+
+        pre.assert_called_once()
+        post.assert_called_once()
+
+
+def test_delete_collection_rest_bad_request(transport: str = 'rest', request_type=warehouse.DeleteCollectionRequest):
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # send a request that will satisfy transcoding
+    request_init = {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4'}
+    request = request_type(**request_init)
+
+    # Mock the http request call within the method and fake a BadRequest error.
+    with mock.patch.object(Session, 'request') as req, pytest.raises(core_exceptions.BadRequest):
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 400
+        response_value.request = Request()
+        req.return_value = response_value
+        client.delete_collection(request)
+
+
+def test_delete_collection_rest_flattened():
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport="rest",
+    )
+
+    # Mock the http request call within the method and fake a response.
+    with mock.patch.object(type(client.transport._session), 'request') as req:
+        # Designate an appropriate value for the returned response.
+        return_value = operations_pb2.Operation(name='operations/spam')
+
+        # get arguments that satisfy an http rule for this method
+        sample_request = {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4'}
+
+        # get truthy value for each flattened field
+        mock_args = dict(
+            name='name_value',
+        )
+        mock_args.update(sample_request)
+
+        # Wrap the value into a proper Response obj
+        response_value = Response()
+        response_value.status_code = 200
+        json_return_value = json_format.MessageToJson(return_value)
+        response_value._content = json_return_value.encode('UTF-8')
+        req.return_value = response_value
+
+        client.delete_collection(**mock_args)
+
+        # Establish that the underlying call was made with the expected
+        # request object values.
+        assert len(req.mock_calls) == 1
+        _, args, _ = req.mock_calls[0]
+        assert path_template.validate("%s/v1/{name=projects/*/locations/*/corpora/*/collections/*}" % client.transport._host, args[1])
+
+
+def test_delete_collection_rest_flattened_error(transport: str = 'rest'):
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport=transport,
+    )
+
+    # Attempting to call a method with both a request object and flattened
+    # fields is an error.
+    with pytest.raises(ValueError):
+        client.delete_collection(
+            warehouse.DeleteCollectionRequest(),
+            name='name_value',
+        )
+
+
+def test_delete_collection_rest_error():
+    client = WarehouseClient(
+        credentials=ga_credentials.AnonymousCredentials(),
+        transport='rest'
+    )
+
+
+@pytest.mark.parametrize("request_type", [
     warehouse.GetCollectionRequest,
     dict,
 ])
@@ -28808,8 +30789,9 @@ def test_get_collection_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Collection.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Collection.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -28878,8 +30860,9 @@ def test_get_collection_rest_required_fields(request_type=warehouse.GetCollectio
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Collection.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Collection.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -28887,6 +30870,7 @@ def test_get_collection_rest_required_fields(request_type=warehouse.GetCollectio
             response = client.get_collection(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -28982,8 +30966,9 @@ def test_get_collection_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Collection.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Collection.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -29030,7 +31015,70 @@ def test_update_collection_rest(request_type):
 
     # send a request that will satisfy transcoding
     request_init = {'collection': {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4'}}
-    request_init["collection"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4', 'display_name': 'display_name_value', 'description': 'description_value', 'expire_time': {'seconds': 751, 'nanos': 543}}
+    request_init["collection"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4', 'display_name': 'display_name_value', 'description': 'description_value'}
+    # The version of a generated dependency at test runtime may differ from the version used during generation.
+    # Delete any fields which are not present in the current runtime dependency
+    # See https://github.com/googleapis/gapic-generator-python/issues/1748
+
+    # Determine if the message type is proto-plus or protobuf
+    test_field = warehouse.UpdateCollectionRequest.meta.fields["collection"]
+
+    def get_message_fields(field):
+        # Given a field which is a message (composite type), return a list with
+        # all the fields of the message.
+        # If the field is not a composite type, return an empty list.
+        message_fields = []
+
+        if hasattr(field, "message") and field.message:
+            is_field_type_proto_plus_type = not hasattr(field.message, "DESCRIPTOR")
+
+            if is_field_type_proto_plus_type:
+                message_fields = field.message.meta.fields.values()
+            # Add `# pragma: NO COVER` because there may not be any `*_pb2` field types
+            else: # pragma: NO COVER
+                message_fields = field.message.DESCRIPTOR.fields
+        return message_fields
+
+    runtime_nested_fields = [
+        (field.name, nested_field.name)
+        for field in get_message_fields(test_field)
+        for nested_field in get_message_fields(field)
+    ]
+
+    subfields_not_in_runtime = []
+
+    # For each item in the sample request, create a list of sub fields which are not present at runtime
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for field, value in request_init["collection"].items(): # pragma: NO COVER
+        result = None
+        is_repeated = False
+        # For repeated fields
+        if isinstance(value, list) and len(value):
+            is_repeated = True
+            result = value[0]
+        # For fields where the type is another message
+        if isinstance(value, dict):
+            result = value
+
+        if result and hasattr(result, "keys"):
+            for subfield in result.keys():
+                if (field, subfield) not in runtime_nested_fields:
+                    subfields_not_in_runtime.append(
+                        {"field": field, "subfield": subfield, "is_repeated": is_repeated}
+                    )
+
+    # Remove fields from the sample request which are not present in the runtime version of the dependency
+    # Add `# pragma: NO COVER` because this test code will not run if all subfields are present at runtime
+    for subfield_to_delete in subfields_not_in_runtime: # pragma: NO COVER
+        field = subfield_to_delete.get("field")
+        field_repeated = subfield_to_delete.get("is_repeated")
+        subfield = subfield_to_delete.get("subfield")
+        if subfield:
+            if field_repeated:
+                for i in range(0, len(request_init["collection"][field])):
+                    del request_init["collection"][field][i][subfield]
+            else:
+                del request_init["collection"][field][subfield]
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a response.
@@ -29045,8 +31093,9 @@ def test_update_collection_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Collection.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Collection.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -29113,8 +31162,9 @@ def test_update_collection_rest_required_fields(request_type=warehouse.UpdateCol
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.Collection.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.Collection.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -29122,6 +31172,7 @@ def test_update_collection_rest_required_fields(request_type=warehouse.UpdateCol
             response = client.update_collection(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -29182,7 +31233,6 @@ def test_update_collection_rest_bad_request(transport: str = 'rest', request_typ
 
     # send a request that will satisfy transcoding
     request_init = {'collection': {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4'}}
-    request_init["collection"] = {'name': 'projects/sample1/locations/sample2/corpora/sample3/collections/sample4', 'display_name': 'display_name_value', 'description': 'description_value', 'expire_time': {'seconds': 751, 'nanos': 543}}
     request = request_type(**request_init)
 
     # Mock the http request call within the method and fake a BadRequest error.
@@ -29219,8 +31269,9 @@ def test_update_collection_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.Collection.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.Collection.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -29280,8 +31331,9 @@ def test_list_collections_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListCollectionsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListCollectionsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -29316,7 +31368,7 @@ def test_list_collections_rest_required_fields(request_type=warehouse.ListCollec
 
     unset_fields = transport_class(credentials=ga_credentials.AnonymousCredentials()).list_collections._get_unset_required_fields(jsonified_request)
     # Check that path parameters and body parameters are not mixing in.
-    assert not set(unset_fields) - set(("page_size", "page_token", "show_deleted", ))
+    assert not set(unset_fields) - set(("page_size", "page_token", ))
     jsonified_request.update(unset_fields)
 
     # verify required fields with non-default values are left alone
@@ -29350,8 +31402,9 @@ def test_list_collections_rest_required_fields(request_type=warehouse.ListCollec
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ListCollectionsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ListCollectionsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -29359,6 +31412,7 @@ def test_list_collections_rest_required_fields(request_type=warehouse.ListCollec
             response = client.list_collections(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -29368,7 +31422,7 @@ def test_list_collections_rest_unset_required_fields():
     transport = transports.WarehouseRestTransport(credentials=ga_credentials.AnonymousCredentials)
 
     unset_fields = transport.list_collections._get_unset_required_fields({})
-    assert set(unset_fields) == (set(("pageSize", "pageToken", "showDeleted", )) & set(("parent", )))
+    assert set(unset_fields) == (set(("pageSize", "pageToken", )) & set(("parent", )))
 
 
 @pytest.mark.parametrize("null_interceptor", [True, False])
@@ -29454,8 +31508,9 @@ def test_list_collections_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ListCollectionsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ListCollectionsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -29568,8 +31623,9 @@ def test_add_collection_item_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.AddCollectionItemResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.AddCollectionItemResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -29631,8 +31687,9 @@ def test_add_collection_item_rest_required_fields(request_type=warehouse.AddColl
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.AddCollectionItemResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.AddCollectionItemResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -29640,6 +31697,7 @@ def test_add_collection_item_rest_required_fields(request_type=warehouse.AddColl
             response = client.add_collection_item(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -29735,8 +31793,9 @@ def test_add_collection_item_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.AddCollectionItemResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.AddCollectionItemResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -29794,8 +31853,9 @@ def test_remove_collection_item_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.RemoveCollectionItemResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.RemoveCollectionItemResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -29857,8 +31917,9 @@ def test_remove_collection_item_rest_required_fields(request_type=warehouse.Remo
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.RemoveCollectionItemResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.RemoveCollectionItemResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -29866,6 +31927,7 @@ def test_remove_collection_item_rest_required_fields(request_type=warehouse.Remo
             response = client.remove_collection_item(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -29961,8 +32023,9 @@ def test_remove_collection_item_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.RemoveCollectionItemResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.RemoveCollectionItemResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -30021,8 +32084,9 @@ def test_view_collection_items_rest(request_type):
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ViewCollectionItemsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ViewCollectionItemsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
 
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
@@ -30091,8 +32155,9 @@ def test_view_collection_items_rest_required_fields(request_type=warehouse.ViewC
             response_value = Response()
             response_value.status_code = 200
 
-            pb_return_value = warehouse.ViewCollectionItemsResponse.pb(return_value)
-            json_return_value = json_format.MessageToJson(pb_return_value)
+            # Convert return value to protobuf type
+            return_value = warehouse.ViewCollectionItemsResponse.pb(return_value)
+            json_return_value = json_format.MessageToJson(return_value)
 
             response_value._content = json_return_value.encode('UTF-8')
             req.return_value = response_value
@@ -30100,6 +32165,7 @@ def test_view_collection_items_rest_required_fields(request_type=warehouse.ViewC
             response = client.view_collection_items(request)
 
             expected_params = [
+                ('$alt', 'json;enum-encoding=int')
             ]
             actual_params = req.call_args.kwargs['params']
             assert expected_params == actual_params
@@ -30195,8 +32261,9 @@ def test_view_collection_items_rest_flattened():
         # Wrap the value into a proper Response obj
         response_value = Response()
         response_value.status_code = 200
-        pb_return_value = warehouse.ViewCollectionItemsResponse.pb(return_value)
-        json_return_value = json_format.MessageToJson(pb_return_value)
+        # Convert return value to protobuf type
+        return_value = warehouse.ViewCollectionItemsResponse.pb(return_value)
+        json_return_value = json_format.MessageToJson(return_value)
         response_value._content = json_return_value.encode('UTF-8')
         req.return_value = response_value
 
@@ -30437,6 +32504,7 @@ def test_warehouse_base_transport():
         'generate_retrieval_url',
         'analyze_asset',
         'index_asset',
+        'remove_index_asset',
         'view_indexed_assets',
         'create_index',
         'update_index',
@@ -30483,6 +32551,7 @@ def test_warehouse_base_transport():
         'deploy_index',
         'undeploy_index',
         'create_collection',
+        'delete_collection',
         'get_collection',
         'update_collection',
         'list_collections',
@@ -30780,6 +32849,9 @@ def test_warehouse_client_transport_session_collision(transport_name):
     session1 = client1.transport.index_asset._session
     session2 = client2.transport.index_asset._session
     assert session1 != session2
+    session1 = client1.transport.remove_index_asset._session
+    session2 = client2.transport.remove_index_asset._session
+    assert session1 != session2
     session1 = client1.transport.view_indexed_assets._session
     session2 = client2.transport.view_indexed_assets._session
     assert session1 != session2
@@ -30917,6 +32989,9 @@ def test_warehouse_client_transport_session_collision(transport_name):
     assert session1 != session2
     session1 = client1.transport.create_collection._session
     session2 = client2.transport.create_collection._session
+    assert session1 != session2
+    session1 = client1.transport.delete_collection._session
+    session2 = client2.transport.delete_collection._session
     assert session1 != session2
     session1 = client1.transport.get_collection._session
     session2 = client2.transport.get_collection._session

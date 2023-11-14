@@ -7,19 +7,27 @@ OcrTransformer will generate OCR text detections and write to warehouse.
 """
 
 import dataclasses
+import functools
 import logging
-from typing import Dict
-
+from typing import Dict, Optional, Sequence
 from google.api_core import exceptions
-
+from google.api_core import operation
+from google.cloud import videointelligence_v1
 from visionai.python.gapic.visionai import visionai_v1
+from visionai.python.gapic.visionai.visionai_v1 import AnnotationCustomizedStruct
+from visionai.python.gapic.visionai.visionai_v1 import AnnotationList
+from visionai.python.gapic.visionai.visionai_v1 import AnnotationValue
 from visionai.python.gapic.visionai.visionai_v1 import DataSchemaDetails
+from visionai.python.gapic.visionai.visionai_v1 import Partition
+from visionai.python.gapic.visionai.visionai_v1 import UserSpecifiedAnnotation
 from visionai.python.lva import client
 from visionai.python.lva import graph
 from visionai.python.net import channel
 from visionai.python.ops import gen_ops
+from visionai.python.warehouse.transformer import transform_progress
 from visionai.python.warehouse.transformer.transform_progress import LvaTransformProgress
 from visionai.python.warehouse.transformer.transform_progress import TransformProgress
+from visionai.python.warehouse.transformer.transform_progress import WaitAndWriteWarehouseTransformProgress
 from visionai.python.warehouse.transformer.transformer_interface import TransformerInterface
 
 _logger = logging.getLogger(__name__)
@@ -33,17 +41,27 @@ _OCR_ANNOTATIONS_DATA_SCHEMA_KEY = "text"
 _OCR_SEARCH_CRITERIA_KEY = "text"
 _TEXT = "text"
 _CONFIDENCE = "confidence"
+_FRAME_INFO = "frame-info"
 _TIMESTAMP = "timestamp-microseconds"
+_NORMALIZED_BOUNDING_POLY = "normalized-bounding-poly"
+_X = "x"
+_Y = "y"
+# Constants to construct data schema when not using video intelligence.
+_OCR_ANNOTATIONS_DATA_SCHEMA_KEY_USING_LVA = "text-lva"
+_BOUNDING_BOX = "bounding-box"
 _X_MIN = "x-min"
 _X_MAX = "x-max"
 _Y_MIN = "y-min"
 _Y_MAX = "y-max"
-_BOUNDING_BOX = "bounding-box"
-_FRAME_INFO = "frame-info"
 
 
-def _construct_ocr_data_schema() -> visionai_v1.DataSchemaDetails:
+def _construct_ocr_data_schema(
+    use_video_intelligence: bool,
+) -> visionai_v1.DataSchemaDetails:
   """Constructs data schema for OCR annotations.
+
+  Args:
+    use_video_intelligence: Wether use video intelligence for OCR.
 
   Returns:
     data schema for OCR annotations.
@@ -61,18 +79,36 @@ def _construct_ocr_data_schema() -> visionai_v1.DataSchemaDetails:
       type_=DataSchemaDetails.DataType.FLOAT,
   )
   data_schemas[_CONFIDENCE] = float_data_schema_detail
-  bounding_box = {}
-  bounding_box[_X_MIN] = bounding_box[_X_MAX] = bounding_box[_Y_MIN] = (
-      bounding_box[_Y_MAX]
-  ) = float_data_schema_detail
-  frame_info = {}
-  frame_info[_BOUNDING_BOX] = DataSchemaDetails(
-      granularity=DataSchemaDetails.Granularity.GRANULARITY_PARTITION_LEVEL,
-      type_=DataSchemaDetails.DataType.CUSTOMIZED_STRUCT,
-      customized_struct_config=DataSchemaDetails.CustomizedStructConfig(
-          field_schemas=bounding_box
-      ),
-  )
+  if use_video_intelligence:
+    normalized_vertex = {}
+    normalized_vertex[_X] = normalized_vertex[_Y] = float_data_schema_detail
+    frame_info = {}
+    frame_info[_NORMALIZED_BOUNDING_POLY] = DataSchemaDetails(
+        granularity=DataSchemaDetails.Granularity.GRANULARITY_PARTITION_LEVEL,
+        type_=DataSchemaDetails.DataType.LIST,
+        list_config=DataSchemaDetails.ListConfig(
+            value_schema=DataSchemaDetails(
+                type_=DataSchemaDetails.DataType.CUSTOMIZED_STRUCT,
+                granularity=DataSchemaDetails.Granularity.GRANULARITY_PARTITION_LEVEL,
+                customized_struct_config=DataSchemaDetails.CustomizedStructConfig(
+                    field_schemas=normalized_vertex
+                ),
+            )
+        ),
+    )
+  else:
+    bounding_box = {}
+    bounding_box[_X_MIN] = bounding_box[_X_MAX] = bounding_box[_Y_MIN] = (
+        bounding_box[_Y_MAX]
+    ) = float_data_schema_detail
+    frame_info = {}
+    frame_info[_BOUNDING_BOX] = DataSchemaDetails(
+        granularity=DataSchemaDetails.Granularity.GRANULARITY_PARTITION_LEVEL,
+        type_=DataSchemaDetails.DataType.CUSTOMIZED_STRUCT,
+        customized_struct_config=DataSchemaDetails.CustomizedStructConfig(
+            field_schemas=bounding_box
+        ),
+    )
   frame_info[_TIMESTAMP] = DataSchemaDetails(
       granularity=DataSchemaDetails.Granularity.GRANULARITY_PARTITION_LEVEL,
       type_=DataSchemaDetails.DataType.INTEGER,
@@ -99,6 +135,85 @@ def _construct_ocr_data_schema() -> visionai_v1.DataSchemaDetails:
   )
 
 
+def _construct_annotations(
+    data_schema_key: str,
+    annotate_video_response: videointelligence_v1.AnnotateVideoResponse,
+) -> Sequence[visionai_v1.Annotation]:
+  """Constructs warehouse annotations based on the response from Video Intelligence.
+
+  Args:
+    data_schema_key: the key of the data schema.
+    annotate_video_response: the response from AnnotateVideo API.
+
+  Returns:
+    A list of annotations.
+  """
+  annotations = []
+  for annotation_result in annotate_video_response.annotation_results:
+    for text_annotation in annotation_result.text_annotations:
+      for segment in text_annotation.segments:
+        start_time = segment.segment.start_time_offset
+        end_time = segment.segment.end_time_offset
+
+        frame_info = []
+        for frame in segment.frames:
+          normalized_vertices = []
+          for vertex in frame.rotated_bounding_box.vertices:
+            normalized_vertices.append(
+                AnnotationValue(
+                    customized_struct_value=AnnotationCustomizedStruct(
+                        elements={
+                            _X: AnnotationValue(float_value=vertex.x),
+                            _Y: AnnotationValue(float_value=vertex.y),
+                        }
+                    )
+                )
+            )
+          frame_info.append(
+              AnnotationValue(
+                  customized_struct_value=AnnotationCustomizedStruct(
+                      elements={
+                          _TIMESTAMP: AnnotationValue(
+                              int_value=frame.time_offset.seconds * 1000000
+                              + frame.time_offset.microseconds
+                          ),
+                          _NORMALIZED_BOUNDING_POLY: AnnotationValue(
+                              list_value=AnnotationList(
+                                  values=normalized_vertices
+                              )
+                          ),
+                      }
+                  )
+              )
+          )
+        annotation = visionai_v1.Annotation()
+        annotation.user_specified_annotation = UserSpecifiedAnnotation(
+            key=data_schema_key,
+            partition=Partition(
+                relative_temporal_partition=Partition.RelativeTemporalPartition(
+                    start_offset=start_time, end_offset=end_time
+                )
+            ),
+            value=AnnotationValue(
+                customized_struct_value=AnnotationCustomizedStruct(
+                    elements={
+                        _TEXT: AnnotationValue(str_value=text_annotation.text),
+                        _CONFIDENCE: AnnotationValue(
+                            float_value=segment.confidence
+                        ),
+                        _FRAME_INFO: AnnotationValue(
+                            list_value=AnnotationList(
+                                values=frame_info,
+                            )
+                        ),
+                    }
+                )
+            ),
+        )
+        annotations.append(annotation)
+  return annotations
+
+
 @dataclasses.dataclass
 class OcrTransformerInitConfig:
   """The initialize config for ocr transform.
@@ -114,16 +229,29 @@ class OcrTransformerInitConfig:
       language code concat with '+'. for example, en+zh. Prefers not specify if
       unsure.
     cluster_id: the cluster used by StreamService. Default
-      "application-cluster-0" if not specified.
+      "application-cluster-0" if not specified. Only used if
+      use_video_intelligence is set to False.
     env: the env used. By default, uses production if not specified.
+    use_video_intelligence: if set to True, calls Video Intelligence to perform
+      OCR. Otherwise uses Vision AI analyzer to process the video (which
+      requires a cluster to be created before).
   """
 
   corpus_name: str
-  ocr_data_schema_key: str = _OCR_ANNOTATIONS_DATA_SCHEMA_KEY
+  ocr_data_schema_key: str = None
   ocr_search_criteria_key: str = _OCR_SEARCH_CRITERIA_KEY
   language_hints: str = ""
   cluster_id: str = _DEFAULT_CLUSTER
   env: channel.Environment = channel.Environment.PROD
+  use_video_intelligence: bool = True
+
+  def __post_init__(self):
+    if self.ocr_data_schema_key is None:
+      self.ocr_data_schema_key = (
+          _OCR_ANNOTATIONS_DATA_SCHEMA_KEY
+          if self.use_video_intelligence
+          else _OCR_ANNOTATIONS_DATA_SCHEMA_KEY_USING_LVA
+      )
 
 
 # TODO(zhangxiaotian): use OCR graph in recipes when that is available
@@ -216,6 +344,9 @@ class OcrTransformer(TransformerInterface):
       self,
       init_config: OcrTransformerInitConfig,
       warehouse_client: visionai_v1.WarehouseClient,
+      video_intelligence_client: Optional[
+          videointelligence_v1.VideoIntelligenceServiceClient
+      ] = None,
   ):
     """Constructor.
 
@@ -229,13 +360,20 @@ class OcrTransformer(TransformerInterface):
     )
     self._project_number = path[_PROJECT_NUMBER]
     self._location = path[_LOCATION]
-    self._connection_options = channel.ConnectionOptions(
-        project_id=self._project_number,
-        location_id=self._location,
-        cluster_id=init_config.cluster_id,
-        env=init_config.env,
-    )
     self._init_config = init_config
+    if init_config.use_video_intelligence:
+      self.video_intelligence_client = (
+          video_intelligence_client
+          if video_intelligence_client is not None
+          else videointelligence_v1.VideoIntelligenceServiceClient()
+      )
+    else:
+      self._connection_options = channel.ConnectionOptions(
+          project_id=self._project_number,
+          location_id=self._location,
+          cluster_id=init_config.cluster_id,
+          env=init_config.env,
+      )
 
   def initialize(self) -> None:
     """Initialize the transformer."""
@@ -247,7 +385,9 @@ class OcrTransformer(TransformerInterface):
         parent=self._init_config.corpus_name,
         data_schema=visionai_v1.DataSchema(
             key=self._init_config.ocr_data_schema_key,
-            schema_details=_construct_ocr_data_schema(),
+            schema_details=_construct_ocr_data_schema(
+                self._init_config.use_video_intelligence
+            ),
         ),
     )
     try:
@@ -281,21 +421,36 @@ class OcrTransformer(TransformerInterface):
     else:
       _logger.info("Search config %s", search_config)
 
-    ocr_graph = OcrGraph()
-    g = ocr_graph.create_graph(
-        self._init_config.env,
-        self._init_config.language_hints,
-        self._init_config.ocr_data_schema_key,
-    )
-    self._analysis = client.get_or_create_analysis(
-        self._connection_options,
-        g,
-        self._construct_lva_analyze_id(),
-    )
-    _logger.info("created analysis name: %s", self._analysis.name)
+    if not self._init_config.use_video_intelligence:
+      ocr_graph = OcrGraph()
+      g = ocr_graph.create_graph(
+          self._init_config.env,
+          self._init_config.language_hints,
+          self._init_config.ocr_data_schema_key,
+      )
+      self._analysis = client.get_or_create_analysis(
+          self._connection_options,
+          g,
+          self._construct_lva_analyze_id(),
+      )
+      _logger.info("created analysis name: %s", self._analysis.name)
 
   def transform(self, asset_name: str) -> TransformProgress:
     """Performs transform for the given asset resource.
+
+    Args:
+      asset_name: the asset name that this transform will operate on.
+
+    Returns:
+      TransformProgress used to poll status for the transformation.
+    """
+    if self._init_config.use_video_intelligence:
+      return self.transform_by_videointelligence(asset_name)
+    else:
+      return self.transform_by_lva(asset_name)
+
+  def transform_by_lva(self, asset_name: str) -> TransformProgress:
+    """Performs transform for the given asset resource using live video analytics.
 
     Args:
       asset_name: the asset name that this transform will operate on.
@@ -310,27 +465,75 @@ class OcrTransformer(TransformerInterface):
     )
     return LvaTransformProgress(self._connection_options, process.process_id)
 
-  def teardown(self) -> bool:
-    _logger.info("Teardown OCR transformer.")
-    list_filter = (
-        'analysis="%s" AND (run_status.state="RUNNING" OR '
-        ' run_status.state="INITIALIZING" OR run_status.state="PENDING")'
-        % visionai_v1.LiveVideoAnalyticsClient.analysis_path(
-            self._connection_options.project_id,
-            self._connection_options.location_id,
-            self._connection_options.cluster_id,
-            self._analysis.analysis_id,
+  def transform_by_videointelligence(
+      self, asset_name: str
+  ) -> TransformProgress:
+    """Performs transform for the given asset resource using video intelligence.
+
+    Args:
+      asset_name: the asset name that this transform will operate on.
+
+    Returns:
+      WriteWarehouseTransformProgress used to poll status for the
+      transformation.
+    """
+    get_asset_request = visionai_v1.GetAssetRequest(name=asset_name)
+    get_asset_response = self.warehouse_client.get_asset(get_asset_request)
+    request = videointelligence_v1.AnnotateVideoRequest(
+        input_uri=get_asset_response.asset_gcs_source.gcs_uri,
+        features=[videointelligence_v1.Feature.TEXT_DETECTION],
+    )
+    request.video_context.text_detection_config = (
+        videointelligence_v1.TextDetectionConfig(
+            language_hints=self._init_config.language_hints
         )
     )
-    processes = client.list_processes(self._connection_options, list_filter)
+    annotate_video_operation = self.video_intelligence_client.annotate_video(
+        request=request
+    )
+    _logger.info("Text detection lro %s", annotate_video_operation.operation)
+    annotate_video_operation_with_polling_config = operation.from_gapic(
+        annotate_video_operation.operation,
+        self.video_intelligence_client.transport.operations_client,
+        videointelligence_v1.AnnotateVideoResponse,
+        metadata_type=videointelligence_v1.AnnotateVideoProgress,
+        retry=transform_progress.DEFAULT_POLLING,
+    )
+    ocr_transform_progress = WaitAndWriteWarehouseTransformProgress(
+        asset_name,
+        self.warehouse_client,
+        annotate_video_operation_with_polling_config,
+        functools.partial(
+            _construct_annotations, self._init_config.ocr_data_schema_key
+        ),
+    )
 
-    if processes:
-      _logger.warning(
-          "Skip tearing down OCR transformer since there are other processes"
-          " not complete."
+    return ocr_transform_progress
+
+  def teardown(self) -> bool:
+    _logger.info("Teardown OCR transformer.")
+    if not self._init_config.use_video_intelligence:
+      list_filter = (
+          'analysis="%s" AND (run_status.state="RUNNING" OR '
+          ' run_status.state="INITIALIZING" OR run_status.state="PENDING")'
+          % visionai_v1.LiveVideoAnalyticsClient.analysis_path(
+              self._connection_options.project_id,
+              self._connection_options.location_id,
+              self._connection_options.cluster_id,
+              self._analysis.analysis_id,
+          )
       )
-      return False
-    client.delete_analysis(self._connection_options, self._analysis.analysis_id)
+      processes = client.list_processes(self._connection_options, list_filter)
+
+      if processes:
+        _logger.warning(
+            "Skip tearing down OCR transformer since there are other processes"
+            " not complete."
+        )
+        return False
+      client.delete_analysis(
+          self._connection_options, self._analysis.analysis_id
+      )
     return True
 
   def _construct_lva_analyze_id(self):

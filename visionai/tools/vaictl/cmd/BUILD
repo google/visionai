@@ -4,7 +4,6 @@
 
 package(
     default_visibility = [
-        "//visionai:__subpackages__",
     ],
     licenses = ["notice"],
 )

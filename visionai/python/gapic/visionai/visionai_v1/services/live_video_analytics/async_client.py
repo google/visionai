@@ -42,7 +42,7 @@ from visionai.python.gapic.visionai.visionai_v1.types import lva_resources
 from visionai.python.gapic.visionai.visionai_v1.types import lva_service
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
-from google.longrunning import operations_pb2
+from google.longrunning import operations_pb2 # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from google.protobuf import field_mask_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore

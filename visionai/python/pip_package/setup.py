@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import setuptools
 
-VERSION = "0.0.5"
+VERSION = "0.0.6"
 REQUIRED_PACKAGES = []
 with open("requirements.txt", "r") as f:
   REQUIRED_PACKAGES = f.read().splitlines()

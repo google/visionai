@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2023 Google LLC All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
+
 #ifndef DRAWABLE_H_
 #define DRAWABLE_H_
 #include "opencv4/opencv2/core/mat.hpp"

@@ -9,14 +9,10 @@ transcriptions and write to warehouse.
 import dataclasses
 import functools
 import logging
-from typing import Optional
-from typing import Sequence
-
+from typing import Optional, Sequence
 from google.api_core import exceptions
 from google.api_core import operation
-from google.api_core import retry
 from google.cloud import videointelligence_v1
-import ratelimit
 
 from visionai.python.gapic.visionai import visionai_v1
 from visionai.python.gapic.visionai.visionai_v1 import AnnotationCustomizedStruct
@@ -25,8 +21,7 @@ from visionai.python.gapic.visionai.visionai_v1 import DataSchemaDetails
 from visionai.python.gapic.visionai.visionai_v1 import Partition
 from visionai.python.gapic.visionai.visionai_v1 import UserSpecifiedAnnotation
 from visionai.python.warehouse.transformer import transform_progress
-from visionai.python.warehouse.transformer.transform_progress import SpeechTransformProgress
-from visionai.python.warehouse.transformer.transform_progress import TransformError
+from visionai.python.warehouse.transformer.transform_progress import WaitAndWriteWarehouseTransformProgress
 from visionai.python.warehouse.transformer.transform_progress import TransformProgress
 from visionai.python.warehouse.transformer.transformer_interface import TransformerInterface
 
@@ -36,19 +31,6 @@ _SPEECH_ANNOTATIONS_DATA_SCHEMA_KEY = "speech"
 _SPEECH_TRANSCRIPT_SEARCH_CRITERIA_KEY = "speech"
 _TRANSCRIPT = "transcript"
 _CONFIDENCE = "confidence"
-_RATE_LIMIT_MAX_CALLS = 3600
-_RATE_LIMIT_PERIOD_IN_SECONDS = 60
-_CREATE_ANNOTATION_RETRY = retry.Retry(
-    initial=1.0,
-    maximum=120.0,
-    multiplier=2.5,
-    predicate=retry.if_exception_type(
-        exceptions.DeadlineExceeded,
-        exceptions.ServiceUnavailable,
-        exceptions.ResourceExhausted,
-    ),
-    deadline=120.0,
-)
 
 
 def _construct_speech_data_schema() -> visionai_v1.DataSchemaDetails:
@@ -78,37 +60,11 @@ def _construct_speech_data_schema() -> visionai_v1.DataSchemaDetails:
   )
 
 
-@ratelimit.sleep_and_retry
-@ratelimit.limits(
-    calls=_RATE_LIMIT_MAX_CALLS, period=_RATE_LIMIT_PERIOD_IN_SECONDS
-)
-def _send_one_warehouse_annotation(
-    client: visionai_v1.WarehouseClient,
-    asset_name: str,
-    annotation: visionai_v1.Annotation,
-) -> None:
-  client.create_annotation(
-      visionai_v1.CreateAnnotationRequest(
-          parent=asset_name, annotation=annotation
-      ),
-      retry=_CREATE_ANNOTATION_RETRY,
-  )
-
-
-def _send_warehouse_annotations(
-    client: visionai_v1.WarehouseClient,
-    asset_name: str,
+def _construct_annotations(
     data_schema_key: str,
     annotate_video_response: videointelligence_v1.AnnotateVideoResponse,
-) -> None:
-  """Constructs warehouse annotations and writes to warehouse.
-
-  Args:
-    client: the client to talk to warehouse.
-    asset_name: the asset name.
-    data_schema_key: the key of the data schema.
-    annotate_video_response: the response from AnnotateVideo API.
-  """
+) -> Sequence[visionai_v1.Annotation]:
+  annotations = []
   for annotation_result in annotate_video_response.annotation_results:
     for speech_transcription in annotation_result.speech_transcriptions:
       for alternative in speech_transcription.alternatives:
@@ -138,13 +94,8 @@ def _send_warehouse_annotations(
                 )
             ),
         )
-        _logger.debug(
-            "Create annotation %s",
-            visionai_v1.CreateAnnotationRequest(
-                parent=asset_name, annotation=annotation
-            ),
-        )
-        _send_one_warehouse_annotation(client, asset_name, annotation)
+        annotations.append(annotation)
+  return annotations
 
 
 @dataclasses.dataclass
@@ -279,37 +230,13 @@ class SpeechTransformer(TransformerInterface):
         metadata_type=videointelligence_v1.AnnotateVideoProgress,
         retry=transform_progress.DEFAULT_POLLING,
     )
-    speech_transform_progress = SpeechTransformProgress(
-        annotate_video_operation_with_polling_config
-    )
-
-    def write_to_warehouse(
-        client: visionai_v1.WarehouseClient,
-        data_schema_key: str,
-        asset_name: str,
-        annotate_video_operation: operation.Operation,
-    ):
-      try:
-        result = annotate_video_operation.result()
-        _logger.debug(
-            "Speech transform operation response: %s",
-            result,
-        )
-        _send_warehouse_annotations(client, asset_name, data_schema_key, result)
-        speech_transform_progress.set_result(True)
-      except exceptions.GoogleAPICallError as err:
-        _logger.exception("Failed to write to warehouse %s", err)
-        speech_transform_progress.set_exception(
-            TransformError(speech_transform_progress.get_identifier(), err)
-        )
-
-    annotate_video_operation_with_polling_config.add_done_callback(
+    speech_transform_progress = WaitAndWriteWarehouseTransformProgress(
+        asset_name,
+        self.warehouse_client,
+        annotate_video_operation_with_polling_config,
         functools.partial(
-            write_to_warehouse,
-            self.warehouse_client,
-            self._init_config.speech_data_schema_key,
-            asset_name,
-        )
+            _construct_annotations, self._init_config.speech_data_schema_key
+        ),
     )
 
     return speech_transform_progress

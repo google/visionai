@@ -1,10 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 package(
-    default_visibility = [
-        "//cloud/ai/visionai:__subpackages__",
-        "//visionai:__subpackages__",
-    ],
+    default_visibility = ["//visionai:__subpackages__"],
     licenses = ["notice"],
 )
 

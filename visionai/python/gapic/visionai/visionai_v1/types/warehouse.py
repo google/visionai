@@ -23,6 +23,7 @@ from visionai.python.gapic.visionai.visionai_v1.types import common
 from google.protobuf import any_pb2  # type: ignore
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import field_mask_pb2  # type: ignore
+from google.protobuf import struct_pb2  # type: ignore
 from google.protobuf import timestamp_pb2  # type: ignore
 from google.rpc import status_pb2  # type: ignore
 from google.type import datetime_pb2  # type: ignore
@@ -48,9 +49,13 @@ __protobuf__ = proto.module(
         'AnalyzeAssetRequest',
         'AnalyzeAssetMetadata',
         'AnalyzeAssetResponse',
+        'IndexingStatus',
         'IndexAssetRequest',
         'IndexAssetMetadata',
         'IndexAssetResponse',
+        'RemoveIndexAssetRequest',
+        'RemoveIndexAssetMetadata',
+        'RemoveIndexAssetResponse',
         'IndexedAsset',
         'ViewIndexedAssetsRequest',
         'ViewIndexedAssetsResponse',
@@ -60,6 +65,8 @@ __protobuf__ = proto.module(
         'SearchCapabilitySetting',
         'CreateCollectionMetadata',
         'CreateCollectionRequest',
+        'DeleteCollectionMetadata',
+        'DeleteCollectionRequest',
         'GetCollectionRequest',
         'UpdateCollectionRequest',
         'ListCollectionsRequest',
@@ -212,7 +219,8 @@ class CreateAssetRequest(proto.Message):
     Attributes:
         parent (str):
             Required. The parent resource where this asset will be
-            created. Format: projects/\ */locations/*/corpora/\*
+            created. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
         asset (google.cloud.visionai_v1.types.Asset):
             Required. The asset to create.
         asset_id (str):
@@ -265,7 +273,7 @@ class ListAssetsRequest(proto.Message):
         parent (str):
             Required. The parent, which owns this collection of assets.
             Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}``
         page_size (int):
             The maximum number of assets to return. The
             service may return fewer than this value.
@@ -341,7 +349,7 @@ class UpdateAssetRequest(proto.Message):
 
             The asset's ``name`` field is used to identify the asset to
             be updated. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}``
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
             The list of fields to be updated.
     """
@@ -364,7 +372,7 @@ class DeleteAssetRequest(proto.Message):
     Attributes:
         name (str):
             Required. The name of the asset to delete. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}``
     """
 
     name: str = proto.Field(
@@ -441,8 +449,8 @@ class UploadAssetRequest(proto.Message):
 
     Attributes:
         name (str):
-            Required. The resource name of the asset to upload. Form:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            Required. The resource name of the asset to upload. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         asset_source (google.cloud.visionai_v1.types.AssetSource):
             The source of the asset.
     """
@@ -492,7 +500,7 @@ class GenerateRetrievalUrlRequest(proto.Message):
         name (str):
             Required. The resource name of the asset to request signed
             url for. Format:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
     """
 
     name: str = proto.Field(
@@ -525,7 +533,7 @@ class Asset(proto.Message):
 
     Attributes:
         name (str):
-            Resource name of the asset. Form:
+            Resource name of the asset. Format:
             ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         ttl (google.protobuf.duration_pb2.Duration):
             The duration for which all media assets,
@@ -558,8 +566,8 @@ class AnalyzeAssetRequest(proto.Message):
 
     Attributes:
         name (str):
-            Required. The resource name of the asset to analyze. Form:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            Required. The resource name of the asset to analyze. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
     """
 
     name: str = proto.Field(
@@ -648,16 +656,55 @@ class AnalyzeAssetResponse(proto.Message):
     """
 
 
+class IndexingStatus(proto.Message):
+    r"""The status of indexing for the asset.
+
+    Attributes:
+        state (google.cloud.visionai_v1.types.IndexingStatus.State):
+            Output only. State of this asset's indexing.
+        status_message (str):
+            Detailed message describing the state.
+    """
+    class State(proto.Enum):
+        r"""State enum for this asset's indexing.
+
+        Values:
+            STATE_UNSPECIFIED (0):
+                The default process state should never
+                happen.
+            IN_PROGRESS (1):
+                The indexing is in progress.
+            SUCCEEDED (2):
+                The process is successfully done.
+            FAILED (3):
+                The process failed.
+        """
+        STATE_UNSPECIFIED = 0
+        IN_PROGRESS = 1
+        SUCCEEDED = 2
+        FAILED = 3
+
+    state: State = proto.Field(
+        proto.ENUM,
+        number=2,
+        enum=State,
+    )
+    status_message: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+
+
 class IndexAssetRequest(proto.Message):
     r"""Request message for IndexAsset.
 
     Attributes:
         name (str):
-            Required. The resource name of the asset to index. Form:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            Required. The resource name of the asset to index. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         index (str):
             Optional. The name of the index. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
     """
 
     name: str = proto.Field(
@@ -674,7 +721,7 @@ class IndexAssetMetadata(proto.Message):
     r"""Metadata for IndexAsset.
 
     Attributes:
-        indexing_status (google.cloud.visionai_v1.types.IndexAssetMetadata.IndexingStatus):
+        status (google.cloud.visionai_v1.types.IndexingStatus):
             The status of indexing this asset.
         start_time (google.protobuf.timestamp_pb2.Timestamp):
             The start time of the operation.
@@ -682,48 +729,10 @@ class IndexAssetMetadata(proto.Message):
             The update time of the operation.
     """
 
-    class IndexingStatus(proto.Message):
-        r"""The status of indexing for the asset.
-
-        Attributes:
-            state (google.cloud.visionai_v1.types.IndexAssetMetadata.IndexingStatus.State):
-                State of this asset's indexing.
-            status_message (str):
-                Detailed message describing the state.
-        """
-        class State(proto.Enum):
-            r"""State enum for this asset's indexing.
-
-            Values:
-                STATE_UNSPECIFIED (0):
-                    The default process state should never
-                    happen.
-                IN_PROGRESS (1):
-                    The indexing is in progress.
-                SUCCEEDED (2):
-                    The process is successfully done.
-                FAILED (3):
-                    The process failed.
-            """
-            STATE_UNSPECIFIED = 0
-            IN_PROGRESS = 1
-            SUCCEEDED = 2
-            FAILED = 3
-
-        state: 'IndexAssetMetadata.IndexingStatus.State' = proto.Field(
-            proto.ENUM,
-            number=2,
-            enum='IndexAssetMetadata.IndexingStatus.State',
-        )
-        status_message: str = proto.Field(
-            proto.STRING,
-            number=3,
-        )
-
-    indexing_status: IndexingStatus = proto.Field(
+    status: 'IndexingStatus' = proto.Field(
         proto.MESSAGE,
-        number=1,
-        message=IndexingStatus,
+        number=4,
+        message='IndexingStatus',
     )
     start_time: timestamp_pb2.Timestamp = proto.Field(
         proto.MESSAGE,
@@ -742,6 +751,62 @@ class IndexAssetResponse(proto.Message):
     """
 
 
+class RemoveIndexAssetRequest(proto.Message):
+    r"""Request message for RemoveIndexAsset.
+
+    Attributes:
+        name (str):
+            Required. The resource name of the asset to index. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
+        index (str):
+            Optional. The name of the index. Format:
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    index: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+
+
+class RemoveIndexAssetMetadata(proto.Message):
+    r"""Metadata for RemoveIndexAsset.
+
+    Attributes:
+        indexing_status (google.cloud.visionai_v1.types.IndexingStatus):
+            The status of indexing this asset.
+        start_time (google.protobuf.timestamp_pb2.Timestamp):
+            The start time of the operation.
+        update_time (google.protobuf.timestamp_pb2.Timestamp):
+            The update time of the operation.
+    """
+
+    indexing_status: 'IndexingStatus' = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message='IndexingStatus',
+    )
+    start_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    update_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
+class RemoveIndexAssetResponse(proto.Message):
+    r"""Response message for RemoveIndexAsset.
+    """
+
+
 class IndexedAsset(proto.Message):
     r"""An IndexedAsset is an asset that the index is built upon.
 
@@ -749,10 +814,10 @@ class IndexedAsset(proto.Message):
         index (str):
             Required. The index that this indexed asset belongs to.
             Format:
-            'projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}'
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
         asset (str):
-            Required. The resource name of the asset. Form:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            Required. The resource name of the asset. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         create_time (google.protobuf.timestamp_pb2.Timestamp):
             Output only. The create timestamp.
         update_time (google.protobuf.timestamp_pb2.Timestamp):
@@ -786,7 +851,7 @@ class ViewIndexedAssetsRequest(proto.Message):
         index (str):
             Required. The index that owns this collection of assets.
             Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
         page_size (int):
             The maximum number of assets to return. The
             service may return fewer than this value.
@@ -876,7 +941,26 @@ class CreateCorpusRequest(proto.Message):
 
 class CreateCorpusMetadata(proto.Message):
     r"""Metadata for CreateCorpus API.
+
+    Attributes:
+        create_time (google.protobuf.timestamp_pb2.Timestamp):
+            The create time of the create corpus
+            operation.
+        update_time (google.protobuf.timestamp_pb2.Timestamp):
+            The update time of the create corpus
+            operation.
     """
+
+    create_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=timestamp_pb2.Timestamp,
+    )
+    update_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message=timestamp_pb2.Timestamp,
+    )
 
 
 class SearchCapability(proto.Message):
@@ -946,7 +1030,7 @@ class CreateCollectionRequest(proto.Message):
         parent (str):
             Required. The parent resource where this collection will be
             created. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}``
         collection (google.cloud.visionai_v1.types.Collection):
             Required. The collection resource to be
             created.
@@ -979,13 +1063,44 @@ class CreateCollectionRequest(proto.Message):
     )
 
 
+class DeleteCollectionMetadata(proto.Message):
+    r"""Metadata message for DeleteCollectionRequest
+
+    Attributes:
+        operation_metadata (google.cloud.visionai_v1.types.OperationMetadata):
+            Common metadata of the long-running
+            operation.
+    """
+
+    operation_metadata: common.OperationMetadata = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message=common.OperationMetadata,
+    )
+
+
+class DeleteCollectionRequest(proto.Message):
+    r"""Request message for DeleteCollectionRequest.
+
+    Attributes:
+        name (str):
+            Required. The name of the collection to delete. Format:
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+
+
 class GetCollectionRequest(proto.Message):
     r"""Request message for GetCollectionRequest.
 
     Attributes:
         name (str):
             Required. The name of the collection to retrieve. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
     """
 
     name: str = proto.Field(
@@ -1003,7 +1118,7 @@ class UpdateCollectionRequest(proto.Message):
 
             The collection's ``name`` field is used to identify the
             collection to be updated. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
             The list of fields to be updated.
 
@@ -1034,7 +1149,7 @@ class ListCollectionsRequest(proto.Message):
     Attributes:
         parent (str):
             Required. The parent corpus. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}``
         page_size (int):
             The maximum number of collections to return.
             The service may return fewer than this value. If
@@ -1049,9 +1164,6 @@ class ListCollectionsRequest(proto.Message):
             When paginating, all other parameters provided to
             ``ListCollectionsRequest`` must match the call that provided
             the page token.
-        show_deleted (bool):
-            Whether, or not, to show resources that have
-            been deleted.
     """
 
     parent: str = proto.Field(
@@ -1065,10 +1177,6 @@ class ListCollectionsRequest(proto.Message):
     page_token: str = proto.Field(
         proto.STRING,
         number=3,
-    )
-    show_deleted: bool = proto.Field(
-        proto.BOOL,
-        number=4,
     )
 
 
@@ -1165,7 +1273,7 @@ class ViewCollectionItemsRequest(proto.Message):
     Attributes:
         collection (str):
             Required. The collection to view. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
         page_size (int):
             The maximum number of collections to return.
             The service may return fewer than this value. If
@@ -1237,10 +1345,6 @@ class Collection(proto.Message):
         description (str):
             Optional. Description of the collection. Can
             be up to 25000 characters long.
-        expire_time (google.protobuf.timestamp_pb2.Timestamp):
-            Output only. The expired time that this
-            collection will be purged after calling
-            DeleteCollection API.
     """
 
     name: str = proto.Field(
@@ -1255,11 +1359,6 @@ class Collection(proto.Message):
         proto.STRING,
         number=3,
     )
-    expire_time: timestamp_pb2.Timestamp = proto.Field(
-        proto.MESSAGE,
-        number=4,
-        message=timestamp_pb2.Timestamp,
-    )
 
 
 class CollectionItem(proto.Message):
@@ -1271,13 +1370,13 @@ class CollectionItem(proto.Message):
         collection (str):
             Required. The collection name that this item belongs to.
             Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
         type_ (google.cloud.visionai_v1.types.CollectionItem.Type):
             Required. The type of item.
         item_resource (str):
             Required. The name of the CollectionItem. Its format depends
             on the ``type`` above. For ASSET:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}``
     """
     class Type(proto.Enum):
         r"""CollectionItem types.
@@ -1313,7 +1412,7 @@ class CreateIndexRequest(proto.Message):
         parent (str):
             Required. Value for the parent. The resource name of the
             Corpus under which this index is created. Format:
-            projects/\ */locations/*/corpora/\*
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
         index_id (str):
             Optional. The ID for the index. This will become the final
             resource name for the index. If the user does not specify
@@ -1370,8 +1469,7 @@ class UpdateIndexRequest(proto.Message):
             not the full request. A field of the resource will be
             overwritten if it is in the mask. Empty field mask is not
             allowed. If the mask is "*", it triggers a full update of
-            the index, and also a whole rebuild of index data. Fields
-            not allowed to be updated: collection_filter.
+            the index, and also a whole rebuild of index data.
     """
 
     index: 'Index' = proto.Field(
@@ -1408,7 +1506,7 @@ class GetIndexRequest(proto.Message):
     Attributes:
         name (str):
             Required. Name of the Index resource. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
     """
 
     name: str = proto.Field(
@@ -1424,7 +1522,7 @@ class ListIndexesRequest(proto.Message):
         parent (str):
             Required. The parent corpus that owns this collection of
             indexes. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}``
         page_size (int):
             The maximum number of indexes to return. The
             service may return fewer than this value.
@@ -1487,7 +1585,7 @@ class DeleteIndexRequest(proto.Message):
     Attributes:
         name (str):
             Required. The name of the index to delete. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
     """
 
     name: str = proto.Field(
@@ -1506,21 +1604,12 @@ class Index(proto.Message):
     version of the assets and annotations. When deployed to an
     endpoint, it will allow users to search the Index.
 
-    This message has `oneof`_ fields (mutually exclusive fields).
-    For each oneof, at most one member field can be set at the same time.
-    Setting any member of the oneof automatically clears all other
-    members.
 
     .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
     Attributes:
         entire_corpus (bool):
             Include all assets under the corpus.
-
-            This field is a member of `oneof`_ ``asset_filter``.
-        single_collection_filter (str):
-            A resource name of the collection to filter
-            assets.
 
             This field is a member of `oneof`_ ``asset_filter``.
         name (str):
@@ -1565,11 +1654,6 @@ class Index(proto.Message):
     entire_corpus: bool = proto.Field(
         proto.BOOL,
         number=9,
-        oneof='asset_filter',
-    )
-    single_collection_filter: str = proto.Field(
-        proto.STRING,
-        number=7,
         oneof='asset_filter',
     )
     name: str = proto.Field(
@@ -1628,7 +1712,7 @@ class Corpus(proto.Message):
 
     Attributes:
         name (str):
-            Resource name of the corpus. Form:
+            Resource name of the corpus. Format:
             ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
         display_name (str):
             Required. The corpus name to shown in the UI.
@@ -1656,11 +1740,11 @@ class Corpus(proto.Message):
                 type is used, the corpus will be created as STREAM_VIDEO
                 corpus.
             STREAM_VIDEO (1):
-                Asset is a live streaming video asset.
+                Asset is a live streaming video.
             IMAGE (2):
                 Asset is an image.
             VIDEO_ON_DEMAND (3):
-                Asset is a video asset.
+                Asset is a batch video.
         """
         TYPE_UNSPECIFIED = 0
         STREAM_VIDEO = 1
@@ -1751,7 +1835,8 @@ class ListCorporaRequest(proto.Message):
         page_token (str):
             A token identifying a page of results for the server to
             return. Typically obtained via
-            [ListCorpora.next_page_token][] of the previous
+            [ListCorporaResponse.next_page_token][google.cloud.visionai.v1.ListCorporaResponse.next_page_token]
+            of the previous
             [Warehouse.ListCorpora][google.cloud.visionai.v1.Warehouse.ListCorpora]
             call.
         filter (str):
@@ -1826,7 +1911,8 @@ class AnalyzeCorpusRequest(proto.Message):
     Attributes:
         name (str):
             Required. The parent corpus resource where the assets will
-            be analyzed. Format: projects/\ */locations/*/corpora/\*
+            be analyzed. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
     """
 
     name: str = proto.Field(
@@ -1861,7 +1947,8 @@ class CreateDataSchemaRequest(proto.Message):
     Attributes:
         parent (str):
             Required. The parent resource where this data schema will be
-            created. Format: projects/\ */locations/*/corpora/\*
+            created. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
         data_schema (google.cloud.visionai_v1.types.DataSchema):
             Required. The data schema to create.
     """
@@ -2168,7 +2255,7 @@ class UpdateDataSchemaRequest(proto.Message):
         data_schema (google.cloud.visionai_v1.types.DataSchema):
             Required. The data schema's ``name`` field is used to
             identify the data schema to be updated. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/dataSchemas/{data_schema}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/dataSchemas/{data_schema}``
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
             The list of fields to be updated.
     """
@@ -2191,7 +2278,7 @@ class GetDataSchemaRequest(proto.Message):
     Attributes:
         name (str):
             Required. The name of the data schema to retrieve. Format:
-            projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}``
     """
 
     name: str = proto.Field(
@@ -2206,7 +2293,7 @@ class DeleteDataSchemaRequest(proto.Message):
     Attributes:
         name (str):
             Required. The name of the data schema to delete. Format:
-            projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}``
     """
 
     name: str = proto.Field(
@@ -2222,7 +2309,7 @@ class ListDataSchemasRequest(proto.Message):
         parent (str):
             Required. The parent, which owns this collection of data
             schemas. Format:
-            projects/{project_number}/locations/{location_id}/corpora/{corpus_id}
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
         page_size (int):
             The maximum number of data schemas to return.
             The service may return fewer than this value. If
@@ -2287,7 +2374,8 @@ class CreateAnnotationRequest(proto.Message):
     Attributes:
         parent (str):
             Required. The parent resource where this annotation will be
-            created. Format: projects/\ */locations/*/corpora/*/assets/*
+            created. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         annotation (google.cloud.visionai_v1.types.Annotation):
             Required. The annotation to create.
         annotation_id (str):
@@ -2325,7 +2413,7 @@ class Annotation(proto.Message):
 
     Attributes:
         name (str):
-            Resource name of the annotation. Form:
+            Resource name of the annotation. Format:
             ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}``
         user_specified_annotation (google.cloud.visionai_v1.types.UserSpecifiedAnnotation):
             User provided annotation.
@@ -2434,6 +2522,12 @@ class AnnotationValue(proto.Message):
             Value of boolean type annotation.
 
             This field is a member of `oneof`_ ``value``.
+        customized_struct_data_value (google.protobuf.struct_pb2.Struct):
+            Value of customized struct annotation. This field does not
+            have effects. Use customized_struct_value instead for
+            customized struct annotation.
+
+            This field is a member of `oneof`_ ``value``.
         list_value (google.cloud.visionai_v1.types.AnnotationList):
             Value of list type annotation.
 
@@ -2480,6 +2574,12 @@ class AnnotationValue(proto.Message):
         proto.BOOL,
         number=9,
         oneof='value',
+    )
+    customized_struct_data_value: struct_pb2.Struct = proto.Field(
+        proto.MESSAGE,
+        number=10,
+        oneof='value',
+        message=struct_pb2.Struct,
     )
     list_value: 'AnnotationList' = proto.Field(
         proto.MESSAGE,
@@ -2534,7 +2634,7 @@ class ListAnnotationsRequest(proto.Message):
         parent (str):
             The parent, which owns this collection of annotations.
             Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}``
         page_size (int):
             The maximum number of annotations to return.
             The service may return fewer than this value. If
@@ -2614,7 +2714,7 @@ class GetAnnotationRequest(proto.Message):
     Attributes:
         name (str):
             Required. The name of the annotation to retrieve. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}``
     """
 
     name: str = proto.Field(
@@ -2631,7 +2731,7 @@ class UpdateAnnotationRequest(proto.Message):
             Required. The annotation to update. The annotation's
             ``name`` field is used to identify the annotation to be
             updated. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}``
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
             The list of fields to be updated.
     """
@@ -2654,7 +2754,7 @@ class DeleteAnnotationRequest(proto.Message):
     Attributes:
         name (str):
             Required. The name of the annotation to delete. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}``
     """
 
     name: str = proto.Field(
@@ -2680,7 +2780,7 @@ class ImportAssetsRequest(proto.Message):
         parent (str):
             Required. The parent corpus resource where the assets will
             be imported. Format:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}'
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
     """
 
     assets_gcs_uri: str = proto.Field(
@@ -2721,7 +2821,7 @@ class CreateSearchConfigRequest(proto.Message):
         parent (str):
             Required. The parent resource where this search
             configuration will be created. Format:
-            projects/\ */locations/*/corpora/\*
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
         search_config (google.cloud.visionai_v1.types.SearchConfig):
             Required. The search config to create.
         search_config_id (str):
@@ -2756,7 +2856,7 @@ class UpdateSearchConfigRequest(proto.Message):
 
             The search configuration's ``name`` field is used to
             identify the resource to be updated. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}``
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
             The list of fields to be updated. If left
             unset, all field paths will be
@@ -2782,7 +2882,7 @@ class GetSearchConfigRequest(proto.Message):
         name (str):
             Required. The name of the search configuration to retrieve.
             Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}``
     """
 
     name: str = proto.Field(
@@ -2798,7 +2898,7 @@ class DeleteSearchConfigRequest(proto.Message):
         name (str):
             Required. The name of the search configuration to delete.
             Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}``
     """
 
     name: str = proto.Field(
@@ -2814,7 +2914,7 @@ class ListSearchConfigsRequest(proto.Message):
         parent (str):
             Required. The parent, which owns this collection of search
             configurations. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}``
         page_size (int):
             The maximum number of search configurations
             to return. The service may return fewer than
@@ -2881,7 +2981,7 @@ class SearchConfig(proto.Message):
             Resource name of the search configuration. For
             CustomSearchCriteria, search_config would be the search
             operator name. For Facets, search_config would be the facet
-            dimension name. Form:
+            dimension name. Format:
             ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}``
         facet_property (google.cloud.visionai_v1.types.FacetProperty):
             Establishes a FacetDimension and associated
@@ -2908,7 +3008,7 @@ class SearchConfig(proto.Message):
 
 
 class IndexEndpoint(proto.Message):
-    r"""Message representing IndexEndpoint resource. ImageIndexes are
+    r"""Message representing IndexEndpoint resource. Indexes are
     deployed into it.
 
     Attributes:
@@ -3026,6 +3126,7 @@ class CreateIndexEndpointRequest(proto.Message):
             component of the IndexEndpoint's resource name
             if the user specifies it. Otherwise,
             IndexEndpoint id will be autogenerated.
+
             This value should be up to 63 characters, and
             valid characters are a-z, 0-9 and dash (-). The
             first character must be a letter, the last must
@@ -3324,89 +3425,12 @@ class UndeployIndexResponse(proto.Message):
 class DeployedIndex(proto.Message):
     r"""A deployment of an Index.
 
-    This message has `oneof`_ fields (mutually exclusive fields).
-    For each oneof, at most one member field can be set at the same time.
-    Setting any member of the oneof automatically clears all other
-    members.
-
-    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
-
     Attributes:
-        automatic_resources (google.cloud.visionai_v1.types.DeployedIndex.AutomaticResources):
-            Optional. Automatic Resources.
-
-            This field is a member of `oneof`_ ``deployment_resources``.
-        dedicated_resources (google.cloud.visionai_v1.types.DeployedIndex.DedicatedResources):
-            Optional. Dedicated Resources.
-
-            This field is a member of `oneof`_ ``deployment_resources``.
         index (str):
             Required. Name of the deployed Index. Format:
-            ``projects/*/locations/*/corpora/*/indexes/*``
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/indexes/{index_id}``
     """
 
-    class AutomaticResources(proto.Message):
-        r"""A description of resources that to a large degree are decided
-        by Warehouse Service, and require only a modest additional
-        configuration.
-
-        Attributes:
-            min_replica_count (int):
-                Required. The minimum number of machine
-                replicas this DeployedIndex will be always
-                deployed on. This value must be greater than or
-                equal to 1.
-            max_replica_count (int):
-                Optional. The maximum number of replicas this Index may be
-                deployed on when the traffic against it increases. If the
-                requested value is too large, the deployment will fail, but
-                if deployment succeeds then the ability to scale the model
-                to that many replicas is guaranteed (barring service
-                outages). If traffic against the DeployedIndex increases
-                beyond what its replicas at maximum may handle, a portion of
-                the traffic will be dropped. If this value is not provided,
-                no upper bound for scaling under heavy traffic will be
-                assumed, though Warehouse Service may be unable to scale
-                resources beyond certain replica number. The
-                max_replica_count must not below min_replica_count.
-        """
-
-        min_replica_count: int = proto.Field(
-            proto.INT32,
-            number=1,
-        )
-        max_replica_count: int = proto.Field(
-            proto.INT32,
-            number=2,
-        )
-
-    class DedicatedResources(proto.Message):
-        r"""A description of resources that are dedicated to the
-        DeployedIndex
-
-        Attributes:
-            replica_count (int):
-                Required. The number of machine replicas this
-                DeployedIndex will be deployed on.
-        """
-
-        replica_count: int = proto.Field(
-            proto.INT32,
-            number=1,
-        )
-
-    automatic_resources: AutomaticResources = proto.Field(
-        proto.MESSAGE,
-        number=2,
-        oneof='deployment_resources',
-        message=AutomaticResources,
-    )
-    dedicated_resources: DedicatedResources = proto.Field(
-        proto.MESSAGE,
-        number=3,
-        oneof='deployment_resources',
-        message=DedicatedResources,
-    )
     index: str = proto.Field(
         proto.STRING,
         number=1,
@@ -3478,12 +3502,10 @@ class FacetProperty(proto.Message):
         Attributes:
             bucket_start (google.cloud.visionai_v1.types.FacetValue):
                 Lower bound of the bucket. NOTE: Only integer
-                type is currently supported
-                for this field.
+                type is currently supported for this field.
             bucket_granularity (google.cloud.visionai_v1.types.FacetValue):
                 Bucket granularity. NOTE: Only integer type
-                is currently supported for
-                this field.
+                is currently supported for this field.
             bucket_count (int):
                 Total number of buckets.
         """
@@ -3603,7 +3625,7 @@ class SearchHypernym(proto.Message):
     Attributes:
         name (str):
             Resource name of the SearchHypernym. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}``
         hypernym (str):
             The hypernym.
         hyponyms (MutableSequence[str]):
@@ -3632,8 +3654,8 @@ class CreateSearchHypernymRequest(proto.Message):
     Attributes:
         parent (str):
             Required. The parent resource where this SearchHypernym will
-            be created.
-            projects/{project_number}/locations/{location}/corpora/{corpus}
+            be created. Format:
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}``
         search_hypernym (google.cloud.visionai_v1.types.SearchHypernym):
             Required. The SearchHypernym to create.
         search_hypernym_id (str):
@@ -3667,7 +3689,7 @@ class UpdateSearchHypernymRequest(proto.Message):
             Required. The SearchHypernym to update. The search
             hypernym's ``name`` field is used to identify the search
             hypernym to be updated. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}``
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
             The list of fields to be updated. If left
             unset, all field paths will be
@@ -3693,7 +3715,7 @@ class GetSearchHypernymRequest(proto.Message):
         name (str):
             Required. The name of the SearchHypernym to retrieve.
             Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}``
     """
 
     name: str = proto.Field(
@@ -3708,7 +3730,7 @@ class DeleteSearchHypernymRequest(proto.Message):
     Attributes:
         name (str):
             Required. The name of the SearchHypernym to delete. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}``
     """
 
     name: str = proto.Field(
@@ -3724,7 +3746,7 @@ class ListSearchHypernymsRequest(proto.Message):
         parent (str):
             Required. The parent, which owns this collection of
             SearchHypernyms. Format:
-            projects/{project_number}/locations/{location}/corpora/{corpus}
+            ``projects/{project_number}/locations/{location}/corpora/{corpus}``
         page_size (int):
             The maximum number of SearchHypernyms
             returned. The service may return fewer than this
@@ -4099,8 +4121,8 @@ class ClipAssetRequest(proto.Message):
     Attributes:
         name (str):
             Required. The resource name of the asset to request clips
-            for. Form:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            for. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         temporal_partition (google.cloud.visionai_v1.types.Partition.TemporalPartition):
             Required. The time range to request clips
             for.
@@ -4160,8 +4182,8 @@ class GenerateHlsUriRequest(proto.Message):
     Attributes:
         name (str):
             Required. The resource name of the asset to request clips
-            for. Form:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            for. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         temporal_partitions (MutableSequence[google.cloud.visionai_v1.types.Partition.TemporalPartition]):
             The time range to request clips for. Will be ignored if
             ``get_live_view`` is set to True. The total time range
@@ -4220,7 +4242,7 @@ class SearchAssetsRequest(proto.Message):
 
             This field is a member of `oneof`_ ``sort_spec``.
         corpus (str):
-            Required. The parent corpus to search. Form:
+            Required. The parent corpus to search. Format:
             \`projects/{project_id}/locations/{location_id}/corpora/{corpus_id}'
         page_size (int):
             The number of results to be returned in this page. If it's
@@ -4238,9 +4260,6 @@ class SearchAssetsRequest(proto.Message):
             clamped to the time the request was received.
         criteria (MutableSequence[google.cloud.visionai_v1.types.Criteria]):
             Criteria applied to search results.
-        exclusion_criteria (MutableSequence[google.cloud.visionai_v1.types.Criteria]):
-            Criteria to exclude from search results. Note that
-            ``fetch_matched_annotations`` will be ignored.
         facet_selections (MutableSequence[google.cloud.visionai_v1.types.FacetGroup]):
             Stores most recent facet selection state.
             Only facet groups with user's selection will be
@@ -4286,11 +4305,6 @@ class SearchAssetsRequest(proto.Message):
         number=4,
         message='Criteria',
     )
-    exclusion_criteria: MutableSequence['Criteria'] = proto.RepeatedField(
-        proto.MESSAGE,
-        number=11,
-        message='Criteria',
-    )
     facet_selections: MutableSequence['FacetGroup'] = proto.RepeatedField(
         proto.MESSAGE,
         number=6,
@@ -4326,7 +4340,7 @@ class SearchIndexEndpointRequest(proto.Message):
 
             This field is a member of `oneof`_ ``query``.
         index_endpoint (str):
-            Required. // The index endpoint to search. // Form: //
+            Required. The index endpoint to search. Format:
             \`projects/{project_id}/locations/{location_id}/indexEndpoints/{index_endpoint_id}'
         criteria (MutableSequence[google.cloud.visionai_v1.types.Criteria]):
             Criteria applied to search results.
@@ -4533,13 +4547,19 @@ class SearchResultItem(proto.Message):
 
     Attributes:
         asset (str):
-            The resource name of the asset. Form:
-            'projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}'
+            The resource name of the asset. Format:
+            ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
         segments (MutableSequence[google.cloud.visionai_v1.types.Partition.TemporalPartition]):
             The matched asset segments. Deprecated: please use singular
             ``segment`` field.
         segment (google.cloud.visionai_v1.types.Partition.TemporalPartition):
             The matched asset segment.
+        relevance (float):
+            Relevance of this ``SearchResultItem`` to user search
+            request. Currently available only in Image Warehouse, and by
+            default represents cosine similarity. In the future can be
+            other measures such as "dot product" or "topicality"
+            requested in the search request.
         requested_annotations (MutableSequence[google.cloud.visionai_v1.types.Annotation]):
             Search result annotations specified by
             result_annotation_keys in search request.
@@ -4563,6 +4583,10 @@ class SearchResultItem(proto.Message):
         proto.MESSAGE,
         number=5,
         message='Partition.TemporalPartition',
+    )
+    relevance: float = proto.Field(
+        proto.DOUBLE,
+        number=6,
     )
     requested_annotations: MutableSequence['Annotation'] = proto.RepeatedField(
         proto.MESSAGE,

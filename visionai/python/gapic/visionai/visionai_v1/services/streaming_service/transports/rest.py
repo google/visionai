@@ -30,7 +30,6 @@ from google.protobuf import json_format
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
 from google.cloud.location import locations_pb2 # type: ignore
-from google.longrunning import operations_pb2
 from requests import __version__ as requests_version
 import dataclasses
 import re
@@ -44,6 +43,7 @@ except AttributeError:  # pragma: NO COVER
 
 
 from visionai.python.gapic.visionai.visionai_v1.types import streaming_service
+from google.longrunning import operations_pb2  # type: ignore
 
 from .base import StreamingServiceTransport, DEFAULT_CLIENT_INFO as BASE_DEFAULT_CLIENT_INFO
 
@@ -808,6 +808,10 @@ class StreamingServiceRestTransport(StreamingServiceTransport):
 {
                 'method': 'get',
                 'uri': '/v1/{name=projects/*/locations/*/corpora/*/assets/*/operations/*}',
+            },
+{
+                'method': 'get',
+                'uri': '/v1/{name=projects/*/locations/*/corpora/*/collections/*/operations/*}',
             },
 {
                 'method': 'get',

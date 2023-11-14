@@ -11,9 +11,9 @@
 #include <string>
 #include <utility>
 
+#include "prometheus/registry.h"
 #include "absl/container/flat_hash_map.h"
 #include "opencensus/stats/stats.h"
-#include "prometheus/registry.h"
 #include "visionai/util/telemetry/metrics/constants.h"
 
 namespace visionai {

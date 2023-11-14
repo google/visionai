@@ -42,7 +42,7 @@ from visionai.python.gapic.visionai.visionai_v1.services.warehouse import pagers
 from visionai.python.gapic.visionai.visionai_v1.types import warehouse
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
-from google.longrunning import operations_pb2
+from google.longrunning import operations_pb2 # type: ignore
 from google.protobuf import duration_pb2  # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from google.protobuf import field_mask_pb2  # type: ignore
@@ -402,9 +402,6 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             transport (Union[str, WarehouseTransport]): The
                 transport to use. If set to None, a transport is chosen
                 automatically.
-                NOTE: "rest" transport functionality is currently in a
-                beta state (preview). We welcome your feedback via an
-                issue in this library's source repository.
             client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]): Custom options for the
                 client. It won't take effect if a ``transport`` instance is provided.
                 (1) The ``api_endpoint`` property can be used to override the
@@ -520,7 +517,8 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 CreateAssetRequest.
             parent (str):
                 Required. The parent resource where this asset will be
-                created. Format: projects/\ */locations/*/corpora/\*
+                created. Format:
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -650,7 +648,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
 
                 The asset's ``name`` field is used to identify the asset
                 to be updated. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}``
 
                 This corresponds to the ``asset`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -869,7 +867,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent, which owns this collection of
                 assets. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -883,6 +881,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         Returns:
             visionai.python.gapic.visionai.visionai_v1.services.warehouse.pagers.ListAssetsPager:
                 Response message for ListAssets.
+
                 Iterating over this object will yield
                 results and resolve additional pages
                 automatically.
@@ -984,7 +983,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 The request object. Request message for DeleteAsset.
             name (str):
                 Required. The name of the asset to delete. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1069,7 +1068,18 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> operation.Operation:
         r"""Upload asset by specifing the asset Cloud Storage
-        uri.
+        uri. For video warehouse, it requires users who call
+        this API have read access to the cloud storage file.
+        Once it is uploaded, it can be retrieved by
+        GenerateRetrievalUrl API which by default, only can
+        retrieve cloud storage files from the same project of
+        the warehouse. To allow retrieval cloud storage files
+        that are in a separate project, it requires to find the
+        vision ai service account (Go to IAM, check checkbox to
+        show "Include Google-provided role grants", search for
+        "Cloud Vision AI Service Agent") and grant the read
+        access of the cloud storage files to that service
+        account.
 
         .. code-block:: python
 
@@ -1166,6 +1176,9 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> warehouse.GenerateRetrievalUrlResponse:
         r"""Generates a signed url for downloading the asset.
+        For video warehouse, please see comment of UploadAsset
+        about how to allow retrieval of cloud storage files in a
+        different project.
 
         .. code-block:: python
 
@@ -1433,6 +1446,103 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         # Done; return the response.
         return response
 
+    def remove_index_asset(self,
+            request: Optional[Union[warehouse.RemoveIndexAssetRequest, dict]] = None,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> operation.Operation:
+        r"""Remove one asset's index data for search. Supported corpus type:
+        Corpus.Type.VIDEO_ON_DEMAND
+
+        .. code-block:: python
+
+            # This snippet has been automatically generated and should be regarded as a
+            # code template only.
+            # It will require modifications to work:
+            # - It may require correct/in-range values for request initialization.
+            # - It may require specifying regional endpoints when creating the service
+            #   client as shown in:
+            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
+            from google.cloud import visionai_v1
+
+            def sample_remove_index_asset():
+                # Create a client
+                client = visionai_v1.WarehouseClient()
+
+                # Initialize request argument(s)
+                request = visionai_v1.RemoveIndexAssetRequest(
+                    name="name_value",
+                )
+
+                # Make the request
+                operation = client.remove_index_asset(request=request)
+
+                print("Waiting for operation to complete...")
+
+                response = operation.result()
+
+                # Handle the response
+                print(response)
+
+        Args:
+            request (Union[google.cloud.visionai_v1.types.RemoveIndexAssetRequest, dict]):
+                The request object. Request message for RemoveIndexAsset.
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, str]]): Strings which should be
+                sent along with the request as metadata.
+
+        Returns:
+            google.api_core.operation.Operation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be
+                :class:`google.cloud.visionai_v1.types.RemoveIndexAssetResponse`
+                Response message for RemoveIndexAsset.
+
+        """
+        # Create or coerce a protobuf request object.
+        # Minor optimization to avoid making a copy if the user passes
+        # in a warehouse.RemoveIndexAssetRequest.
+        # There's no risk of modifying the input as we've already verified
+        # there are no flattened fields.
+        if not isinstance(request, warehouse.RemoveIndexAssetRequest):
+            request = warehouse.RemoveIndexAssetRequest(request)
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._transport._wrapped_methods[self._transport.remove_index_asset]
+
+         # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((
+                ("name", request.name),
+            )),
+        )
+
+        # Send the request.
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation.from_gapic(
+            response,
+            self._transport.operations_client,
+            warehouse.RemoveIndexAssetResponse,
+            metadata_type=warehouse.RemoveIndexAssetMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
     def view_indexed_assets(self,
             request: Optional[Union[warehouse.ViewIndexedAssetsRequest, dict]] = None,
             *,
@@ -1441,7 +1551,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> pagers.ViewIndexedAssetsPager:
-        r"""Lists a list of assets inside an index.
+        r"""Lists assets inside an index.
 
         .. code-block:: python
 
@@ -1477,7 +1587,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             index (str):
                 Required. The index that owns this collection of assets.
                 Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
 
                 This corresponds to the ``index`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1600,7 +1710,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. Value for the parent. The resource name of the
                 Corpus under which this index is created. Format:
-                projects/\ */locations/*/corpora/\*
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1700,7 +1810,9 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> operation.Operation:
-        r"""Updates an Index under the corpus.
+        r"""Updates an Index under the corpus. Users can perform a
+        metadata-only update or trigger a full index rebuild with
+        different update_mask values.
 
         .. code-block:: python
 
@@ -1751,8 +1863,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 will be overwritten if it is in the mask. Empty field
                 mask is not allowed. If the mask is "*", it triggers a
                 full update of the index, and also a whole rebuild of
-                index data. Fields not allowed to be updated:
-                collection_filter.
+                index data.
 
                 This corresponds to the ``update_mask`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1865,7 +1976,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 The request object. Request message for getting an Index.
             name (str):
                 Required. Name of the Index resource. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1970,7 +2081,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent corpus that owns this collection of
                 indexes. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1984,6 +2095,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         Returns:
             visionai.python.gapic.visionai.visionai_v1.services.warehouse.pagers.ListIndexesPager:
                 Response message for ListIndexes.
+
                 Iterating over this object will yield
                 results and resolve additional pages
                 automatically.
@@ -2087,7 +2199,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 The request object. Request message for DeleteIndex.
             name (str):
                 Required. The name of the index to delete. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/indexes/{index}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -2562,6 +2674,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         Returns:
             visionai.python.gapic.visionai.visionai_v1.services.warehouse.pagers.ListCorporaPager:
                 Response message for ListCorpora.
+
                 Iterating over this object will yield
                 results and resolve additional pages
                 automatically.
@@ -2850,7 +2963,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent resource where this data schema
                 will be created. Format:
-                projects/\ */locations/*/corpora/\*
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -2963,7 +3076,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             data_schema (google.cloud.visionai_v1.types.DataSchema):
                 Required. The data schema's ``name`` field is used to
                 identify the data schema to be updated. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/dataSchemas/{data_schema}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/dataSchemas/{data_schema}``
 
                 This corresponds to the ``data_schema`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3072,7 +3185,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             name (str):
                 Required. The name of the data schema to retrieve.
                 Format:
-                projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3170,7 +3283,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 The request object. Request message for DeleteDataSchema.
             name (str):
                 Required. The name of the data schema to delete. Format:
-                projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/dataSchemas/{data_schema_id}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3263,7 +3376,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent, which owns this collection of data
                 schemas. Format:
-                projects/{project_number}/locations/{location_id}/corpora/{corpus_id}
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3277,6 +3390,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         Returns:
             visionai.python.gapic.visionai.visionai_v1.services.warehouse.pagers.ListDataSchemasPager:
                 Response message for ListDataSchemas.
+
                 Iterating over this object will yield
                 results and resolve additional pages
                 automatically.
@@ -3377,7 +3491,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent resource where this annotation will
                 be created. Format:
-                projects/\ */locations/*/corpora/*/assets/*
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}/assets/{asset_id}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3502,7 +3616,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             name (str):
                 Required. The name of the annotation to retrieve.
                 Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3605,7 +3719,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 The parent, which owns this collection of annotations.
                 Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3720,7 +3834,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 Required. The annotation to update. The annotation's
                 ``name`` field is used to identify the annotation to be
                 updated. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}``
 
                 This corresponds to the ``annotation`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -3826,7 +3940,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 API.
             name (str):
                 Required. The name of the annotation to delete. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/assets/{asset}/annotations/{annotation}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -4286,7 +4400,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent resource where this search
                 configuration will be created. Format:
-                projects/\ */locations/*/corpora/\*
+                ``projects/{project_number}/locations/{location_id}/corpora/{corpus_id}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -4427,7 +4541,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
 
                 The search configuration's ``name`` field is used to
                 identify the resource to be updated. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}``
 
                 This corresponds to the ``search_config`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -4539,7 +4653,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             name (str):
                 Required. The name of the search configuration to
                 retrieve. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -4642,7 +4756,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             name (str):
                 Required. The name of the search configuration to
                 delete. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchConfigs/{search_config}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -4736,7 +4850,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent, which owns this collection of
                 search configurations. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -4851,8 +4965,8 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 SearchHypernym.
             parent (str):
                 Required. The parent resource where this SearchHypernym
-                will be created.
-                projects/{project_number}/locations/{location}/corpora/{corpus}
+                will be created. Format:
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -4977,7 +5091,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 Required. The SearchHypernym to update. The search
                 hypernym's ``name`` field is used to identify the search
                 hypernym to be updated. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}``
 
                 This corresponds to the ``search_hypernym`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -5092,7 +5206,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             name (str):
                 Required. The name of the SearchHypernym to retrieve.
                 Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -5194,7 +5308,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             name (str):
                 Required. The name of the SearchHypernym to delete.
                 Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/searchHypernyms/{search_hypernym}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -5288,7 +5402,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent, which owns this collection of
                 SearchHypernyms. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -5407,6 +5521,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         Returns:
             visionai.python.gapic.visionai.visionai_v1.services.warehouse.pagers.SearchAssetsPager:
                 Response message for SearchAssets.
+
                 Iterating over this object will yield
                 results and resolve additional pages
                 automatically.
@@ -5617,6 +5732,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 resource name if the user specifies it.
                 Otherwise, IndexEndpoint id will be
                 autogenerated.
+
                 This value should be up to 63
                 characters, and valid characters are
                 a-z, 0-9 and dash (-). The first
@@ -5636,8 +5752,10 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.visionai_v1.types.IndexEndpoint` Message representing IndexEndpoint resource. ImageIndexes are deployed into
-                   it.
+                The result type for the operation will be
+                :class:`google.cloud.visionai_v1.types.IndexEndpoint`
+                Message representing IndexEndpoint resource. Indexes are
+                deployed into it.
 
         """
         # Create or coerce a protobuf request object.
@@ -5749,8 +5867,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         Returns:
             google.cloud.visionai_v1.types.IndexEndpoint:
                 Message representing IndexEndpoint
-                resource. ImageIndexes are deployed into
-                it.
+                resource. Indexes are deployed into it.
 
         """
         # Create or coerce a protobuf request object.
@@ -5980,8 +6097,10 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             google.api_core.operation.Operation:
                 An object representing a long-running operation.
 
-                The result type for the operation will be :class:`google.cloud.visionai_v1.types.IndexEndpoint` Message representing IndexEndpoint resource. ImageIndexes are deployed into
-                   it.
+                The result type for the operation will be
+                :class:`google.cloud.visionai_v1.types.IndexEndpoint`
+                Message representing IndexEndpoint resource. Indexes are
+                deployed into it.
 
         """
         # Create or coerce a protobuf request object.
@@ -6183,7 +6302,6 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
 
                 # Initialize request argument(s)
                 deployed_index = visionai_v1.DeployedIndex()
-                deployed_index.automatic_resources.min_replica_count = 1803
                 deployed_index.index = "index_value"
 
                 request = visionai_v1.DeployIndexRequest(
@@ -6403,7 +6521,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             parent (str):
                 Required. The parent resource where this collection will
                 be created. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -6496,6 +6614,129 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         # Done; return the response.
         return response
 
+    def delete_collection(self,
+            request: Optional[Union[warehouse.DeleteCollectionRequest, dict]] = None,
+            *,
+            name: Optional[str] = None,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> operation.Operation:
+        r"""Deletes a collection.
+
+        .. code-block:: python
+
+            # This snippet has been automatically generated and should be regarded as a
+            # code template only.
+            # It will require modifications to work:
+            # - It may require correct/in-range values for request initialization.
+            # - It may require specifying regional endpoints when creating the service
+            #   client as shown in:
+            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
+            from google.cloud import visionai_v1
+
+            def sample_delete_collection():
+                # Create a client
+                client = visionai_v1.WarehouseClient()
+
+                # Initialize request argument(s)
+                request = visionai_v1.DeleteCollectionRequest(
+                    name="name_value",
+                )
+
+                # Make the request
+                operation = client.delete_collection(request=request)
+
+                print("Waiting for operation to complete...")
+
+                response = operation.result()
+
+                # Handle the response
+                print(response)
+
+        Args:
+            request (Union[google.cloud.visionai_v1.types.DeleteCollectionRequest, dict]):
+                The request object. Request message for
+                DeleteCollectionRequest.
+            name (str):
+                Required. The name of the collection to delete. Format:
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
+
+                This corresponds to the ``name`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, str]]): Strings which should be
+                sent along with the request as metadata.
+
+        Returns:
+            google.api_core.operation.Operation:
+                An object representing a long-running operation.
+
+                The result type for the operation will be :class:`google.protobuf.empty_pb2.Empty` A generic empty message that you can re-use to avoid defining duplicated
+                   empty messages in your APIs. A typical example is to
+                   use it as the request or the response type of an API
+                   method. For instance:
+
+                      service Foo {
+                         rpc Bar(google.protobuf.Empty) returns
+                         (google.protobuf.Empty);
+
+                      }
+
+        """
+        # Create or coerce a protobuf request object.
+        # Quick check: If we got a request object, we should *not* have
+        # gotten any keyword arguments that map to the request.
+        has_flattened_params = any([name])
+        if request is not None and has_flattened_params:
+            raise ValueError('If the `request` argument is set, then none of '
+                             'the individual field arguments should be set.')
+
+        # Minor optimization to avoid making a copy if the user passes
+        # in a warehouse.DeleteCollectionRequest.
+        # There's no risk of modifying the input as we've already verified
+        # there are no flattened fields.
+        if not isinstance(request, warehouse.DeleteCollectionRequest):
+            request = warehouse.DeleteCollectionRequest(request)
+            # If we have keyword arguments corresponding to fields on the
+            # request, apply these.
+            if name is not None:
+                request.name = name
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._transport._wrapped_methods[self._transport.delete_collection]
+
+         # Certain fields should be provided within the metadata header;
+        # add these here.
+        metadata = tuple(metadata) + (
+            gapic_v1.routing_header.to_grpc_metadata((
+                ("name", request.name),
+            )),
+        )
+
+        # Send the request.
+        response = rpc(
+            request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Wrap the response in an operation future.
+        response = operation.from_gapic(
+            response,
+            self._transport.operations_client,
+            empty_pb2.Empty,
+            metadata_type=warehouse.DeleteCollectionMetadata,
+        )
+
+        # Done; return the response.
+        return response
+
     def get_collection(self,
             request: Optional[Union[warehouse.GetCollectionRequest, dict]] = None,
             *,
@@ -6539,7 +6780,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
             name (str):
                 Required. The name of the collection to retrieve.
                 Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
 
                 This corresponds to the ``name`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -6644,7 +6885,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
 
                 The collection's ``name`` field is used to identify the
                 collection to be updated. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
 
                 This corresponds to the ``collection`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -6762,7 +7003,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 The request object. Request message for ListCollections.
             parent (str):
                 Required. The parent corpus. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}``
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -6776,6 +7017,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
         Returns:
             visionai.python.gapic.visionai.visionai_v1.services.warehouse.pagers.ListCollectionsPager:
                 Response message for ListCollections.
+
                 Iterating over this object will yield
                 results and resolve additional pages
                 automatically.
@@ -7083,7 +7325,7 @@ class WarehouseClient(metaclass=WarehouseClientMeta):
                 ViewCollectionItems.
             collection (str):
                 Required. The collection to view. Format:
-                projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}
+                ``projects/{project_number}/locations/{location}/corpora/{corpus}/collections/{collection}``
 
                 This corresponds to the ``collection`` field
                 on the ``request`` instance; if ``request`` is provided, this

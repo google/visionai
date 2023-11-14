@@ -112,9 +112,7 @@ class PacketType(proto.Message):
     Attributes:
         type_class (str):
             The type class of the packet. Its possible
-            values are:
-
-            "gst", "protobuf", and "string".
+            values are: "gst", "protobuf", and "string".
         type_descriptor (google.cloud.visionai_v1.types.PacketType.TypeDescriptor):
             The type descriptor.
     """

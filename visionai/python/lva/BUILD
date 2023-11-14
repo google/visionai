@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+
 package(
     default_visibility = ["//visionai:__subpackages__"],
     licenses = ["notice"],

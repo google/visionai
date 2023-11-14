@@ -31,8 +31,7 @@ from google.cloud.location import locations_pb2 # type: ignore
 from visionai.python.gapic.visionai.visionai_v1.types import warehouse
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
-from google.longrunning import operations_pb2
-from google.longrunning import operations_pb2  # type: ignore
+from google.longrunning import operations_pb2 # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 
 DEFAULT_CLIENT_INFO = gapic_v1.client_info.ClientInfo(gapic_version=package_version.__version__)
@@ -124,7 +123,6 @@ class WarehouseTransport(abc.ABC):
                 self.create_asset,
                 default_retry=retries.Retry(
 initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.if_exception_type(
-                        core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
                     deadline=120.0,
@@ -172,6 +170,11 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
                 default_timeout=None,
                 client_info=client_info,
             ),
+            self.remove_index_asset: gapic_v1.method.wrap_method(
+                self.remove_index_asset,
+                default_timeout=None,
+                client_info=client_info,
+            ),
             self.view_indexed_assets: gapic_v1.method.wrap_method(
                 self.view_indexed_assets,
                 default_timeout=None,
@@ -206,7 +209,6 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
                 self.create_corpus,
                 default_retry=retries.Retry(
 initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.if_exception_type(
-                        core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
                     deadline=120.0,
@@ -243,7 +245,6 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
                 self.create_data_schema,
                 default_retry=retries.Retry(
 initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.if_exception_type(
-                        core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
                     deadline=120.0,
@@ -275,7 +276,6 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
                 self.create_annotation,
                 default_retry=retries.Retry(
 initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.if_exception_type(
-                        core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
                     deadline=120.0,
@@ -307,7 +307,6 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
                 self.ingest_asset,
                 default_retry=retries.Retry(
 initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.if_exception_type(
-                        core_exceptions.DeadlineExceeded,
                         core_exceptions.ServiceUnavailable,
                     ),
                     deadline=120.0,
@@ -427,6 +426,11 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
             ),
             self.create_collection: gapic_v1.method.wrap_method(
                 self.create_collection,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_collection: gapic_v1.method.wrap_method(
+                self.delete_collection,
                 default_timeout=None,
                 client_info=client_info,
             ),
@@ -551,6 +555,15 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
     @property
     def index_asset(self) -> Callable[
             [warehouse.IndexAssetRequest],
+            Union[
+                operations_pb2.Operation,
+                Awaitable[operations_pb2.Operation]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def remove_index_asset(self) -> Callable[
+            [warehouse.RemoveIndexAssetRequest],
             Union[
                 operations_pb2.Operation,
                 Awaitable[operations_pb2.Operation]
@@ -965,6 +978,15 @@ initial=1.0,maximum=120.0,multiplier=2.5,                    predicate=retries.i
     @property
     def create_collection(self) -> Callable[
             [warehouse.CreateCollectionRequest],
+            Union[
+                operations_pb2.Operation,
+                Awaitable[operations_pb2.Operation]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def delete_collection(self) -> Callable[
+            [warehouse.DeleteCollectionRequest],
             Union[
                 operations_pb2.Operation,
                 Awaitable[operations_pb2.Operation]

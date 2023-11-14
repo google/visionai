@@ -31,7 +31,6 @@ from google.api_core import operations_v1
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
 from google.cloud.location import locations_pb2 # type: ignore
-from google.longrunning import operations_pb2
 from requests import __version__ as requests_version
 import dataclasses
 import re
@@ -919,6 +918,10 @@ class AppPlatformRestTransport(AppPlatformTransport):
                     {
                         'method': 'get',
                         'uri': '/v1/{name=projects/*/locations/*/corpora/*/assets/*/operations/*}',
+                    },
+                    {
+                        'method': 'get',
+                        'uri': '/v1/{name=projects/*/locations/*/corpora/*/collections/*/operations/*}',
                     },
                     {
                         'method': 'get',
@@ -3483,6 +3486,10 @@ class AppPlatformRestTransport(AppPlatformTransport):
 {
                 'method': 'get',
                 'uri': '/v1/{name=projects/*/locations/*/corpora/*/assets/*/operations/*}',
+            },
+{
+                'method': 'get',
+                'uri': '/v1/{name=projects/*/locations/*/corpora/*/collections/*/operations/*}',
             },
 {
                 'method': 'get',

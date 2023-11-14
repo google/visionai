@@ -205,3 +205,29 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "load_balancer",
+    srcs = ["load_balancer.cc"],
+    hdrs = ["load_balancer.h"],
+    deps = [
+        "//visionai/proto:cluster_selection_cc_proto",
+        "//visionai/streams/client:cluster_health_check_client",
+        "//visionai/streams/client:control",
+        "//visionai/util/net/grpc:client_connect",
+        "//visionai/util/status:status_macros",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
+cc_test(
+    name = "load_balancer_test",
+    srcs = ["load_balancer_test.cc"],
+    deps = [
+        ":load_balancer",
+        "//visionai/proto:cluster_selection_cc_proto",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

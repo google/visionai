@@ -4,13 +4,15 @@
 """Tests for TransformProgress."""
 
 import logging
+from typing import Sequence
 from unittest import mock
-
 from google.api_core import exceptions
 from google.api_core import operation
 from google.auth import credentials as ga_credentials
+from google.cloud import videointelligence_v1
 
 from google.longrunning import operations_pb2
+from google.protobuf import duration_pb2
 from google.protobuf import struct_pb2
 from google.protobuf import timestamp_pb2
 from google.rpc import status_pb2
@@ -20,12 +22,17 @@ from visionai.python.lva import client
 from visionai.python.net import channel
 from visionai.python.warehouse.transformer import transform_progress
 
-TEST_OPERATION_NAME = "test/operation"
+_TEST_OPERATION_NAME = "test/operation"
+_ASSET_NAME = "projects/1/copora/2/assets/3"
 _logger = logging.getLogger(__name__)
 
 
 def make_operation_proto(
-    name=TEST_OPERATION_NAME, metadata=None, response=None, error=None, **kwargs
+    name=_TEST_OPERATION_NAME,
+    metadata=None,
+    response=None,
+    error=None,
+    **kwargs
 ):
   operation_proto = operations_pb2.Operation(name=name, **kwargs)
 
@@ -41,7 +48,9 @@ def make_operation_proto(
   return operation_proto
 
 
-def make_operation_future(client_operations_responses=None):
+def make_operation_future(
+    client_operations_responses=None, result_type=struct_pb2.Struct
+):
   if client_operations_responses is None:
     client_operations_responses = [make_operation_proto()]
 
@@ -54,7 +63,7 @@ def make_operation_future(client_operations_responses=None):
       client_operations_responses[0],
       refresh,
       cancel,
-      result_type=struct_pb2.Struct,
+      result_type=result_type,
       metadata_type=struct_pb2.Struct,
   )
 
@@ -157,32 +166,55 @@ class TransformProgressTest(googletest.TestCase):
         expected_operation,
     )
 
-  def test_speech_transform_progress_done(self):
-    expected_result = struct_pb2.Struct()
+  def test_wait_and_write_warehouse_transform_progress_done(self):
     responses = [
         make_operation_proto(),
         # Second operation response includes the result.
-        make_operation_proto(done=True, response=expected_result),
+        make_operation_proto(
+            done=True,
+            response=videointelligence_v1.types.AnnotateVideoResponse.pb()(),
+        ),
     ]
-    future, _, _ = make_operation_future(responses)
-    speech_transform_progress = transform_progress.SpeechTransformProgress(
-        future
+    future, _, _ = make_operation_future(
+        responses, result_type=videointelligence_v1.AnnotateVideoResponse
+    )
+    mock_warehouse_client = mock.MagicMock()
+
+    def _construct_annotations(
+        _: videointelligence_v1.AnnotateVideoResponse,
+    ) -> Sequence[visionai_v1.Annotation]:
+      annotations = []
+      for i in range(10):
+        annotation = visionai_v1.Annotation()
+        annotation.user_specified_annotation = visionai_v1.UserSpecifiedAnnotation(
+            key="key",
+            partition=visionai_v1.Partition(
+                relative_temporal_partition=visionai_v1.Partition.RelativeTemporalPartition(
+                    start_offset=duration_pb2.Duration(seconds=i),
+                    end_offset=duration_pb2.Duration(seconds=i + 1),
+                )
+            ),
+            value=visionai_v1.AnnotationValue(int_value=i),
+        )
+        annotations.append(annotation)
+      return annotations
+
+    progress = transform_progress.WaitAndWriteWarehouseTransformProgress(
+        _ASSET_NAME, mock_warehouse_client, future, _construct_annotations
     )
 
-    def call_back_fn(future: operation.Operation):
-      try:
-        result = future.result()
-        speech_transform_progress.set_result(True)
-      except exceptions.GoogleAPICallError as err:
-        speech_transform_progress.set_exception(
-            TransformError(speech_transform_progress.get_identifier(), err)
-        )
+    self.assertTrue(progress.result())
+    expected_create_annotation_calls = []
+    for annotation in _construct_annotations(_):
+      request = visionai_v1.CreateAnnotationRequest(
+          parent=_ASSET_NAME, annotation=annotation
+      )
+      expected_create_annotation_calls.append(
+          mock.call.create_annotation(request, retry=mock.ANY)
+      )
+    mock_warehouse_client.assert_has_calls(expected_create_annotation_calls)
 
-    future.add_done_callback(call_back_fn)
-
-    self.assertTrue(speech_transform_progress.result())
-
-  def test_speech_transform_progress_err(self):
+  def test_wait_and_write_warehouse_transform_progress_err(self):
     expected_exception = status_pb2.Status(message="err msg")
     responses = [
         make_operation_proto(),
@@ -190,25 +222,15 @@ class TransformProgressTest(googletest.TestCase):
         make_operation_proto(done=True, error=expected_exception),
     ]
     future, _, _ = make_operation_future(responses)
-    speech_transform_progress = transform_progress.SpeechTransformProgress(
-        future
+    def _construct_annotations(
+        _: videointelligence_v1.AnnotateVideoResponse,
+    ) -> Sequence[visionai_v1.Annotation]:
+      return []
+    progress = transform_progress.WaitAndWriteWarehouseTransformProgress(
+        _ASSET_NAME, mock.MagicMock(), future, _construct_annotations
     )
-
-    def call_back_fn(future: operation.Operation):
-      try:
-        result = future.result()
-        speech_transform_progress.set_result(True)
-      except Exception as err:
-        speech_transform_progress.set_exception(
-            transform_progress.TransformError(
-                speech_transform_progress.get_identifier(), err
-            )
-        )
-
-    future.add_done_callback(call_back_fn)
-
     self.assertRaises(
-        transform_progress.TransformError, speech_transform_progress.result
+        transform_progress.TransformError, progress.result
     )
 
   def test_combined_transform_progress_done(self):

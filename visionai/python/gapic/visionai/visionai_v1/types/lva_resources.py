@@ -187,9 +187,9 @@ class Process(proto.Message):
             Optional. Optional: Batch ID of the Process.
         retry_count (int):
             Optional. Optional: The number of retries for
-            a process in submission mode
-            the system should try before declaring failure.
-            By default, no retry will be performed.
+            a process in submission mode the system should
+            try before declaring failure. By default, no
+            retry will be performed.
     """
 
     name: str = proto.Field(

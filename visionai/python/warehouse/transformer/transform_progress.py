@@ -5,19 +5,20 @@
 
 TransformProgress is a type of google.api_core.PollingFuture.
 """
-
 import abc
+import functools
 import logging
 import threading
-from typing import Sequence
+from typing import Callable, Sequence
 from google.api_core import exceptions
 from google.api_core import operation
 from google.api_core import retry as retry_lib
 from google.api_core.exceptions import GoogleAPICallError
 from google.api_core.future import polling as polling_lib
+from google.cloud import videointelligence_v1
+import ratelimit
 from visionai.python.gapic.visionai import visionai_v1
 from visionai.python.lva import client
-
 
 _logger = logging.getLogger(__name__)
 
@@ -136,12 +137,56 @@ class LroTransformProgress(TransformProgress):
       return None
 
 
-class SpeechTransformProgress(TransformProgress):
-  """The future for the speech transcription transform."""
+_RATE_LIMIT_MAX_CALLS = 3600
+_RATE_LIMIT_PERIOD_IN_SECONDS = 60
+_CREATE_ANNOTATION_RETRY = retry_lib.Retry(
+    initial=1.0,
+    maximum=120.0,
+    multiplier=2.5,
+    predicate=retry_lib.if_exception_type(
+        exceptions.DeadlineExceeded,
+        exceptions.ServiceUnavailable,
+        exceptions.ResourceExhausted,
+    ),
+    deadline=120.0,
+)
 
-  def __init__(self, annotate_video_lro: operation.Operation):
+
+class WaitAndWriteWarehouseTransformProgress(TransformProgress):
+  """The future for waiting for the input operation and writing warehouse annotations."""
+
+  def __init__(
+      self,
+      asset_name: str,
+      warehouse_client: visionai_v1.WarehouseClient,
+      annotate_video_lro: operation.Operation,
+      construct_annotations: Callable[
+          [videointelligence_v1.AnnotateVideoResponse],
+          Sequence[visionai_v1.Annotation],
+      ],
+  ):
     super().__init__(retry=DEFAULT_POLLING)
     self._annotate_video_lro = annotate_video_lro
+    self._warehouse_client = warehouse_client
+    self._asset_name = asset_name
+
+    def write_to_warehouse(
+        annotate_video_operation: operation.Operation,
+    ):
+      try:
+        result = annotate_video_operation.result()
+        _logger.info(
+            "Video intelligence operation response: %s",
+            result,
+        )
+        self._send_warehouse_annotations(construct_annotations(result))
+        _logger.info("Successfully wrote annotations to warehouse")
+        self.set_result(True)
+      except exceptions.GoogleAPICallError as err:
+        _logger.exception("Failed to write to warehouse %s", err)
+        self.set_exception(TransformError(self.get_identifier(), err))
+
+    self._annotate_video_lro.add_done_callback(write_to_warehouse)
 
   def done(self, retry=None):
     """Transform is done when either result or exception is set."""
@@ -158,9 +203,37 @@ class SpeechTransformProgress(TransformProgress):
 
   def get_identifier(self) -> str:
     return (
-        "SpeechTransformProgress(%s And write to warehouse)"
+        "AnnotateAndWriteWarehouseTransformProgress(%s And write to warehouse)"
         % self._annotate_video_lro.operation.name
     )
+
+  @ratelimit.sleep_and_retry
+  @ratelimit.limits(
+      calls=_RATE_LIMIT_MAX_CALLS, period=_RATE_LIMIT_PERIOD_IN_SECONDS
+  )
+  def _send_one_warehouse_annotation(
+      self,
+      annotation: visionai_v1.Annotation,
+  ) -> None:
+    self._warehouse_client.create_annotation(
+        visionai_v1.CreateAnnotationRequest(
+            parent=self._asset_name, annotation=annotation
+        ),
+        retry=_CREATE_ANNOTATION_RETRY,
+    )
+
+  def _send_warehouse_annotations(
+      self,
+      annotations: Sequence[visionai_v1.Annotation],
+  ) -> None:
+    for annotation in annotations:
+      _logger.debug(
+          "Create annotation %s",
+          visionai_v1.CreateAnnotationRequest(
+              parent=self._asset_name, annotation=annotation
+          ),
+      )
+      self._send_one_warehouse_annotation(annotation)
 
 
 class LvaTransformProgress(TransformProgress):

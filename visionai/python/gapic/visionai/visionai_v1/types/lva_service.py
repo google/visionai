@@ -177,6 +177,7 @@ class CreateOperatorRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -185,6 +186,7 @@ class CreateOperatorRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -229,6 +231,7 @@ class UpdateOperatorRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -237,6 +240,7 @@ class UpdateOperatorRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -271,6 +275,7 @@ class DeleteOperatorRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes after the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -279,6 +284,7 @@ class DeleteOperatorRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -399,6 +405,7 @@ class CreateAnalysisRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -407,6 +414,7 @@ class CreateAnalysisRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -451,6 +459,7 @@ class UpdateAnalysisRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -459,6 +468,7 @@ class UpdateAnalysisRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -493,6 +503,7 @@ class DeleteAnalysisRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes after the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -501,6 +512,7 @@ class DeleteAnalysisRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -621,6 +633,7 @@ class CreateProcessRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -629,6 +642,7 @@ class CreateProcessRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -673,6 +687,7 @@ class UpdateProcessRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -681,6 +696,7 @@ class UpdateProcessRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -715,6 +731,7 @@ class DeleteProcessRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes after the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -723,6 +740,7 @@ class DeleteProcessRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).

@@ -5,9 +5,11 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 
+#include <string>
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/flags/usage.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/time/clock.h"
 #include "visionai/public/streams.h"

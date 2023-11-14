@@ -8,19 +8,30 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "google/cloud/visionai/v1/health_service.pb.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "visionai/algorithms/media/util/register_plugins_for_sdk.h"
 #include "visionai/proto/cluster_selection.pb.h"
 #include "visionai/proto/ingester_config.pb.h"
 #include "visionai/streams/client/control.h"
+#include "visionai/streams/client/event_update_receiver.h"
 #include "visionai/streams/client/packet_sender.h"
 #include "visionai/streams/client/resource_util.h"
 #include "visionai/streams/ingester.h"
+#include "visionai/streams/packet/packet.h"
+#include "visionai/util/net/grpc/client_connect.h"
 #include "visionai/util/random_string.h"
 #include "visionai/util/status/status_macros.h"
 #include "visionai/streams/client/platform_client.h"
+#include "visionai/streams/client/cluster_health_check_client.h"
+#include "visionai/util/status/status_macros.h"
+#include "visionai/streams/load_balancer.h"
 
 namespace visionai {
 
@@ -75,40 +86,40 @@ absl::Status DeleteStream(const ServiceConnectionOptions& options,
   return DeleteStream(cluster_selection, std::string(stream_id));
 }
 
-absl::Status AddStreamToApplication(const ServiceConnectionOptions& options,
+absl::Status AddStreamToApplication(const ClusterSelection& cluster_selection,
                                     absl::string_view stream_id,
                                     absl::string_view application_id) {
   VAI_ASSIGN_OR_RETURN(auto platformClient,
-                   PlatformClient::Create(options.service_endpoint));
+                PlatformClient::Create(cluster_selection.service_endpoint()));
   auto stream = resource_ids::Stream{
-    .project_id = options.project_id,
-    .location_id = options.location_id,
-    .cluster_id = options.cluster_id,
+    .project_id = cluster_selection.project_id(),
+    .location_id = cluster_selection.location_id(),
+    .cluster_id = cluster_selection.cluster_id(),
     .stream_id = std::string(stream_id),
   };
   auto application = resource_ids::Application{
-    .project_id = options.project_id,
-    .location_id = options.location_id,
+    .project_id = cluster_selection.project_id(),
+    .location_id = cluster_selection.location_id(),
     .application_id = std::string(application_id),
   };
   return platformClient->AddStreamToApplication(stream, application);
 }
 
 absl::Status RemoveStreamFromApplication(
-    const ServiceConnectionOptions& options,
+    const ClusterSelection& cluster_selection,
     absl::string_view stream_id,
     absl::string_view application_id) {
   VAI_ASSIGN_OR_RETURN(auto platformClient,
-                   PlatformClient::Create(options.service_endpoint));
+                PlatformClient::Create(cluster_selection.service_endpoint()));
   auto stream = resource_ids::Stream{
-    .project_id = options.project_id,
-    .location_id = options.location_id,
-    .cluster_id = options.cluster_id,
+    .project_id = cluster_selection.project_id(),
+    .location_id = cluster_selection.location_id(),
+    .cluster_id = cluster_selection.cluster_id(),
     .stream_id = std::string(stream_id),
   };
   auto application = resource_ids::Application{
-    .project_id = options.project_id,
-    .location_id = options.location_id,
+    .project_id = cluster_selection.project_id(),
+    .location_id = cluster_selection.location_id(),
     .application_id = std::string(application_id),
   };
   return platformClient->RemoveStreamFromApplication(stream, application);
@@ -295,7 +306,12 @@ absl::Status IngestRtsp(const ServiceConnectionOptions& options,
                         absl::string_view stream_id,
                         absl::string_view rtsp_url) {
   VAI_ASSIGN_OR_RETURN(auto cluster_selection, ToClusterSelection(options));
+  return IngestRtsp(cluster_selection, stream_id, rtsp_url);
+}
 
+absl::Status IngestRtsp(const ClusterSelection& cluster_selection,
+                        absl::string_view stream_id,
+                        absl::string_view rtsp_url) {
   IngesterConfig config;
   CaptureConfig* capture_config = config.mutable_capture_config();
   capture_config->set_name("RTSPCapture");
@@ -346,6 +362,84 @@ absl::Status IngestMotion(const ServiceConnectionOptions& options,
   VAI_RETURN_IF_ERROR(RunIngester(config));
 
   return absl::OkStatus();
+}
+
+// ----------------------------------------------------------------------------
+// Multi-cluster supports.
+// ----------------------------------------------------------------------------
+absl::Status IngestRtsp(
+    LoadBalancer& load_balancer,
+    const std::vector<resource_ids::Application>& applications,
+    absl::string_view stream_id,
+    absl::string_view rtsp_url) {
+  while (true) {
+    auto cluster_status = load_balancer.FindAvailableCluster();
+    if (!cluster_status.ok()) {
+      return absl::UnavailableError("No available cluster!");
+    }
+    auto cluster_selection = cluster_status.value();
+
+    LOG(INFO) << "Find available cluster " << cluster_selection.project_id()
+        << " " << cluster_selection.location_id()
+        << " " << cluster_selection.cluster_id();
+    auto create_status = CreateStream(cluster_selection,
+                                      std::string(stream_id));
+    if (!create_status.ok() && !absl::IsAlreadyExists(create_status)) {
+      LOG(ERROR) << "Failed to create stream " << create_status;
+      continue;
+    }
+
+    // Find associated application of the cluster.
+    std::vector<std::string> associated_apps;
+    for (const auto& app : applications) {
+      if (app.project_id == cluster_selection.project_id()
+          && app.location_id == cluster_selection.location_id()) {
+            associated_apps.push_back(app.application_id);
+      }
+    }
+
+    for (const auto& app_id : associated_apps) {
+      auto add_status = AddStreamToApplication(
+          cluster_selection, stream_id, app_id);
+      if (!add_status.ok() && !absl::IsAlreadyExists(add_status)) {
+        LOG(ERROR) << "Failed to add stream to application" << add_status;
+        continue;
+      }
+    }
+
+    while (true) {
+      auto ingest_status = IngestRtsp(
+          cluster_selection, stream_id, rtsp_url);
+      if (!ingest_status.ok()) {
+        LOG(ERROR) << "Failed to ingest stream " << ingest_status;
+      }
+
+      // Continue if the cluster is still healthy.
+      auto check_resp = CheckClusterHealth(cluster_selection);
+      if (check_resp.ok() && check_resp.value().healthy()) {
+        continue;
+      }
+      // Otherwise, fail-over to another cluster.
+      break;
+    }
+  }
+}
+
+absl::StatusOr<google::cloud::visionai::v1::HealthCheckResponse>
+  CheckClusterHealth(const ClusterSelection& cluster_selection){
+  // Set up Health Check client.
+  VAI_ASSIGN_OR_RETURN(const auto endpoint, GetClusterEndpoint(cluster_selection));
+  ClusterHealthCheckClient::Options clOptions;
+  clOptions.target_address = endpoint;
+  clOptions.connection_options = DefaultConnectionOptions();
+  clOptions.connection_options.mutable_ssl_options()->set_use_insecure_channel(
+      cluster_selection.use_insecure_channel());
+  VAI_ASSIGN_OR_RETURN(auto healthClient,
+                   ClusterHealthCheckClient::Create(clOptions));
+  VAI_ASSIGN_OR_RETURN(auto cluster_name, ClusterNameFrom(cluster_selection));
+  VAI_ASSIGN_OR_RETURN(auto response,
+                   healthClient->CheckClusterHealth(cluster_name));
+  return response;
 }
 
 }  // namespace visionai

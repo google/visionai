@@ -14,11 +14,11 @@
 #include <string>
 #include <utility>
 
+#include "prometheus/histogram.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "opencensus/stats/stats.h"
 #include "opencensus/tags/tag_key.h"
-#include "prometheus/histogram.h"
 #include "visionai/util/telemetry/metrics/stats_macros.h"
 
 namespace visionai {

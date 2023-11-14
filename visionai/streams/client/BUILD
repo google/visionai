@@ -210,6 +210,25 @@ cc_library(
 )
 
 cc_library(
+    name = "cluster_health_check_client",
+    srcs = [
+        "cluster_health_check_client.cc",
+    ],
+    hdrs = [
+        "cluster_health_check_client.h",
+    ],
+    deps = [
+        "//visionai/proto/util/net/grpc:connection_options_cc_proto",
+        "//visionai/util/net/grpc:client_connect",
+        "//visionai/util/status:status_macros",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_grpc",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
+cc_library(
     name = "streaming_send_packets_grpc_client",
     srcs = ["streaming_send_packets_grpc_client.cc"],
     hdrs = ["streaming_send_packets_grpc_client.h"],
@@ -241,6 +260,18 @@ cc_library(
         "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_grpc",
         "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
         "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_library(
+    name = "mock_health_service",
+    hdrs = [
+        "mock_health_service.h",
+    ],
+    deps = [
+        "//visionai/testing/grpc:mock_grpc",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_grpc",
+        "@com_github_googleapis_googleapis//google/cloud/visionai/v1:visionai_cc_proto",
     ],
 )
 

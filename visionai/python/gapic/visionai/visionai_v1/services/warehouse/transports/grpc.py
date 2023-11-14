@@ -29,8 +29,7 @@ from google.cloud.location import locations_pb2 # type: ignore
 from visionai.python.gapic.visionai.visionai_v1.types import warehouse
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
-from google.longrunning import operations_pb2
-from google.longrunning import operations_pb2  # type: ignore
+from google.longrunning import operations_pb2 # type: ignore
 from google.protobuf import empty_pb2  # type: ignore
 from .base import WarehouseTransport, DEFAULT_CLIENT_INFO
 
@@ -386,7 +385,18 @@ class WarehouseGrpcTransport(WarehouseTransport):
         r"""Return a callable for the upload asset method over gRPC.
 
         Upload asset by specifing the asset Cloud Storage
-        uri.
+        uri. For video warehouse, it requires users who call
+        this API have read access to the cloud storage file.
+        Once it is uploaded, it can be retrieved by
+        GenerateRetrievalUrl API which by default, only can
+        retrieve cloud storage files from the same project of
+        the warehouse. To allow retrieval cloud storage files
+        that are in a separate project, it requires to find the
+        vision ai service account (Go to IAM, check checkbox to
+        show "Include Google-provided role grants", search for
+        "Cloud Vision AI Service Agent") and grant the read
+        access of the cloud storage files to that service
+        account.
 
         Returns:
             Callable[[~.UploadAssetRequest],
@@ -413,6 +423,9 @@ class WarehouseGrpcTransport(WarehouseTransport):
         r"""Return a callable for the generate retrieval url method over gRPC.
 
         Generates a signed url for downloading the asset.
+        For video warehouse, please see comment of UploadAsset
+        about how to allow retrieval of cloud storage files in a
+        different project.
 
         Returns:
             Callable[[~.GenerateRetrievalUrlRequest],
@@ -486,12 +499,39 @@ class WarehouseGrpcTransport(WarehouseTransport):
         return self._stubs['index_asset']
 
     @property
+    def remove_index_asset(self) -> Callable[
+            [warehouse.RemoveIndexAssetRequest],
+            operations_pb2.Operation]:
+        r"""Return a callable for the remove index asset method over gRPC.
+
+        Remove one asset's index data for search. Supported corpus type:
+        Corpus.Type.VIDEO_ON_DEMAND
+
+        Returns:
+            Callable[[~.RemoveIndexAssetRequest],
+                    ~.Operation]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if 'remove_index_asset' not in self._stubs:
+            self._stubs['remove_index_asset'] = self.grpc_channel.unary_unary(
+                '/google.cloud.visionai.v1.Warehouse/RemoveIndexAsset',
+                request_serializer=warehouse.RemoveIndexAssetRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs['remove_index_asset']
+
+    @property
     def view_indexed_assets(self) -> Callable[
             [warehouse.ViewIndexedAssetsRequest],
             warehouse.ViewIndexedAssetsResponse]:
         r"""Return a callable for the view indexed assets method over gRPC.
 
-        Lists a list of assets inside an index.
+        Lists assets inside an index.
 
         Returns:
             Callable[[~.ViewIndexedAssetsRequest],
@@ -543,7 +583,9 @@ class WarehouseGrpcTransport(WarehouseTransport):
             operations_pb2.Operation]:
         r"""Return a callable for the update index method over gRPC.
 
-        Updates an Index under the corpus.
+        Updates an Index under the corpus. Users can perform a
+        metadata-only update or trigger a full index rebuild with
+        different update_mask values.
 
         Returns:
             Callable[[~.UpdateIndexRequest],
@@ -1729,6 +1771,32 @@ class WarehouseGrpcTransport(WarehouseTransport):
                 response_deserializer=operations_pb2.Operation.FromString,
             )
         return self._stubs['create_collection']
+
+    @property
+    def delete_collection(self) -> Callable[
+            [warehouse.DeleteCollectionRequest],
+            operations_pb2.Operation]:
+        r"""Return a callable for the delete collection method over gRPC.
+
+        Deletes a collection.
+
+        Returns:
+            Callable[[~.DeleteCollectionRequest],
+                    ~.Operation]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if 'delete_collection' not in self._stubs:
+            self._stubs['delete_collection'] = self.grpc_channel.unary_unary(
+                '/google.cloud.visionai.v1.Warehouse/DeleteCollection',
+                request_serializer=warehouse.DeleteCollectionRequest.serialize,
+                response_deserializer=operations_pb2.Operation.FromString,
+            )
+        return self._stubs['delete_collection']
 
     @property
     def get_collection(self) -> Callable[

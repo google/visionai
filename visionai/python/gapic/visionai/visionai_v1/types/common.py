@@ -242,8 +242,7 @@ class Point2D(proto.Message):
 class Polygon2D(proto.Message):
     r"""Proto to describe a 2 dimension polygon. A polygon has N
     points in a clock-wise order and should be read in a circular
-    fashion e.g. 0 -> 1 -> ...
-    -> n -> 0.
+    fashion e.g. 0 -> 1 -> ... -> n -> 0.
 
     Attributes:
         points (MutableSequence[google.cloud.visionai_v1.types.Point2D]):

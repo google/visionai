@@ -1241,6 +1241,11 @@
                 "delete_asset"
               ]
             },
+            "DeleteCollection": {
+              "methods": [
+                "delete_collection"
+              ]
+            },
             "DeleteCorpus": {
               "methods": [
                 "delete_corpus"
@@ -1394,6 +1399,11 @@
             "RemoveCollectionItem": {
               "methods": [
                 "remove_collection_item"
+              ]
+            },
+            "RemoveIndexAsset": {
+              "methods": [
+                "remove_index_asset"
               ]
             },
             "SearchAssets": {
@@ -1551,6 +1561,11 @@
                 "delete_asset"
               ]
             },
+            "DeleteCollection": {
+              "methods": [
+                "delete_collection"
+              ]
+            },
             "DeleteCorpus": {
               "methods": [
                 "delete_corpus"
@@ -1704,6 +1719,11 @@
             "RemoveCollectionItem": {
               "methods": [
                 "remove_collection_item"
+              ]
+            },
+            "RemoveIndexAsset": {
+              "methods": [
+                "remove_index_asset"
               ]
             },
             "SearchAssets": {
@@ -1861,6 +1881,11 @@
                 "delete_asset"
               ]
             },
+            "DeleteCollection": {
+              "methods": [
+                "delete_collection"
+              ]
+            },
             "DeleteCorpus": {
               "methods": [
                 "delete_corpus"
@@ -2014,6 +2039,11 @@
             "RemoveCollectionItem": {
               "methods": [
                 "remove_collection_item"
+              ]
+            },
+            "RemoveIndexAsset": {
+              "methods": [
+                "remove_index_asset"
               ]
             },
             "SearchAssets": {

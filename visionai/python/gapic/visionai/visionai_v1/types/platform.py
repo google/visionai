@@ -285,6 +285,7 @@ class CreateApplicationInstancesRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -293,6 +294,7 @@ class CreateApplicationInstancesRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -331,6 +333,7 @@ class DeleteApplicationInstancesRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -339,6 +342,7 @@ class DeleteApplicationInstancesRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -490,6 +494,7 @@ class CreateApplicationRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -498,6 +503,7 @@ class CreateApplicationRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -542,6 +548,7 @@ class UpdateApplicationRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -550,6 +557,7 @@ class UpdateApplicationRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -584,6 +592,7 @@ class DeleteApplicationRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes after the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -592,6 +601,7 @@ class DeleteApplicationRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -636,6 +646,7 @@ class DeployApplicationRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -644,6 +655,7 @@ class DeployApplicationRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -694,6 +706,7 @@ class UndeployApplicationRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -702,6 +715,7 @@ class UndeployApplicationRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -752,6 +766,7 @@ class AddApplicationStreamInputRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -760,6 +775,7 @@ class AddApplicationStreamInputRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -800,6 +816,7 @@ class UpdateApplicationStreamInputRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -808,6 +825,7 @@ class UpdateApplicationStreamInputRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -855,6 +873,7 @@ class RemoveApplicationStreamInputRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -863,6 +882,7 @@ class RemoveApplicationStreamInputRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -1088,6 +1108,7 @@ class CreateDraftRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -1096,6 +1117,7 @@ class CreateDraftRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -1140,6 +1162,7 @@ class UpdateDraftRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -1148,6 +1171,7 @@ class UpdateDraftRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -1195,6 +1219,7 @@ class UpdateApplicationInstancesRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -1203,6 +1228,7 @@ class UpdateApplicationInstancesRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -1276,6 +1302,7 @@ class DeleteDraftRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes after the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -1284,6 +1311,7 @@ class DeleteDraftRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -1433,6 +1461,7 @@ class CreateProcessorRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -1441,6 +1470,7 @@ class CreateProcessorRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -1485,6 +1515,7 @@ class UpdateProcessorRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes since the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -1493,6 +1524,7 @@ class UpdateProcessorRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).
@@ -1527,6 +1559,7 @@ class DeleteProcessorRequest(proto.Message):
             know to ignore the request if it has already
             been completed. The server will guarantee that
             for at least 60 minutes after the first request.
+
             For example, consider a situation where you make
             an initial request and the request times out. If
             you make the request again with the same request
@@ -1535,6 +1568,7 @@ class DeleteProcessorRequest(proto.Message):
             so, will ignore the second request. This
             prevents clients from accidentally creating
             duplicate commitments.
+
             The request ID must be a valid UUID with the
             exception that zero UUID is not supported
             (00000000-0000-0000-0000-000000000000).

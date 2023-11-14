@@ -18,7 +18,7 @@ namespace visionai {
 // StreamingService.
 //
 // It deals with elementary grpc and AIP's API conventions for interacting with
-// tehe StreamingService while deferring service specific details to the caller.
+// the StreamingService while deferring service specific details to the caller.
 class StreamingControlGrpcClient {
  public:
   // Options for specifying the connection to the Streaming service.

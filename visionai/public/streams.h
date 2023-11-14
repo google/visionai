@@ -41,7 +41,10 @@
 #define THIRD_PARTY_VISIONAI_PUBLIC_STREAMS_H_
 
 #include <memory>
+#include <unordered_map>
 #include <utility>
+#include <vector>
+#include <string>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -52,6 +55,12 @@
 #include "visionai/streams/client/packet_receiver.h"
 #include "visionai/streams/client/packet_sender.h"
 #include "visionai/streams/packet/packet.h"
+#include "visionai/streams/client/cluster_health_check_client.h"
+#include "visionai/util/status/status_macros.h"
+#include "visionai/streams/client/resource_util.h"
+#include "absl/status/status.h"
+#include "visionai/streams/load_balancer.h"
+#include "google/cloud/visionai/v1/health_service.pb.h"
 
 namespace visionai {
 
@@ -113,6 +122,18 @@ struct MotionFilterOptions {
   std::string lookback_window;
 };
 
+/// @brief ClusterCandidates is a structure that contains a list of cluster
+///        information, and the priorities of fail-over logic.
+struct ClusterCandidates {
+  /// @brief The cluster details, indexed by the location ID.
+  std::unordered_map<std::string, std::vector<ServiceConnectionOptions>>
+      clusters_by_location;
+
+  /// @brief The list of locations ranked by their priority. The first one in
+  /// the list is the primary location.
+  std::vector<std::string> locations;
+};
+
 /// @}
 
 /// @defgroup control Control
@@ -146,7 +167,7 @@ absl::Status DeleteStream(const ServiceConnectionOptions& options,
 /// @param application_id The id of the application to add the stream to.
 /// @return OK on success. Otherwise the error indicating the cause.
 ///
-absl::Status AddStreamToApplication(const ServiceConnectionOptions& options,
+absl::Status AddStreamToApplication(const ClusterSelection& cluster_selection,
                                     absl::string_view stream_id,
                                     absl::string_view application_id);
 /// @}
@@ -159,7 +180,7 @@ absl::Status AddStreamToApplication(const ServiceConnectionOptions& options,
 /// @return OK on success. Otherwise the error indicating the cause.
 ///
 absl::Status RemoveStreamFromApplication(
-    const ServiceConnectionOptions& options,
+    const ClusterSelection& cluster_selection,
     absl::string_view stream_id,
     absl::string_view application_id);
 /// @}
@@ -385,7 +406,7 @@ class StreamReceiver {
 
     /// @brief OPTIONAL: A name to identify the receiver.
     ///
-    /// Leave empty to have it be automatically generatead.
+    /// Leave empty to have it be automatically generated.
     std::string receiver_id;
   };
 
@@ -478,6 +499,10 @@ absl::Status IngestRtsp(const ServiceConnectionOptions& options,
                         absl::string_view stream_id,
                         absl::string_view rtsp_url);
 
+absl::Status IngestRtsp(const ClusterSelection& cluster_selection,
+                        absl::string_view stream_id,
+                        absl::string_view rtsp_url);
+
 /// @}
 
 /// @brief Ingests an MP4 video file on the local file system named `file_name`
@@ -493,6 +518,28 @@ absl::Status IngestMotion(const ServiceConnectionOptions& options,
                        const MotionFilterOptions& motion_options);
 
 /// @}
+
+// ----------------------------------------------------------------------------
+// Health Check and Fail-over.
+// ----------------------------------------------------------------------------
+
+/// @brief This is the example code for users who want to ingests an RTSP camera
+///        endpoint `rtsp_url` into a stream of id `stream_id`, with
+///        multi-cluster supports.
+///
+///        Users can provide the list of candidates clusters and a list of
+///        applications. It will help fail-over the video stream to another
+///        healthy cluster if the original one becomes unhealthy.
+absl::Status IngestRtsp(
+    LoadBalancer& load_balancer,
+    const std::vector<resource_ids::Application>& applications,
+    absl::string_view stream_id,
+    absl::string_view rtsp_url);
+
+/// @}
+
+absl::StatusOr<google::cloud::visionai::v1::HealthCheckResponse>
+  CheckClusterHealth(const ClusterSelection& cluster_selection);
 
 //------------------------------------------------------------------------------
 // End of public interfaces.
